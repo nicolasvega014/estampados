@@ -29,9 +29,30 @@ function App() {
     if (!featured) return
     featured.insertAdjacentHTML('afterend', `<section class="collections" id="colecciones"><aside class="collections-nav"><p class="eyebrow">EXPLORÁ POR ESTILO</p><h2>Colecciones</h2><div class="collection-links"><button class="active">Todo</button><button>Anime</button><button>Flores</button><button>Gaming</button><button>Música</button><button>Deportes</button><button>Autos & motos</button><button>Mascotas</button><button>Frases</button></div></aside><div class="collection-content"><div class="collection-heading"><div><p class="eyebrow">DISEÑOS LISTOS PARA USAR</p><h2>Encontrá tu estilo.</h2></div><p>Elegí una colección o subí tu propio arte para crear una remera única.</p></div><div class="collection-grid"><article><img src="https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?auto=format&fit=crop&w=800&q=80" alt="Colección Anime"/><span>ANIME</span></article><article><img src="https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80" alt="Colección Flores"/><span>FLORES</span></article><article><img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80" alt="Colección Gaming"/><span>GAMING</span></article><article><img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=800&q=80" alt="Colección Música"/><span>MÚSICA</span></article><article><img src="https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=800&q=80" alt="Colección Deportes"/><span>DEPORTES</span></article><article><img src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=800&q=80" alt="Colección Autos y motos"/><span>AUTOS & MOTOS</span></article><article><img src="https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=800&q=80" alt="Colección Mascotas"/><span>MASCOTAS</span></article><article class="quote-card"><p>"HACÉ LUGAR<br/>PARA LO<br/>QUE TE<br/>HACE VOS."</p><span>FRASES</span></article></div></div></section>`)
     const buttons = document.querySelectorAll('.collection-links button')
-    const select = (event) => { buttons.forEach((button) => button.classList.remove('active')); event.currentTarget.classList.add('active') }
+    const categories = ['Todo', 'Mascotas', 'Flores', 'Verano', 'Coquette', 'Frases', 'Moda', 'Vintage']
+    const grid = document.querySelector('.collection-grid')
+    const heading = document.querySelector('.collection-heading h2')
+    let designs = []
+    let cancelled = false
+    buttons.forEach((button, index) => { if (categories[index]) button.textContent = categories[index]; else button.remove() })
+    const renderCollection = (category) => {
+      if (!grid) return
+      grid.replaceChildren()
+      const visibleDesigns = (category === 'Todo' ? designs : designs.filter((design) => design.category === category)).slice(0, 24)
+      visibleDesigns.forEach((design) => {
+        const card = document.createElement('article')
+        const image = document.createElement('img')
+        const label = document.createElement('span')
+        image.src = design.src; image.alt = design.name; image.loading = 'lazy'
+        label.textContent = design.name.toUpperCase()
+        card.append(image, label); grid.append(card)
+      })
+      if (heading) heading.textContent = category === 'Todo' ? 'Encontrá tu estilo.' : category
+    }
+    fetch('/designs/manifest.json').then((response) => response.json()).then((items) => { if (!cancelled) { designs = items; renderCollection('Todo') } }).catch(() => {})
+    const select = (event) => { buttons.forEach((button) => button.classList.remove('active')); event.currentTarget.classList.add('active'); renderCollection(event.currentTarget.textContent) }
     buttons.forEach((button) => button.addEventListener('click', select))
-    return () => buttons.forEach((button) => button.removeEventListener('click', select))
+    return () => { cancelled = true; buttons.forEach((button) => button.removeEventListener('click', select)) }
   }, [isCustomizerPage])
   const whatsappMessage = useMemo(() => encodeURIComponent(`Hola, quiero pedir una remera personalizada.\nColor: ${color.name}\nTalle: ${size}\nDiseño frente: ${fileNames.Frente || 'sin diseño'}\nDiseño espalda: ${fileNames.Espalda || 'sin diseño'}`), [color, fileNames, size])
   function uploadDesign(event) { const file = event.target.files?.[0]; if (!file) return; if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setNotice('Elegí una imagen JPG, PNG o WEBP.'); return } if (file.size > 10 * 1024 * 1024) { setNotice('La imagen no puede superar 10 MB.'); return } const url = URL.createObjectURL(file); const image = new Image(); image.onload = () => { setDesigns(current => ({ ...current, [side]: url })); setFileNames(current => ({ ...current, [side]: file.name })); setTransform({ x: 50, y: 43, scale: 54, rotation: 0 }); setNotice(image.width < 1000 || image.height < 1000 ? 'Atención: la imagen podría verse pixelada al estampar. Recomendamos al menos 1000 px.' : `¡Diseño cargado en ${side.toLowerCase()}! Podés moverlo directamente sobre la remera.`) }; image.src = url }
