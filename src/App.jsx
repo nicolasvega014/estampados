@@ -1,16 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import Shirt3D from './Shirt3D'
 import './App.css'
 
 const COLORS = [{ name: 'Blanco', value: '#f7f6f2' }, { name: 'Negro', value: '#1e1e21' }, { name: 'Arena', value: '#d9d0c3' }, { name: 'Verde', value: '#71866c' }, { name: 'Bordó', value: '#7d3541' }]
 const SIZES = ['S', 'M', 'L', 'XL', 'XXL']
 
 function Shirt({ color, design, transform, side, onPointerDown }) {
+  return <Shirt3D color={color} design={design} side={side} transform={transform}/>
   const isBack = side === 'Espalda'
   return <div className={`shirt-stage ${isBack ? 'back' : 'front'}`}><svg className="shirt" viewBox="0 0 360 440" aria-label={`Remera ${color.name}, vista ${side}`}><defs><linearGradient id="fabric" x1="0" x2=".9" y1="0" y2="1"><stop stopColor={color.value}/><stop offset=".72" stopColor={color.value}/><stop offset="1" stopColor={color.value} stopOpacity=".88"/></linearGradient><linearGradient id="light" x1="0" x2="1" y1="0" y2="1"><stop stopColor="#fff" stopOpacity=".3"/><stop offset=".6" stopColor="#fff" stopOpacity="0"/></linearGradient></defs><path className="shirt-body" d="M110 47 70 66 18 116l47 70 46-30v250c43 9 101 9 138 0V156l46 30 47-70-52-50-40-19c-13 23-39 34-70 34s-57-11-70-34Z" fill="url(#fabric)"/><path className="shirt-highlight" d="M110 47 70 66 18 116l47 70 46-30v250c20 4 45 6 69 6V82c-31 0-57-11-70-35Z" fill="url(#light)"/><path className="sleeve-seam" d="m70 66 41 47m179-47-41 47"/><path className="side-seam" d="M111 156v250m138-250v250"/>{isBack ? <><path className="collar back-collar" d="M116 51c13 25 99 25 128 0"/><path className="back-yoke" d="M91 101c55 18 123 18 178 0"/></> : <><path className="collar" d="M110 47c14 45 126 45 140 0"/><path className="front-fold" d="M180 82v31"/></>}<path className="hem" d="M111 406c43 9 101 9 138 0"/></svg><div className="print-area" aria-label={`Área de estampado de la ${side.toLowerCase()}`}>{design ? <img className="user-design" src={design} alt="Diseño cargado" onPointerDown={onPointerDown} style={{ width: `${transform.scale}%`, left: `${transform.x}%`, top: `${transform.y}%`, transform: `translate(-50%, -50%) rotate(${transform.rotation}deg)` }}/> : <div className="drop-hint"><span>+</span> Tu diseño</div>}</div></div>
 }
 
 function App() {
-  const [color, setColor] = useState(COLORS[0]); const [size, setSize] = useState('M'); const [side, setSide] = useState('Frente'); const [design, setDesign] = useState(''); const [fileName, setFileName] = useState(''); const [notice, setNotice] = useState(''); const [transform, setTransform] = useState({ x: 50, y: 43, scale: 54, rotation: 0 }); const drag = useRef(null)
+  const [color, setColor] = useState(COLORS[0]); const [size, setSize] = useState('M'); const [side, setSide] = useState('Frente'); const [designs, setDesigns] = useState({ Frente: '', Espalda: '' }); const [fileNames, setFileNames] = useState({ Frente: '', Espalda: '' }); const [notice, setNotice] = useState(''); const [transform, setTransform] = useState({ x: 50, y: 43, scale: 54, rotation: 0 }); const drag = useRef(null)
+  const design = designs[side]
+  const fileName = fileNames[side]
   const isCustomizerPage = window.location.pathname === '/personaliza'
   useEffect(() => {
     document.querySelectorAll('nav a').forEach((link) => { if (link.textContent === 'Cómo funciona') link.remove() })
@@ -27,9 +31,9 @@ function App() {
     buttons.forEach((button) => button.addEventListener('click', select))
     return () => buttons.forEach((button) => button.removeEventListener('click', select))
   }, [isCustomizerPage])
-  const whatsappMessage = useMemo(() => encodeURIComponent(`Hola, quiero pedir una remera personalizada.\nColor: ${color.name}\nTalle: ${size}\nEstampado: ${side}\nDiseño: ${fileName || 'pendiente de adjuntar'}`), [color, fileName, side, size])
-  function uploadDesign(event) { const file = event.target.files?.[0]; if (!file) return; if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setNotice('Elegí una imagen JPG, PNG o WEBP.'); return } if (file.size > 10 * 1024 * 1024) { setNotice('La imagen no puede superar 10 MB.'); return } const url = URL.createObjectURL(file); const image = new Image(); image.onload = () => { setDesign(url); setFileName(file.name); setTransform({ x: 50, y: 43, scale: 54, rotation: 0 }); setNotice(image.width < 1000 || image.height < 1000 ? 'Atención: la imagen podría verse pixelada al estampar. Recomendamos al menos 1000 px.' : '¡Diseño cargado! Podés moverlo directamente sobre la remera.') }; image.src = url }
-  function removeDesign() { setDesign(''); setFileName(''); setNotice('Imagen eliminada. Podés subir otra cuando quieras.'); setTransform({ x: 50, y: 43, scale: 54, rotation: 0 }) }
+  const whatsappMessage = useMemo(() => encodeURIComponent(`Hola, quiero pedir una remera personalizada.\nColor: ${color.name}\nTalle: ${size}\nDiseño frente: ${fileNames.Frente || 'sin diseño'}\nDiseño espalda: ${fileNames.Espalda || 'sin diseño'}`), [color, fileNames, size])
+  function uploadDesign(event) { const file = event.target.files?.[0]; if (!file) return; if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setNotice('Elegí una imagen JPG, PNG o WEBP.'); return } if (file.size > 10 * 1024 * 1024) { setNotice('La imagen no puede superar 10 MB.'); return } const url = URL.createObjectURL(file); const image = new Image(); image.onload = () => { setDesigns(current => ({ ...current, [side]: url })); setFileNames(current => ({ ...current, [side]: file.name })); setTransform({ x: 50, y: 43, scale: 54, rotation: 0 }); setNotice(image.width < 1000 || image.height < 1000 ? 'Atención: la imagen podría verse pixelada al estampar. Recomendamos al menos 1000 px.' : `¡Diseño cargado en ${side.toLowerCase()}! Podés moverlo directamente sobre la remera.`) }; image.src = url }
+  function removeDesign() { setDesigns(current => ({ ...current, [side]: '' })); setFileNames(current => ({ ...current, [side]: '' })); setNotice(`Imagen de ${side.toLowerCase()} eliminada. Podés subir otra cuando quieras.`); setTransform({ x: 50, y: 43, scale: 54, rotation: 0 }) }
   function startDrag(event) { event.currentTarget.setPointerCapture(event.pointerId); drag.current = { x: event.clientX, y: event.clientY, startX: transform.x, startY: transform.y } }
   function moveDrag(event) { if (!drag.current) return; const rect = event.currentTarget.getBoundingClientRect(); const x = Math.max(10, Math.min(90, drag.current.startX + ((event.clientX - drag.current.x) / rect.width) * 100)); const y = Math.max(10, Math.min(90, drag.current.startY + ((event.clientY - drag.current.y) / rect.height) * 100)); setTransform(current => ({ ...current, x, y })) }
   function endDrag() { drag.current = null }
