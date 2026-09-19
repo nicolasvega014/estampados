@@ -24,6 +24,54 @@ function App() {
     document.querySelectorAll('a[href="#como-funciona"], a[href="/#como-funciona"]').forEach((link) => { link.href = '/personaliza' })
   }, [])
   useEffect(() => {
+    if (!isCustomizerPage) return
+    const savedDesign = window.localStorage.getItem('tinta-club-selected-design')
+    if (!savedDesign) return
+    try {
+      const design = JSON.parse(savedDesign)
+      if (!design?.src?.startsWith('/designs/')) return
+      setDesigns((current) => ({ ...current, Frente: design.src }))
+      setFileNames((current) => ({ ...current, Frente: design.name }))
+      setTransform({ x: 50, y: 43, scale: 54, rotation: 0 })
+      setNotice(`Diseño “${design.name}” listo para acomodar en el frente.`)
+    } finally {
+      window.localStorage.removeItem('tinta-club-selected-design')
+    }
+  }, [isCustomizerPage])
+  useEffect(() => {
+    if (!isCustomizerPage) return
+    const upload = document.querySelector('.controls .upload')
+    if (!upload) return
+    const openButton = document.createElement('button')
+    const picker = document.createElement('section')
+    openButton.type = 'button'; openButton.className = 'browse-designs'; openButton.textContent = 'Ver diseños de la galería →'
+    picker.className = 'design-picker'; picker.hidden = true
+    picker.innerHTML = '<div class="design-picker-head"><strong>Elegí un diseño</strong><button type="button" aria-label="Cerrar diseños">×</button></div><div class="picker-filters"></div><div class="picker-grid"></div>'
+    upload.insertAdjacentElement('afterend', openButton); openButton.insertAdjacentElement('afterend', picker)
+    const closeButton = picker.querySelector('.design-picker-head button')
+    const filters = picker.querySelector('.picker-filters')
+    const grid = picker.querySelector('.picker-grid')
+    const categories = ['Todo', 'Mascotas', 'Flores', 'Verano', 'Coquette', 'Frases', 'Moda', 'Vintage']
+    let availableDesigns = []
+    const render = (category = 'Todo') => {
+      grid.replaceChildren()
+      const visible = (category === 'Todo' ? availableDesigns : availableDesigns.filter((design) => design.category === category)).slice(0, 30)
+      visible.forEach((design) => {
+        const option = document.createElement('button'); const image = document.createElement('img'); const label = document.createElement('span')
+        option.type = 'button'; option.dataset.src = design.src; option.dataset.name = design.name
+        image.src = design.src; image.alt = design.name; image.loading = 'lazy'; label.textContent = design.name
+        option.append(image, label); grid.append(option)
+      })
+    }
+    categories.forEach((category, index) => { const button = document.createElement('button'); button.type = 'button'; button.textContent = category; button.className = index === 0 ? 'active' : ''; button.addEventListener('click', () => { filters.querySelectorAll('button').forEach((item) => item.classList.remove('active')); button.classList.add('active'); render(category) }); filters.append(button) })
+    const openPicker = () => { picker.hidden = false; render(filters.querySelector('.active')?.textContent || 'Todo') }
+    const closePicker = () => { picker.hidden = true }
+    const chooseDesign = (event) => { const option = event.target.closest('[data-src]'); if (!option) return; const name = option.dataset.name; setDesigns((current) => ({ ...current, [side]: option.dataset.src })); setFileNames((current) => ({ ...current, [side]: name })); setTransform({ x: 50, y: 43, scale: 54, rotation: 0 }); setNotice(`Diseño “${name}” cargado en ${side.toLowerCase()}. Podés moverlo directamente sobre la remera.`); closePicker() }
+    openButton.addEventListener('click', openPicker); closeButton.addEventListener('click', closePicker); grid.addEventListener('click', chooseDesign)
+    fetch('/designs/manifest.json').then((response) => response.json()).then((items) => { availableDesigns = items; render() }).catch(() => {})
+    return () => { openButton.removeEventListener('click', openPicker); closeButton.removeEventListener('click', closePicker); grid.removeEventListener('click', chooseDesign); openButton.remove(); picker.remove() }
+  }, [isCustomizerPage, side])
+  useEffect(() => {
     if (isCustomizerPage || document.querySelector('.collections')) return
     const featured = document.querySelector('.featured')
     if (!featured) return
@@ -45,7 +93,7 @@ function App() {
         const label = document.createElement('span')
         image.src = design.src; image.alt = design.name; image.loading = 'lazy'
         label.textContent = design.name.toUpperCase()
-        card.append(image, label); grid.append(card)
+        card.className = 'collection-card'; card.append(image, label); card.addEventListener('click', () => { window.localStorage.setItem('tinta-club-selected-design', JSON.stringify(design)); window.location.assign('/personaliza') }); grid.append(card)
       })
       if (heading) heading.textContent = category === 'Todo' ? 'Encontrá tu estilo.' : category
     }
