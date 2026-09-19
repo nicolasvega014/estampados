@@ -1,6 +1,6 @@
-import { Suspense, useEffect, useMemo } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { ContactShadows, OrbitControls, useGLTF, useTexture } from '@react-three/drei'
+import { ContactShadows, useGLTF, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 
 function PrintedDesign({ url, transform }) {
@@ -22,7 +22,7 @@ function PrintedDesign({ url, transform }) {
   )
 }
 
-function Model({ color, design, side, transform }) {
+function Model({ color, design, side, transform, viewScale }) {
   const { scene } = useGLTF('/models/customer-tshirt.glb')
   const model = useMemo(() => scene.clone(true), [scene])
 
@@ -35,7 +35,7 @@ function Model({ color, design, side, transform }) {
   }, [color, model])
 
   return (
-    <group rotation={[0, side === 'Espalda' ? Math.PI : 0, 0]} position={[0, -0.18, 0]} scale={3}>
+    <group rotation={[0, side === 'Espalda' ? Math.PI : 0, 0]} position={[0, -0.08, 0]} scale={2.2 * viewScale}>
       <primitive object={model} />
       {design && <PrintedDesign url={design} transform={transform} />}
     </group>
@@ -43,6 +43,10 @@ function Model({ color, design, side, transform }) {
 }
 
 function Shirt3D({ color, design, side, transform }) {
+  const [viewScale, setViewScale] = useState(1)
+  const zoomOut = () => setViewScale((current) => Math.max(0.75, Number((current - 0.1).toFixed(2))))
+  const zoomIn = () => setViewScale((current) => Math.min(1.25, Number((current + 0.1).toFixed(2))))
+
   return (
     <div className="shirt-3d" aria-label={`Modelo 3D de remera ${color.name}, vista ${side}`}>
       <Canvas camera={{ position: [0, 0.15, 5.4], fov: 26 }} dpr={[1, 2]} gl={{ antialias: true, alpha: true }}>
@@ -50,11 +54,15 @@ function Shirt3D({ color, design, side, transform }) {
         <directionalLight position={[-4, 5, 6]} intensity={2.4} />
         <directionalLight position={[4, 2, 3]} intensity={1.1} />
         <Suspense fallback={null}>
-          <Model color={color} design={design} side={side} transform={transform} />
+          <Model color={color} design={design} side={side} transform={transform} viewScale={viewScale} />
           <ContactShadows position={[0, -0.1, 0]} opacity={0.28} scale={7} blur={2.5} far={4} />
         </Suspense>
-        <OrbitControls enablePan={false} enableZoom={false} minPolarAngle={Math.PI / 2.2} maxPolarAngle={Math.PI / 1.8} />
       </Canvas>
+      <div className="view-zoom" aria-label="Tamaño de la vista de la remera">
+        <button type="button" onClick={zoomOut} disabled={viewScale <= 0.75} aria-label="Alejar remera">−</button>
+        <span>{Math.round(viewScale * 100)}%</span>
+        <button type="button" onClick={zoomIn} disabled={viewScale >= 1.25} aria-label="Acercar remera">+</button>
+      </div>
     </div>
   )
 }
