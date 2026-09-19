@@ -7,12 +7,12 @@ function PrintedDesign({ url, transform }) {
   const texture = useTexture(url)
   texture.colorSpace = THREE.SRGBColorSpace
   const aspect = texture.image?.width && texture.image?.height ? texture.image.width / texture.image.height : 1
-  const width = 1.25 * (Number(transform.scale) / 54)
+  const width = 0.75 * (Number(transform.scale) / 54)
   const height = width / aspect
   const position = [
-    ((Number(transform.x) - 50) / 100) * 1.18,
-    1.72 + ((43 - Number(transform.y)) / 100) * 1.55,
-    0.218,
+    ((Number(transform.x) - 50) / 100) * 1.05,
+    ((50 - Number(transform.y)) / 100) * 1.25,
+    0.63,
   ]
   return (
     <mesh position={position} rotation={[0, 0, -THREE.MathUtils.degToRad(Number(transform.rotation))]}>
@@ -23,24 +23,29 @@ function PrintedDesign({ url, transform }) {
 }
 
 function Model({ color, design, side, transform }) {
-  const { scene } = useGLTF('/models/tinta-club-tshirt.glb')
+  const { scene } = useGLTF('/models/customer-tshirt.glb')
   const model = useMemo(() => scene.clone(true), [scene])
 
   useEffect(() => {
     model.traverse((object) => {
       if (!object.isMesh) return
       object.material = object.material.clone()
-      if (object.name.includes('T-Shirt') || object.name.includes('Sleeve') || object.name.includes('Torus')) object.material.color.set(color.value)
+      object.material.color.set(color.value)
     })
   }, [color, model])
 
-  return <group rotation={[0, side === 'Espalda' ? Math.PI : 0, 0]} position={[0, -1.66, 0]} scale={0.9}>{<primitive object={model} />}{design && <PrintedDesign url={design} transform={transform} />}</group>
+  return (
+    <group rotation={[0, side === 'Espalda' ? Math.PI : 0, 0]} position={[0, -0.18, 0]} scale={3}>
+      <group rotation={[-Math.PI / 2, 0, 0]}><primitive object={model} /></group>
+      {design && <PrintedDesign url={design} transform={transform} />}
+    </group>
+  )
 }
 
 function Shirt3D({ color, design, side, transform }) {
   return (
     <div className="shirt-3d" aria-label={`Modelo 3D de remera ${color.name}, vista ${side}`}>
-      <Canvas camera={{ position: [0, 1.85, 8], fov: 26 }} dpr={[1, 2]} gl={{ antialias: true, alpha: true }}>
+      <Canvas camera={{ position: [0, 0.15, 5.4], fov: 26 }} dpr={[1, 2]} gl={{ antialias: true, alpha: true }}>
         <ambientLight intensity={1.8} />
         <directionalLight position={[-4, 5, 6]} intensity={2.4} />
         <directionalLight position={[4, 2, 3]} intensity={1.1} />
@@ -54,6 +59,6 @@ function Shirt3D({ color, design, side, transform }) {
   )
 }
 
-useGLTF.preload('/models/tinta-club-tshirt.glb')
+useGLTF.preload('/models/customer-tshirt.glb')
 
 export default Shirt3D
