@@ -36,7 +36,7 @@ function Model({ color, design, side, transform }) {
 
   return (
     <group rotation={[0, side === 'Espalda' ? Math.PI : 0, 0]} position={[0, -0.18, 0]} scale={3}>
-      <group rotation={[-Math.PI / 2, 0, 0]}><primitive object={model} /></group>
+      <primitive object={model} />
       {design && <PrintedDesign url={design} transform={transform} />}
     </group>
   )
