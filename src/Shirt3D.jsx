@@ -3,21 +3,22 @@ import { Canvas } from '@react-three/fiber'
 import { ContactShadows, useGLTF, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 
-function PrintedDesign({ url, transform, onPointerDown }) {
+function PrintedDesign({ url, transform, side, onPointerDown }) {
   const texture = useTexture(url)
   texture.colorSpace = THREE.SRGBColorSpace
   const aspect = texture.image?.width && texture.image?.height ? texture.image.width / texture.image.height : 1
   const width = 0.75 * (Number(transform.scale) / 54)
   const height = width / aspect
+  const isBack = side === 'Espalda'
   const position = [
-    ((Number(transform.x) - 50) / 100) * 1.05,
+    ((Number(transform.x) - 50) / 100) * 1.05 * (isBack ? -1 : 1),
     ((50 - Number(transform.y)) / 100) * 1.25,
-    0.63,
+    isBack ? -0.63 : 0.63,
   ]
   return (
     <mesh
       position={position}
-      rotation={[0, 0, -THREE.MathUtils.degToRad(Number(transform.rotation))]}
+      rotation={[0, isBack ? Math.PI : 0, -THREE.MathUtils.degToRad(Number(transform.rotation))]}
       onPointerDown={(event) => {
         event.stopPropagation()
         onPointerDown?.(event.nativeEvent)
@@ -44,7 +45,7 @@ function Model({ color, design, side, transform, viewScale, viewRotation, onDesi
   return (
     <group rotation={[0, (side === 'Espalda' ? Math.PI : 0) + viewRotation, 0]} position={[0, -0.08, 0]} scale={2.2 * viewScale}>
       <primitive object={model} />
-      {design && <PrintedDesign url={design} transform={transform} onPointerDown={onDesignPointerDown} />}
+      {design && <PrintedDesign url={design} transform={transform} side={side} onPointerDown={onDesignPointerDown} />}
     </group>
   )
 }
