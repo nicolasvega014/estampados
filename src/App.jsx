@@ -12,7 +12,7 @@ function Shirt({ color, design, transform, side, onPointerDown }) {
 }
 
 function App() {
-  const [color, setColor] = useState(COLORS[0]); const [size, setSize] = useState('M'); const [side, setSide] = useState('Frente'); const [designs, setDesigns] = useState({ Frente: '', Espalda: '' }); const [fileNames, setFileNames] = useState({ Frente: '', Espalda: '' }); const [notice, setNotice] = useState(''); const [transform, setTransform] = useState({ x: 50, y: 43, scale: 54, rotation: 0 }); const drag = useRef(null)
+  const [color, setColor] = useState(COLORS[0]); const [size, setSize] = useState('M'); const [side, setSide] = useState('Frente'); const [designs, setDesigns] = useState({ Frente: '', Espalda: '' }); const [fileNames, setFileNames] = useState({ Frente: '', Espalda: '' }); const [notice, setNotice] = useState(''); const [transforms, setTransforms] = useState({ Frente: { x: 50, y: 43, scale: 54, rotation: 0 }, Espalda: { x: 50, y: 43, scale: 54, rotation: 0 } }); const transform = transforms[side]; const setTransform = (next) => setTransforms((current) => { const active = current[side]; return { ...current, [side]: typeof next === 'function' ? next(active) : next } }); const drag = useRef(null)
   const design = designs[side]
   const fileName = fileNames[side]
   const isCustomizerPage = window.location.pathname === '/personaliza'
