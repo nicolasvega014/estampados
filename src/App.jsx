@@ -18,6 +18,8 @@ function App() {
   const isCustomizerPage = window.location.pathname === '/personaliza'
   useEffect(() => {
     document.querySelectorAll('nav a').forEach((link) => { if (link.textContent === 'Cómo funciona') link.remove() })
+    const designSizeRange = document.querySelector('.range')
+    if (designSizeRange) designSizeRange.min = '5'
     document.querySelectorAll('a[href="#personaliza"]').forEach((link) => { link.href = '/personaliza' })
     document.querySelectorAll('a[href="#como-funciona"], a[href="/#como-funciona"]').forEach((link) => { link.href = '/personaliza' })
   }, [])
