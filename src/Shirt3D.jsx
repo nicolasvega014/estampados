@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { ContactShadows, useGLTF, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
@@ -52,11 +52,28 @@ function Model({ color, design, side, transform, viewScale, onDesignPointerDown 
 
 function Shirt3D({ color, design, side, transform, onDesignPointerDown }) {
   const [viewScale, setViewScale] = useState(1)
+  const pinch = useRef(null)
   const zoomOut = () => setViewScale((current) => Math.max(0.75, Number((current - 0.1).toFixed(2))))
   const zoomIn = () => setViewScale((current) => Math.min(1.25, Number((current + 0.1).toFixed(2))))
+  const touchDistance = (touches) => Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY)
+  const startTouch = (event) => {
+    if (event.touches.length !== 2) return
+    pinch.current = touchDistance(event.touches)
+    window.dispatchEvent(new Event('tinta-club-pinch-start'))
+  }
+  const moveTouch = (event) => {
+    if (event.touches.length !== 2 || !pinch.current) return
+    event.preventDefault()
+    window.dispatchEvent(new CustomEvent('tinta-club-pinch', { detail: { ratio: touchDistance(event.touches) / pinch.current } }))
+  }
+  const endTouch = (event) => {
+    if (event.touches.length > 1) return
+    pinch.current = null
+    window.dispatchEvent(new Event('tinta-club-pinch-end'))
+  }
 
   return (
-    <div className="shirt-3d" aria-label={`Modelo 3D de remera ${color.name}, vista ${side}`}>
+    <div className="shirt-3d" aria-label={`Modelo 3D de remera ${color.name}, vista ${side}`} onTouchStart={startTouch} onTouchMove={moveTouch} onTouchEnd={endTouch} onTouchCancel={endTouch}>
       <Canvas camera={{ position: [0, 0.15, 5.4], fov: 26 }} dpr={[1, 2]} gl={{ antialias: true, alpha: true }}>
         <ambientLight intensity={1.8} />
         <directionalLight position={[-4, 5, 6]} intensity={2.4} />

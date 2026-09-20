@@ -151,29 +151,19 @@ function App() {
   }, [cartCount, color, size, designs, fileNames])
   useEffect(() => {
     if (!design) return undefined
-    const canvas = document.querySelector('.shirt-3d canvas')
-    if (!canvas) return undefined
     const help = document.querySelector('.drag-help')
     if (help) help.textContent = 'Arrastrá el diseño o usá dos dedos para cambiar su tamaño'
-    const pointers = new Map()
-    const distance = () => { const [first, second] = [...pointers.values()]; return Math.hypot(first.x - second.x, first.y - second.y) }
-    const onDown = (event) => {
-      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
-      if (pointers.size === 2) { drag.current = null; pinch.current = { distance: distance(), scale: Number(activeTransform.current.scale) } }
-    }
-    const onMove = (event) => {
-      if (!pointers.has(event.pointerId)) return
-      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
-      if (pointers.size !== 2 || !pinch.current?.distance) return
-      event.preventDefault()
-      const scale = Math.max(5, Math.min(90, Math.round(pinch.current.scale * (distance() / pinch.current.distance))))
+    const startPinch = () => { drag.current = null; pinch.current = Number(activeTransform.current.scale) }
+    const resizeWithPinch = (event) => {
+      if (!pinch.current) return
+      const scale = Math.max(5, Math.min(90, Math.round(pinch.current * event.detail.ratio)))
       setTransform((current) => ({ ...current, scale }))
     }
-    const onEnd = (event) => { pointers.delete(event.pointerId); if (pointers.size < 2) pinch.current = null }
-    canvas.addEventListener('pointerdown', onDown, { passive: true })
-    canvas.addEventListener('pointermove', onMove, { passive: false })
-    canvas.addEventListener('pointerup', onEnd); canvas.addEventListener('pointercancel', onEnd)
-    return () => { canvas.removeEventListener('pointerdown', onDown); canvas.removeEventListener('pointermove', onMove); canvas.removeEventListener('pointerup', onEnd); canvas.removeEventListener('pointercancel', onEnd) }
+    const finishPinch = () => { pinch.current = null }
+    window.addEventListener('tinta-club-pinch-start', startPinch)
+    window.addEventListener('tinta-club-pinch', resizeWithPinch)
+    window.addEventListener('tinta-club-pinch-end', finishPinch)
+    return () => { window.removeEventListener('tinta-club-pinch-start', startPinch); window.removeEventListener('tinta-club-pinch', resizeWithPinch); window.removeEventListener('tinta-club-pinch-end', finishPinch) }
   }, [design, side])
   function uploadDesign(event) { const file = event.target.files?.[0]; if (!file) return; if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setNotice('Elegí una imagen JPG, PNG o WEBP.'); return } if (file.size > 10 * 1024 * 1024) { setNotice('La imagen no puede superar 10 MB.'); return } const url = URL.createObjectURL(file); const image = new Image(); image.onload = () => { setDesigns(current => ({ ...current, [side]: url })); setFileNames(current => ({ ...current, [side]: file.name })); setTransform({ x: 50, y: 43, scale: 54, rotation: 0 }); setNotice(image.width < 1000 || image.height < 1000 ? 'Atención: la imagen podría verse pixelada al estampar. Recomendamos al menos 1000 px.' : `¡Diseño cargado en ${side.toLowerCase()}! Podés moverlo directamente sobre la remera.`) }; image.src = url }
   function removeDesign() { setDesigns(current => ({ ...current, [side]: '' })); setFileNames(current => ({ ...current, [side]: '' })); setNotice(`Imagen de ${side.toLowerCase()} eliminada. Podés subir otra cuando quieras.`); setTransform({ x: 50, y: 43, scale: 54, rotation: 0 }) }
