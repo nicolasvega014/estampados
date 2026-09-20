@@ -1,10 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createRoot } from 'react-dom/client'
 import Shirt3D from './Shirt3D'
 import Admin from './Admin'
 import './App.css'
 
 const COLORS = [{ name: 'Blanco', value: '#f7f6f2' }, { name: 'Negro', value: '#1e1e21' }, { name: 'Arena', value: '#d9d0c3' }, { name: 'Verde', value: '#71866c' }, { name: 'Bordó', value: '#7d3541' }]
 const SIZES = ['S', 'M', 'L', 'XL', 'XXL']
+const SHIRT_PRICE = 18900
+
+function CartDrawer({ open, items, onClose, onRemove, onQuantity }) {
+  const total = items.reduce((sum, item) => sum + SHIRT_PRICE * item.quantity, 0)
+  const message = encodeURIComponent(`Hola, quiero confirmar mi pedido de Tinta Club.\n\n${items.map((item, index) => `${index + 1}. Remera personalizada × ${item.quantity}\nColor: ${item.color}\nTalle: ${item.size}\nFrente: ${item.front || 'sin diseño'}\nEspalda: ${item.back || 'sin diseño'}`).join('\n\n')}\n\nTotal: $ ${total.toLocaleString('es-AR')}`)
+  return <div className={`cart-layer ${open ? 'is-open' : ''}`} aria-hidden={!open}><button className="cart-backdrop" aria-label="Cerrar bolsa" onClick={onClose}/><aside className="cart-drawer" aria-label="Tu bolsa"><header><div><p className="eyebrow">TU COMPRA</p><h2>Bolsa</h2></div><button onClick={onClose} aria-label="Cerrar bolsa">×</button></header>{items.length ? <><div className="cart-items">{items.map((item) => <article className="cart-item" key={item.id}><div className="cart-item-art"><span style={{ background: item.colorValue }}/></div><div><h3>Remera personalizada</h3><p>{item.color} · Talle {item.size}</p><small>{item.front ? `Frente: ${item.front}` : ''}{item.back ? ` · Espalda: ${item.back}` : ''}</small><div className="quantity"><button onClick={() => onQuantity(item.id, item.quantity - 1)} aria-label="Restar una unidad">−</button><b>{item.quantity}</b><button onClick={() => onQuantity(item.id, item.quantity + 1)} aria-label="Sumar una unidad">+</button><button className="remove-cart-item" onClick={() => onRemove(item.id)}>Quitar</button></div></div><strong>$ {(SHIRT_PRICE * item.quantity).toLocaleString('es-AR')}</strong></article>)}</div><footer className="cart-footer"><div><span>Total</span><strong>$ {total.toLocaleString('es-AR')}</strong></div><a href={`https://wa.me/5491100000000?text=${message}`} target="_blank" rel="noreferrer">Continuar por WhatsApp <span>→</span></a><p>El pedido se confirma por WhatsApp.</p></footer></> : <div className="empty-cart"><span>◌</span><h3>Tu bolsa está vacía.</h3><p>Personalizá una remera y agregala cuando esté lista.</p><button onClick={onClose}>Seguir diseñando</button></div>}</aside></div>
+}
 
 function Shirt({ color, design, transform, side, onPointerDown }) {
   return <Shirt3D color={color} design={design} side={side} transform={transform} onDesignPointerDown={onPointerDown}/>
@@ -15,6 +23,9 @@ function Shirt({ color, design, transform, side, onPointerDown }) {
 function App() {
   if (window.location.pathname === '/admin') return <Admin />
   const [color, setColor] = useState(COLORS[0]); const [size, setSize] = useState('M'); const [side, setSide] = useState('Frente'); const [designs, setDesigns] = useState({ Frente: '', Espalda: '' }); const [fileNames, setFileNames] = useState({ Frente: '', Espalda: '' }); const [notice, setNotice] = useState(''); const [transforms, setTransforms] = useState({ Frente: { x: 50, y: 43, scale: 54, rotation: 0 }, Espalda: { x: 50, y: 43, scale: 54, rotation: 0 } }); const transform = transforms[side]; const setTransform = (next) => setTransforms((current) => { const active = current[side]; return { ...current, [side]: typeof next === 'function' ? next(active) : next } }); const drag = useRef(null)
+  const [cartOpen, setCartOpen] = useState(false)
+  const [cart, setCart] = useState(() => { try { return JSON.parse(window.localStorage.getItem('tinta-club-cart') || '[]') } catch { return [] } })
+  const cartRoot = useRef(null)
   const design = designs[side]
   const fileName = fileNames[side]
   const isCustomizerPage = window.location.pathname === '/personaliza'
@@ -24,6 +35,14 @@ function App() {
     if (designSizeRange) designSizeRange.min = '5'
     document.querySelectorAll('a[href="#personaliza"]').forEach((link) => { link.href = '/personaliza' })
     document.querySelectorAll('a[href="#como-funciona"], a[href="/#como-funciona"]').forEach((link) => { link.href = '/personaliza' })
+  }, [])
+  useEffect(() => { window.localStorage.setItem('tinta-club-cart', JSON.stringify(cart)) }, [cart])
+  useEffect(() => {
+    const host = document.createElement('div')
+    host.className = 'cart-root'
+    document.body.append(host)
+    cartRoot.current = createRoot(host)
+    return () => { cartRoot.current?.unmount(); host.remove() }
   }, [])
   useEffect(() => {
     if (!isCustomizerPage) return
@@ -105,6 +124,22 @@ function App() {
     return () => { cancelled = true; buttons.forEach((button) => button.removeEventListener('click', select)) }
   }, [isCustomizerPage])
   const whatsappMessage = useMemo(() => encodeURIComponent(`Hola, quiero pedir una remera personalizada.\nColor: ${color.name}\nTalle: ${size}\nDiseño frente: ${fileNames.Frente || 'sin diseño'}\nDiseño espalda: ${fileNames.Espalda || 'sin diseño'}`), [color, fileNames, size])
+  function addToCart() { if (!designs.Frente && !designs.Espalda) { setNotice('Primero agregá al menos un diseño a la remera.'); return } const item = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, color: color.name, colorValue: color.value, size, front: fileNames.Frente, back: fileNames.Espalda, quantity: 1 }; setCart((current) => [...current, item]); setCartOpen(true); setNotice('La remera se agregó a tu bolsa.') }
+  function removeCartItem(id) { setCart((current) => current.filter((item) => item.id !== id)) }
+  function updateQuantity(id, quantity) { if (quantity < 1) return removeCartItem(id); setCart((current) => current.map((item) => item.id === id ? { ...item, quantity } : item)) }
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
+  useEffect(() => {
+    cartRoot.current?.render(<CartDrawer open={cartOpen} items={cart} onClose={() => setCartOpen(false)} onRemove={removeCartItem} onQuantity={updateQuantity}/>)
+  }, [cartOpen, cart])
+  useEffect(() => {
+    const openCart = () => setCartOpen(true)
+    const addProduct = (event) => { event.preventDefault(); addToCart() }
+    const buttons = [...document.querySelectorAll('.cart')]
+    const orders = [...document.querySelectorAll('.order')]
+    buttons.forEach((button) => { const count = button.querySelector('span'); if (count) count.textContent = cartCount; button.addEventListener('click', openCart) })
+    orders.forEach((order) => order.addEventListener('click', addProduct))
+    return () => { buttons.forEach((button) => button.removeEventListener('click', openCart)); orders.forEach((order) => order.removeEventListener('click', addProduct)) }
+  }, [cartCount, color, size, designs, fileNames])
   function uploadDesign(event) { const file = event.target.files?.[0]; if (!file) return; if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setNotice('Elegí una imagen JPG, PNG o WEBP.'); return } if (file.size > 10 * 1024 * 1024) { setNotice('La imagen no puede superar 10 MB.'); return } const url = URL.createObjectURL(file); const image = new Image(); image.onload = () => { setDesigns(current => ({ ...current, [side]: url })); setFileNames(current => ({ ...current, [side]: file.name })); setTransform({ x: 50, y: 43, scale: 54, rotation: 0 }); setNotice(image.width < 1000 || image.height < 1000 ? 'Atención: la imagen podría verse pixelada al estampar. Recomendamos al menos 1000 px.' : `¡Diseño cargado en ${side.toLowerCase()}! Podés moverlo directamente sobre la remera.`) }; image.src = url }
   function removeDesign() { setDesigns(current => ({ ...current, [side]: '' })); setFileNames(current => ({ ...current, [side]: '' })); setNotice(`Imagen de ${side.toLowerCase()} eliminada. Podés subir otra cuando quieras.`); setTransform({ x: 50, y: 43, scale: 54, rotation: 0 }) }
   function startDrag(event) { event.currentTarget.setPointerCapture(event.pointerId); drag.current = { x: event.clientX, y: event.clientY, startX: transform.x, startY: transform.y } }
