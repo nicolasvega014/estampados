@@ -3,5 +3,5 @@
 html { scroll-behavior: smooth; }
 body { margin: 0; background: #f8f7f4; color: #1b1b1b; font-family: 'DM Sans', Arial, sans-serif; }
 button, input { font: inherit; }
-button { cursor: pointer; }
+button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 a { color: inherit; text-decoration: none; }

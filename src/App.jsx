@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
+import { animate, inView } from 'motion'
 import Shirt3D from './Shirt3D'
 import Admin from './Admin'
 import './App.css'
@@ -125,6 +126,16 @@ function App() {
     const select = (event) => { buttons.forEach((button) => button.classList.remove('active')); event.currentTarget.classList.add('active'); renderCollection(event.currentTarget.textContent) }
     buttons.forEach((button) => button.addEventListener('click', select))
     return () => { cancelled = true; buttons.forEach((button) => button.removeEventListener('click', select)) }
+  }, [isCustomizerPage])
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
+    const first = isCustomizerPage ? document.querySelector('.editor-page .standalone') : document.querySelector('.landing')
+    const intro = isCustomizerPage ? document.querySelector('.editor-page .customizer-intro') : document.querySelector('.hero-photo')
+    const running = []
+    if (first) running.push(animate(first, { opacity: [0, 1], y: [18, 0] }, { duration: .58, ease: [.22, 1, .36, 1] }))
+    if (intro) running.push(animate(intro, { opacity: [0, 1], y: [14, 0] }, { duration: .62, delay: .1, ease: [.22, 1, .36, 1] }))
+    const stopWatching = inView('.featured, .collections, .how', (element) => animate(element, { opacity: [0, 1], y: [24, 0] }, { duration: .55, ease: [.22, 1, .36, 1] }), { margin: '0px 0px -8% 0px' })
+    return () => { running.forEach((animation) => animation.stop()); stopWatching() }
   }, [isCustomizerPage])
   const whatsappMessage = useMemo(() => encodeURIComponent(`Hola, quiero pedir una remera personalizada.\nColor: ${color.name}\nTalle: ${size}\nDiseño frente: ${fileNames.Frente || 'sin diseño'}\nDiseño espalda: ${fileNames.Espalda || 'sin diseño'}`), [color, fileNames, size])
   function addToCart() { if (!designs.Frente && !designs.Espalda) { setNotice('Primero agregá al menos un diseño a la remera.'); return } const item = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, color: color.name, colorValue: color.value, size, front: fileNames.Frente, back: fileNames.Espalda, quantity: 1 }; setCart((current) => [...current, item]); setDesigns({ Frente: '', Espalda: '' }); setFileNames({ Frente: '', Espalda: '' }); setTransforms({ Frente: { x: 50, y: 43, scale: 54, rotation: 0 }, Espalda: { x: 50, y: 43, scale: 54, rotation: 0 } }); setColor(COLORS[0]); setSize('M'); setSide('Frente'); setCartOpen(false); setNotice('Remera agregada a la bolsa. Ya podés personalizar otra.') }

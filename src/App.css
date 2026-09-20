@@ -61,6 +61,7 @@ header .brand span { color: var(--lime); }
   transition: border-color .2s ease, background .2s ease, color .2s ease;
 }
 .remove-image:hover { border-color: #a95b52; background: #fff3f1; color: #8e3329; }
+.primary-cta, .add-to-cart, .order, .cart-footer a { box-shadow: 0 8px 18px rgba(29, 30, 28, .08); transition: transform .2s ease, box-shadow .2s ease, filter .2s ease; }.primary-cta:hover, .add-to-cart:hover, .order:hover, .cart-footer a:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(29, 30, 28, .15); filter: brightness(1.02); }.primary-cta:active, .add-to-cart:active, .order:active, .cart-footer a:active { transform: translateY(0) scale(.98); }.swatches button, .choice button, .sizes button, .collection-card { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }.swatches button:active, .choice button:active, .sizes button:active, .collection-card:active { transform: scale(.94); }.customizer { box-shadow: 0 20px 55px rgba(30, 31, 28, .05); }.canvas { position: relative; }.canvas::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 50% 45%, transparent 42%, rgba(230,232,222,.28) 100%); }.shirt-3d { z-index: 1; }.editor-page .standalone::before { text-shadow: 0 10px 35px rgba(29,30,28,.08); }
 @media (max-width: 590px) { .shirt-3d { width: 100%; min-height: 405px; height: 430px; } }
 @media (max-width: 590px) {
   html { -webkit-text-size-adjust: 100%; }
