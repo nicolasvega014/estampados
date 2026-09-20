@@ -137,8 +137,14 @@ function App() {
     const buttons = [...document.querySelectorAll('.cart')]
     const orders = [...document.querySelectorAll('.order')]
     buttons.forEach((button) => { const count = button.querySelector('span'); if (count) count.textContent = cartCount; button.addEventListener('click', openCart) })
-    orders.forEach((order) => order.addEventListener('click', addProduct))
-    return () => { buttons.forEach((button) => button.removeEventListener('click', openCart)); orders.forEach((order) => order.removeEventListener('click', addProduct)) }
+    const addButtons = orders.map((order) => {
+      const button = document.createElement('button')
+      button.type = 'button'; button.className = 'add-to-cart'; button.innerHTML = 'Agregar a la bolsa <span>+</span>'
+      button.addEventListener('click', addProduct)
+      order.insertAdjacentElement('beforebegin', button)
+      return button
+    })
+    return () => { buttons.forEach((button) => button.removeEventListener('click', openCart)); addButtons.forEach((button) => { button.removeEventListener('click', addProduct); button.remove() }) }
   }, [cartCount, color, size, designs, fileNames])
   function uploadDesign(event) { const file = event.target.files?.[0]; if (!file) return; if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setNotice('Elegí una imagen JPG, PNG o WEBP.'); return } if (file.size > 10 * 1024 * 1024) { setNotice('La imagen no puede superar 10 MB.'); return } const url = URL.createObjectURL(file); const image = new Image(); image.onload = () => { setDesigns(current => ({ ...current, [side]: url })); setFileNames(current => ({ ...current, [side]: file.name })); setTransform({ x: 50, y: 43, scale: 54, rotation: 0 }); setNotice(image.width < 1000 || image.height < 1000 ? 'Atención: la imagen podría verse pixelada al estampar. Recomendamos al menos 1000 px.' : `¡Diseño cargado en ${side.toLowerCase()}! Podés moverlo directamente sobre la remera.`) }; image.src = url }
   function removeDesign() { setDesigns(current => ({ ...current, [side]: '' })); setFileNames(current => ({ ...current, [side]: '' })); setNotice(`Imagen de ${side.toLowerCase()} eliminada. Podés subir otra cuando quieras.`); setTransform({ x: 50, y: 43, scale: 54, rotation: 0 }) }
