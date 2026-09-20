@@ -2,8 +2,13 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // El catálogo y los pedidos se administran desde el panel del vendedor.
-    // Nadie que no haya iniciado sesión puede leer ni modificar estos datos.
+    // Los productos se muestran en la tienda pública; solo el vendedor puede cambiarlos.
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Pedidos, diseños y categorías se administran desde el panel del vendedor.
     match /{document=**} {
       allow read, write: if request.auth != null;
     }
