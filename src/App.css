@@ -38,6 +38,7 @@ header .brand span { color: var(--lime); }
 @media (max-width: 800px) { .collections { grid-template-columns: 1fr; gap: 30px; padding: 55px 0; }.collections-nav { position: static; }.collection-links { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; }.collection-links button { padding: 10px 6px; font-size: 11px; }.collection-heading { display: block; }.collection-heading p:last-child { margin-top: 13px; }.collection-grid { grid-template-columns: repeat(2, 1fr); } }
 .shirt-3d { position: relative; width: min(92%, 500px); height: min(76vh, 510px); min-height: 430px; }
 .shirt-3d canvas { display: block; width: 100% !important; height: 100% !important; }
+.shirt-3d canvas { touch-action: none; }
 .view-zoom { position: absolute; right: 12px; bottom: 13px; display: inline-flex; align-items: center; gap: 6px; padding: 5px; border: 1px solid rgba(25, 26, 24, .16); border-radius: 999px; background: rgba(255, 255, 255, .9); box-shadow: 0 4px 16px rgba(25, 26, 24, .08); font: 10px 'DM Mono'; color: #5d5e58; }
 .view-zoom button { width: 24px; height: 24px; border: 0; border-radius: 50%; background: var(--ink); color: white; font-size: 18px; line-height: 1; }
 .view-zoom button:disabled { background: #bdbeb8; cursor: not-allowed; }.view-zoom span { min-width: 31px; text-align: center; }

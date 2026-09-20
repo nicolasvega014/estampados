@@ -26,6 +26,8 @@ function App() {
   const [cartOpen, setCartOpen] = useState(false)
   const [cart, setCart] = useState(() => { try { return JSON.parse(window.localStorage.getItem('tinta-club-cart') || '[]') } catch { return [] } })
   const cartRoot = useRef(null)
+  const activeTransform = useRef(transform)
+  const pinch = useRef(null)
   const design = designs[side]
   const fileName = fileNames[side]
   const isCustomizerPage = window.location.pathname === '/personaliza'
@@ -37,6 +39,7 @@ function App() {
     document.querySelectorAll('a[href="#como-funciona"], a[href="/#como-funciona"]').forEach((link) => { link.href = '/personaliza' })
   }, [])
   useEffect(() => { window.localStorage.setItem('tinta-club-cart', JSON.stringify(cart)) }, [cart])
+  useEffect(() => { activeTransform.current = transform }, [transform])
   useEffect(() => {
     const host = document.createElement('div')
     host.className = 'cart-root'
@@ -146,6 +149,32 @@ function App() {
     })
     return () => { buttons.forEach((button) => button.removeEventListener('click', openCart)); addButtons.forEach((button) => { button.removeEventListener('click', addProduct); button.remove() }) }
   }, [cartCount, color, size, designs, fileNames])
+  useEffect(() => {
+    if (!design) return undefined
+    const canvas = document.querySelector('.shirt-3d canvas')
+    if (!canvas) return undefined
+    const help = document.querySelector('.drag-help')
+    if (help) help.textContent = 'Arrastrá el diseño o usá dos dedos para cambiar su tamaño'
+    const pointers = new Map()
+    const distance = () => { const [first, second] = [...pointers.values()]; return Math.hypot(first.x - second.x, first.y - second.y) }
+    const onDown = (event) => {
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
+      if (pointers.size === 2) { drag.current = null; pinch.current = { distance: distance(), scale: Number(activeTransform.current.scale) } }
+    }
+    const onMove = (event) => {
+      if (!pointers.has(event.pointerId)) return
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
+      if (pointers.size !== 2 || !pinch.current?.distance) return
+      event.preventDefault()
+      const scale = Math.max(5, Math.min(90, Math.round(pinch.current.scale * (distance() / pinch.current.distance))))
+      setTransform((current) => ({ ...current, scale }))
+    }
+    const onEnd = (event) => { pointers.delete(event.pointerId); if (pointers.size < 2) pinch.current = null }
+    canvas.addEventListener('pointerdown', onDown, { passive: true })
+    canvas.addEventListener('pointermove', onMove, { passive: false })
+    canvas.addEventListener('pointerup', onEnd); canvas.addEventListener('pointercancel', onEnd)
+    return () => { canvas.removeEventListener('pointerdown', onDown); canvas.removeEventListener('pointermove', onMove); canvas.removeEventListener('pointerup', onEnd); canvas.removeEventListener('pointercancel', onEnd) }
+  }, [design, side])
   function uploadDesign(event) { const file = event.target.files?.[0]; if (!file) return; if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setNotice('Elegí una imagen JPG, PNG o WEBP.'); return } if (file.size > 10 * 1024 * 1024) { setNotice('La imagen no puede superar 10 MB.'); return } const url = URL.createObjectURL(file); const image = new Image(); image.onload = () => { setDesigns(current => ({ ...current, [side]: url })); setFileNames(current => ({ ...current, [side]: file.name })); setTransform({ x: 50, y: 43, scale: 54, rotation: 0 }); setNotice(image.width < 1000 || image.height < 1000 ? 'Atención: la imagen podría verse pixelada al estampar. Recomendamos al menos 1000 px.' : `¡Diseño cargado en ${side.toLowerCase()}! Podés moverlo directamente sobre la remera.`) }; image.src = url }
   function removeDesign() { setDesigns(current => ({ ...current, [side]: '' })); setFileNames(current => ({ ...current, [side]: '' })); setNotice(`Imagen de ${side.toLowerCase()} eliminada. Podés subir otra cuando quieras.`); setTransform({ x: 50, y: 43, scale: 54, rotation: 0 }) }
   function startDrag(event) { event.currentTarget.setPointerCapture(event.pointerId); drag.current = { x: event.clientX, y: event.clientY, startX: transform.x, startY: transform.y } }
