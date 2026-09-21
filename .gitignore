@@ -13,6 +13,13 @@ dist
 dist-ssr
 *.local
 
+# Material de referencia local: no forma parte de la web publicada.
+public/collection-previews/
+public/collections/
+public/models/model-view-front-y-negative.png
+public/models/model-view-z-negative.png
+public/models/model-view-z-positive.png
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
