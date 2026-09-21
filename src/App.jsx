@@ -8,6 +8,7 @@ import { db } from './firebase'
 import './App.css'
 import './ProductCatalog.css'
 import './CartCheckout.css'
+import './StoreFooter.css'
 
 const COLORS = [{ name: 'Blanco', value: '#f7f6f2' }, { name: 'Negro', value: '#1e1e21' }, { name: 'Arena', value: '#d9d0c3' }, { name: 'Verde', value: '#71866c' }, { name: 'Bordó', value: '#7d3541' }]
 const SIZES = ['S', 'M', 'L', 'XL', 'XXL']
@@ -76,6 +77,20 @@ function App() {
     return () => stop()
   }, [])
   useEffect(() => { window.tintaWhatsApp = whatsappNumber }, [whatsappNumber])
+  useEffect(() => {
+    if (isCustomizerPage) return undefined
+    const after = document.querySelector('.how')
+    if (!after) return undefined
+    const footer = document.querySelector('.store-footer') || document.createElement('footer')
+    footer.className = 'store-footer'
+    const localNumber = whatsappNumber.replace(/^549/, '')
+    footer.innerHTML = `<div class="footer-newsletter"><div><p class="eyebrow">NOVEDADES FENIXIS</p><h2>Ideas nuevas.<br><em>Directo a vos.</em></h2></div><form class="footer-form"><label class="sr-only" for="footer-email">Tu email</label><input id="footer-email" type="email" placeholder="Tu email" required><button>Quiero enterarme <span>→</span></button><small>Diseños, lanzamientos y promos. Sin spam.</small></form></div><div class="footer-main"><div class="footer-brand"><a href="#inicio">FENIXIS<span>•</span>STUDIO</a><p>Remeras personalizadas para llevar tus ideas a donde vayas.</p></div><div><p class="footer-label">EXPLORÁ</p><a href="#inicio">Inicio</a><a href="#productos">Productos</a><a href="/personaliza">Personalizá</a></div><div><p class="footer-label">CONTACTO</p><a class="footer-whatsapp" href="https://wa.me/${whatsappNumber}" target="_blank" rel="noreferrer">WhatsApp <span>${localNumber}</span></a><p>Buenos Aires, Argentina</p><a href="/admin">Acceso vendedor ↗</a></div></div><div class="footer-bottom"><span>© 2026 FENIXIS. Todos los derechos reservados.</span><span>Hecho para crear sin límites.</span></div>`
+    if (!footer.parentElement) after.insertAdjacentElement('afterend', footer)
+    const form = footer.querySelector('.footer-form')
+    const submit = (event) => { event.preventDefault(); const button = form.querySelector('button'); button.textContent = '¡Gracias!'; button.disabled = true }
+    form.addEventListener('submit', submit)
+    return () => form.removeEventListener('submit', submit)
+  }, [isCustomizerPage, whatsappNumber])
   useEffect(() => {
     if (isCustomizerPage) return undefined
     return onSnapshot(collection(db, 'products'), (snapshot) => {
