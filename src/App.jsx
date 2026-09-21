@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { animate, inView } from 'motion'
-import { collection, onSnapshot } from 'firebase/firestore'
+import { collection, doc, onSnapshot } from 'firebase/firestore'
 import Shirt3D from './Shirt3D'
 import Admin from './Admin'
 import { db } from './firebase'
@@ -12,6 +12,7 @@ import './CartCheckout.css'
 const COLORS = [{ name: 'Blanco', value: '#f7f6f2' }, { name: 'Negro', value: '#1e1e21' }, { name: 'Arena', value: '#d9d0c3' }, { name: 'Verde', value: '#71866c' }, { name: 'Bordó', value: '#7d3541' }]
 const SIZES = ['S', 'M', 'L', 'XL', 'XXL']
 const SHIRT_PRICE = 18900
+const DEFAULT_WHATSAPP = '5491165937433'
 
 function CartDrawer({ open, items, onClose, onRemove, onQuantity }) {
   const [customer, setCustomer] = useState({ name: '', delivery: 'Retiro por el local', address: '', notes: '' })
@@ -24,7 +25,7 @@ function CartDrawer({ open, items, onClose, onRemove, onQuantity }) {
   }).join('\n\n')
   const customerDetails = `${customer.name ? `\n\nNombre: ${customer.name}` : ''}\nEntrega: ${customer.delivery}${customer.delivery === 'Envío a domicilio' && customer.address ? `\nDirección: ${customer.address}` : ''}${customer.notes ? `\nNotas: ${customer.notes}` : ''}`
   const message = encodeURIComponent(`Hola, quiero confirmar mi pedido de Tinta Club.\n\n${details}${customerDetails}\n\nTotal: $ ${total.toLocaleString('es-AR')}\n\nImportante: si tu pedido incluye una remera personalizada, adjuntá el diseño original como documento (no como foto) para conservar la calidad de impresión DTF.`)
-  return <div className={`cart-layer ${open ? 'is-open' : ''}`} aria-hidden={!open}><button className="cart-backdrop" aria-label="Cerrar bolsa" onClick={onClose}/><aside className="cart-drawer" aria-label="Tu bolsa"><header><div><p className="eyebrow">TU COMPRA</p><h2>Bolsa</h2></div><button onClick={onClose} aria-label="Cerrar bolsa">×</button></header>{items.length ? <><div className="cart-items">{items.map((item) => { const price = Number(item.price || SHIRT_PRICE); const isCatalogProduct = item.kind === 'product'; return <article className="cart-item" key={item.id}><div className="cart-item-art">{isCatalogProduct && item.imageUrl ? <img src={item.imageUrl} alt="" /> : <span style={{ background: item.colorValue || '#e6e4de' }}/>}</div><div><h3>{item.title || 'Remera personalizada'}</h3><p>{isCatalogProduct ? item.category || 'Producto del catálogo' : `${item.color} · Talle ${item.size}`}</p><small>{isCatalogProduct ? item.description || 'Producto de Tinta Club' : `${item.front ? `Frente: ${item.front}` : ''}${item.back ? ` · Espalda: ${item.back}` : ''}`}</small><div className="quantity"><button onClick={() => onQuantity(item.id, item.quantity - 1)} aria-label="Restar una unidad">−</button><b>{item.quantity}</b><button onClick={() => onQuantity(item.id, item.quantity + 1)} aria-label="Sumar una unidad">+</button><button className="remove-cart-item" onClick={() => onRemove(item.id)}>Quitar</button></div></div><strong>$ {(price * item.quantity).toLocaleString('es-AR')}</strong></article>})}</div><footer className="cart-footer"><div><span>Total</span><strong>$ {total.toLocaleString('es-AR')}</strong></div><div className="cart-customer"><label>Tu nombre<input value={customer.name} onChange={(event) => updateCustomer('name', event.target.value)} placeholder="Opcional" /></label><label>Entrega<select value={customer.delivery} onChange={(event) => updateCustomer('delivery', event.target.value)}><option>Retiro por el local</option><option>Envío a domicilio</option></select></label>{customer.delivery === 'Envío a domicilio' && <label className="cart-wide">Dirección<input value={customer.address} onChange={(event) => updateCustomer('address', event.target.value)} placeholder="Calle, altura y localidad" /></label>}<label className="cart-wide">Notas para el pedido<textarea value={customer.notes} onChange={(event) => updateCustomer('notes', event.target.value)} placeholder="Ej. Necesito recibirlo antes del viernes" rows="2" /></label></div><a href={`https://wa.me/5491100000000?text=${message}`} target="_blank" rel="noreferrer">Continuar por WhatsApp <span>→</span></a><p>Revisaremos tu pedido y coordinaremos el pago por WhatsApp.</p></footer></> : <div className="empty-cart"><span>◌</span><h3>Tu bolsa está vacía.</h3><p>Personalizá una remera o elegí un producto del catálogo.</p><button onClick={onClose}>Seguir viendo la tienda</button></div>}</aside></div>
+  return <div className={`cart-layer ${open ? 'is-open' : ''}`} aria-hidden={!open}><button className="cart-backdrop" aria-label="Cerrar bolsa" onClick={onClose}/><aside className="cart-drawer" aria-label="Tu bolsa"><header><div><p className="eyebrow">TU COMPRA</p><h2>Bolsa</h2></div><button onClick={onClose} aria-label="Cerrar bolsa">×</button></header>{items.length ? <><div className="cart-items">{items.map((item) => { const price = Number(item.price || SHIRT_PRICE); const isCatalogProduct = item.kind === 'product'; return <article className="cart-item" key={item.id}><div className="cart-item-art">{isCatalogProduct && item.imageUrl ? <img src={item.imageUrl} alt="" /> : <span style={{ background: item.colorValue || '#e6e4de' }}/>}</div><div><h3>{item.title || 'Remera personalizada'}</h3><p>{isCatalogProduct ? item.category || 'Producto del catálogo' : `${item.color} · Talle ${item.size}`}</p><small>{isCatalogProduct ? item.description || 'Producto de Tinta Club' : `${item.front ? `Frente: ${item.front}` : ''}${item.back ? ` · Espalda: ${item.back}` : ''}`}</small><div className="quantity"><button onClick={() => onQuantity(item.id, item.quantity - 1)} aria-label="Restar una unidad">−</button><b>{item.quantity}</b><button onClick={() => onQuantity(item.id, item.quantity + 1)} aria-label="Sumar una unidad">+</button><button className="remove-cart-item" onClick={() => onRemove(item.id)}>Quitar</button></div></div><strong>$ {(price * item.quantity).toLocaleString('es-AR')}</strong></article>})}</div><footer className="cart-footer"><div><span>Total</span><strong>$ {total.toLocaleString('es-AR')}</strong></div><div className="cart-customer"><label>Tu nombre<input value={customer.name} onChange={(event) => updateCustomer('name', event.target.value)} placeholder="Opcional" /></label><label>Entrega<select value={customer.delivery} onChange={(event) => updateCustomer('delivery', event.target.value)}><option>Retiro por el local</option><option>Envío a domicilio</option></select></label>{customer.delivery === 'Envío a domicilio' && <label className="cart-wide">Dirección<input value={customer.address} onChange={(event) => updateCustomer('address', event.target.value)} placeholder="Calle, altura y localidad" /></label>}<label className="cart-wide">Notas para el pedido<textarea value={customer.notes} onChange={(event) => updateCustomer('notes', event.target.value)} placeholder="Ej. Necesito recibirlo antes del viernes" rows="2" /></label></div><a href={`https://wa.me/${window.tintaWhatsApp || DEFAULT_WHATSAPP}?text=${message}`} target="_blank" rel="noreferrer">Continuar por WhatsApp <span>→</span></a><p>Revisaremos tu pedido y coordinaremos el pago por WhatsApp.</p></footer></> : <div className="empty-cart"><span>◌</span><h3>Tu bolsa está vacía.</h3><p>Personalizá una remera o elegí un producto del catálogo.</p><button onClick={onClose}>Seguir viendo la tienda</button></div>}</aside></div>
 }
 
 function Shirt({ color, design, transform, side, onPointerDown, onDesignPointerDown }) {
@@ -45,6 +46,7 @@ function App() {
   const [cartOpen, setCartOpen] = useState(false)
   const [cart, setCart] = useState(() => { try { return JSON.parse(window.localStorage.getItem('tinta-club-cart') || '[]') } catch { return [] } })
   const [products, setProducts] = useState([])
+  const [whatsappNumber, setWhatsappNumber] = useState(DEFAULT_WHATSAPP)
   const cartRoot = useRef(null)
   const activeTransform = useRef(transform)
   const pinch = useRef(null)
@@ -66,6 +68,14 @@ function App() {
     document.querySelectorAll('a[href="#como-funciona"], a[href="/#como-funciona"]').forEach((link) => { link.href = '/personaliza' })
   }, [])
   useEffect(() => { window.localStorage.setItem('tinta-club-cart', JSON.stringify(cart)) }, [cart])
+  useEffect(() => {
+    const stop = onSnapshot(doc(db, 'settings', 'store'), (snapshot) => {
+      const number = snapshot.data()?.whatsappNumber?.replace(/\D/g, '')
+      if (number) setWhatsappNumber(number)
+    }, () => {})
+    return () => stop()
+  }, [])
+  useEffect(() => { window.tintaWhatsApp = whatsappNumber }, [whatsappNumber])
   useEffect(() => {
     if (isCustomizerPage) return undefined
     return onSnapshot(collection(db, 'products'), (snapshot) => {
@@ -200,6 +210,9 @@ function App() {
     return () => { running.forEach((animation) => animation.stop()); stopWatching() }
   }, [isCustomizerPage])
   const whatsappMessage = useMemo(() => encodeURIComponent(`Hola, quiero pedir una remera personalizada.\nColor: ${color.name}\nTalle: ${size}\nDiseño frente: ${fileNames.Frente || 'sin diseño'}\nDiseño espalda: ${fileNames.Espalda || 'sin diseño'}\n\nImportante: voy a adjuntar mi diseño original como documento (no como foto) para conservar la calidad de impresión DTF.`), [color, fileNames, size])
+  useEffect(() => {
+    document.querySelectorAll('.order').forEach((link) => { link.href = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}` })
+  }, [whatsappNumber, whatsappMessage])
   function addToCart() { if (!designs.Frente && !designs.Espalda) { setNotice('Primero agregá al menos un diseño a la remera.'); return } const item = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, kind: 'custom', title: 'Remera personalizada', price: SHIRT_PRICE, color: color.name, colorValue: color.value, size, front: fileNames.Frente, back: fileNames.Espalda, quantity: 1 }; setCart((current) => [...current, item]); setDesigns({ Frente: '', Espalda: '' }); setFileNames({ Frente: '', Espalda: '' }); setTransforms({ Frente: { x: 50, y: 43, scale: 54, rotation: 0 }, Espalda: { x: 50, y: 43, scale: 54, rotation: 0 } }); setColor(COLORS[0]); setSize('M'); setSide('Frente'); setCartOpen(false); setNotice('Remera agregada a la bolsa. Ya podés personalizar otra.') }
   function addCatalogProduct(product) { if (!product) return; const item = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, kind: 'product', title: product.title || 'Producto', price: Number(product.price || 0), category: product.category || 'Producto del catálogo', description: product.description || '', imageUrl: product.imageUrl || '', quantity: 1 }; setCart((current) => [...current, item]); setCartOpen(true) }
   function removeCartItem(id) { setCart((current) => current.filter((item) => item.id !== id)) }
@@ -212,7 +225,7 @@ function App() {
   }, [])
   useEffect(() => {
     cartRoot.current?.render(<CartDrawer open={cartOpen} items={cart} onClose={() => setCartOpen(false)} onRemove={removeCartItem} onQuantity={updateQuantity}/>)
-  }, [cartOpen, cart])
+  }, [cartOpen, cart, whatsappNumber])
   useEffect(() => {
     const openCart = () => setCartOpen(true)
     const addProduct = (event) => { event.preventDefault(); addToCart() }
