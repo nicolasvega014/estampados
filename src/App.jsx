@@ -108,11 +108,19 @@ function App() {
   }, [isCustomizerPage, whatsappNumber])
   useEffect(() => {
     if (isCustomizerPage) return undefined
-    return onSnapshot(collection(db, 'products'), (snapshot) => {
-      const visibleProducts = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))
-      visibleProducts.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
-      setProducts(visibleProducts)
-    }, () => setProducts([]))
+    let seedProducts = []
+    let storedProducts = []
+    const updateProducts = () => {
+      const catalog = new Map(seedProducts.map((item) => [item.id, item]))
+      storedProducts.forEach((item) => { if (item.hidden) catalog.delete(item.id); else catalog.set(item.id, { ...catalog.get(item.id), ...item }) })
+      setProducts([...catalog.values()])
+    }
+    fetch('/products/catalog.json').then((response) => response.ok ? response.json() : []).then((items) => { seedProducts = Array.isArray(items) ? items : []; updateProducts() }).catch(() => updateProducts())
+    const stop = onSnapshot(collection(db, 'products'), (snapshot) => {
+      storedProducts = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))
+      updateProducts()
+    }, () => updateProducts())
+    return () => stop()
   }, [isCustomizerPage])
   useEffect(() => {
     if (!isProductsPage) return undefined

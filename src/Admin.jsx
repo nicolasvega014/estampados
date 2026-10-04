@@ -25,6 +25,8 @@ export default function Admin() {
   const [orders, setOrders] = useState([])
   const [designs, setDesigns] = useState([])
   const [products, setProducts] = useState([])
+  const [seedProducts, setSeedProducts] = useState([])
+  const [storedProducts, setStoredProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [upload, setUpload] = useState({ title: '', category: '', file: null })
   const [product, setProduct] = useState(EMPTY_PRODUCT)
@@ -33,11 +35,23 @@ export default function Admin() {
 
   useEffect(() => onAuthStateChanged(auth, (currentUser) => { setUser(currentUser); setLoading(false) }), [])
 
+  useEffect(() => { fetch('/products/catalog.json').then((response) => response.ok ? response.json() : []).then((items) => setSeedProducts(Array.isArray(items) ? items : [])).catch(() => {}) }, [])
+
+  useEffect(() => {
+    const catalog = new Map(seedProducts.map((item) => [item.id, { ...item, isSeed: true }]))
+    storedProducts.forEach((item) => {
+      const isSeed = catalog.has(item.id)
+      if (item.hidden) catalog.delete(item.id)
+      else catalog.set(item.id, { ...catalog.get(item.id), ...item, isSeed })
+    })
+    setProducts([...catalog.values()])
+  }, [seedProducts, storedProducts])
+
   useEffect(() => {
     if (!user) return undefined
     const stopOrders = onSnapshot(query(collection(db, 'orders'), orderBy('createdAt', 'desc')), (snapshot) => setOrders(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))), () => setMessage('Todavía no se pudieron cargar los pedidos.'))
     const stopDesigns = onSnapshot(query(collection(db, 'designs'), orderBy('createdAt', 'desc')), (snapshot) => setDesigns(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))), () => setMessage('Todavía no se pudieron cargar los diseños.'))
-    const stopProducts = onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'desc')), (snapshot) => setProducts(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))), () => setMessage('Todavía no se pudieron cargar los productos.'))
+    const stopProducts = onSnapshot(collection(db, 'products'), (snapshot) => setStoredProducts(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))), () => setMessage('Todavía no se pudieron cargar los productos.'))
     const stopCategories = onSnapshot(query(collection(db, 'categories'), orderBy('name')), (snapshot) => setCategories(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))), () => setMessage('Todavía no se pudieron cargar las categorías.'))
     return () => { stopOrders(); stopDesigns(); stopProducts(); stopCategories() }
   }, [user])
@@ -103,7 +117,7 @@ export default function Admin() {
     if (!title || !Number.isFinite(price) || price < 0) { setMessage('Completá el nombre y un precio válido.'); return }
     try {
       const data = { title, description: product.description.trim(), price, category: product.category || 'Remeras', imageUrl: product.imageUrl.trim() }
-      if (product.id) await updateDoc(doc(db, 'products', product.id), data)
+      if (product.id) await setDoc(doc(db, 'products', product.id), { ...data, hidden: false }, { merge: true })
       else await addDoc(collection(db, 'products'), { ...data, createdAt: serverTimestamp() })
       setProduct(EMPTY_PRODUCT)
       setMessage(product.id ? 'Producto actualizado.' : 'Producto guardado en el catálogo.')
@@ -112,7 +126,12 @@ export default function Admin() {
 
   async function remove(collectionName, id) {
     if (!window.confirm('¿Querés quitar este elemento?')) return
-    try { await deleteDoc(doc(db, collectionName, id)); setMessage('Elemento eliminado.') }
+    try {
+      const item = collectionName === 'products' ? products.find((product) => product.id === id) : null
+      if (item?.isSeed) await setDoc(doc(db, 'products', id), { hidden: true }, { merge: true })
+      else await deleteDoc(doc(db, collectionName, id))
+      setMessage('Elemento eliminado.')
+    }
     catch { setMessage('No se pudo eliminar el elemento.') }
   }
 
