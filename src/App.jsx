@@ -107,13 +107,13 @@ function App() {
     return undefined
   }, [isCustomizerPage, whatsappNumber])
   useEffect(() => {
-    if (!isProductsPage) return undefined
+    if (isCustomizerPage) return undefined
     return onSnapshot(collection(db, 'products'), (snapshot) => {
       const visibleProducts = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))
       visibleProducts.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
       setProducts(visibleProducts)
     }, () => setProducts([]))
-  }, [isProductsPage])
+  }, [isCustomizerPage])
   useEffect(() => {
     if (!isProductsPage) return undefined
     const section = document.querySelector('.products-page-content')
@@ -142,6 +142,36 @@ function App() {
     section.replaceChildren(head, grid)
     return undefined
   }, [products, isProductsPage])
+  useEffect(() => {
+    if (isCustomizerPage || isProductsPage) return undefined
+    const oldRail = document.querySelector('.home-products-rail')
+    if (!products.length) { oldRail?.remove(); return undefined }
+    const landing = document.querySelector('.landing')
+    if (!landing) return undefined
+    const section = oldRail || document.createElement('section')
+    section.className = 'home-products-rail'
+    if (!oldRail) landing.insertAdjacentElement('afterend', section)
+    const heading = document.createElement('div'); heading.className = 'home-rail-heading'
+    heading.innerHTML = '<div><p class="eyebrow">RECIÉN LLEGADO</p><h2>Encontrá tu próxima favorita.</h2></div><a href="/productos">Ver todos <span>→</span></a>'
+    const viewport = document.createElement('div'); viewport.className = 'home-rail-viewport'
+    const track = document.createElement('div'); track.className = 'home-rail-track'
+    const buildGroup = () => {
+      const group = document.createElement('div'); group.className = 'home-rail-group'
+      products.forEach((product) => {
+        const card = document.createElement('article'); card.className = 'home-rail-card'
+        const imageBox = document.createElement('div'); imageBox.className = 'home-rail-image'
+        if (product.imageUrl) { const image = document.createElement('img'); image.src = product.imageUrl; image.alt = product.title; image.loading = 'lazy'; imageBox.append(image) } else { imageBox.innerHTML = '<span>FENIXIS<br/>STORE</span>' }
+        const info = document.createElement('div'); info.className = 'home-rail-info'
+        const category = document.createElement('small'); const title = document.createElement('h3'); const price = document.createElement('strong'); const add = document.createElement('button')
+        category.textContent = product.category || 'Prenda'; title.textContent = product.title; price.textContent = `$ ${Number(product.price || 0).toLocaleString('es-AR')}`; add.type = 'button'; add.textContent = 'Agregar +'
+        add.addEventListener('click', () => window.dispatchEvent(new CustomEvent('tinta-add-catalog-product', { detail: product })))
+        info.append(category, title, price, add); card.append(imageBox, info); group.append(card)
+      })
+      return group
+    }
+    track.append(buildGroup(), buildGroup()); viewport.append(track); section.replaceChildren(heading, viewport)
+    return undefined
+  }, [products, isCustomizerPage, isProductsPage])
   useEffect(() => { activeTransform.current = transform }, [transform])
   useEffect(() => {
     const host = document.createElement('div')
