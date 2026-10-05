@@ -36,6 +36,7 @@ function loadMercadoPagoSdk() {
 function MercadoPagoCheckout({ items, customer, onCancel, onComplete }) {
   const containerId = 'fenixis-card-payment'
   const total = items.reduce((sum, item) => sum + Number(item.price || SHIRT_PRICE) * item.quantity, 0)
+  const hasCustomItem = items.some((item) => item.kind === 'custom')
   const [state, setState] = useState({ kind: 'loading', message: 'Estamos preparando el pago seguro…' })
 
   useEffect(() => {
@@ -83,6 +84,7 @@ function MercadoPagoCheckout({ items, customer, onCancel, onComplete }) {
                   setState({
                     kind: approved ? 'success' : 'pending',
                     message: approved ? '¡Pago aprobado! Recibimos tu compra.' : 'Tu pago quedó en revisión. Te vamos a avisar cuando se confirme.',
+                    reference: result.reference || '',
                   })
                 }
                 resolve()
@@ -106,7 +108,7 @@ function MercadoPagoCheckout({ items, customer, onCancel, onComplete }) {
     }
   }, [total])
 
-  if (state.kind === 'success' || state.kind === 'pending') return <section className={`payment-result ${state.kind}`}><span>{state.kind === 'success' ? '✓' : '◌'}</span><h3>{state.kind === 'success' ? 'Compra realizada' : 'Pago en revisión'}</h3><p>{state.message}</p><button type="button" onClick={onComplete}>Volver a la tienda</button></section>
+  if (state.kind === 'success' || state.kind === 'pending') return <section className={`payment-result ${state.kind}`}><span>{state.kind === 'success' ? '✓' : '◌'}</span><h3>{state.kind === 'success' ? 'Compra realizada' : 'Pago en revisión'}</h3><p>{state.message}</p>{hasCustomItem && <a className="send-design-after-payment" href={`https://wa.me/${window.tintaWhatsApp || DEFAULT_WHATSAPP}?text=${encodeURIComponent(`Hola, ya pagué mi remera personalizada${state.reference ? ` (${state.reference})` : ''}. Te envío el diseño original como documento para imprimir.`)}`} target="_blank" rel="noreferrer">Enviar diseño original <span>↗</span></a>}<button type="button" onClick={onComplete}>Volver a la tienda</button></section>
 
   return <section className="mercado-pago-checkout"><div className="checkout-title"><div><p className="eyebrow">PAGO SEGURO</p><h3>Pagá con Mercado Pago</h3></div><button type="button" onClick={onCancel} aria-label="Volver a la bolsa">×</button></div><p className="checkout-total">Total a pagar <strong>$ {total.toLocaleString('es-AR')}</strong></p>{state.kind !== 'ready' && <p className={`payment-message ${state.kind}`}>{state.message}</p>}<div id={containerId}/><small>Los datos de tu tarjeta son procesados de forma segura por Mercado Pago.</small></section>
 }
