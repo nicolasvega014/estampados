@@ -15,9 +15,105 @@ const COLORS = [{ name: 'Blanco', value: '#f7f6f2' }, { name: 'Negro', value: '#
 const SIZES = ['S', 'M', 'L', 'XL', 'XXL']
 const SHIRT_PRICE = 18900
 const DEFAULT_WHATSAPP = '5491165937433'
+const MERCADO_PAGO_PUBLIC_KEY = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY || ''
 
-function CartDrawer({ open, items, onClose, onRemove, onQuantity }) {
+let mercadoPagoSdk
+
+function loadMercadoPagoSdk() {
+  if (window.MercadoPago) return Promise.resolve(window.MercadoPago)
+  if (mercadoPagoSdk) return mercadoPagoSdk
+  mercadoPagoSdk = new Promise((resolve, reject) => {
+    const script = document.createElement('script')
+    script.src = 'https://sdk.mercadopago.com/js/v2'
+    script.async = true
+    script.onload = () => window.MercadoPago ? resolve(window.MercadoPago) : reject(new Error('No se pudo iniciar Mercado Pago.'))
+    script.onerror = () => reject(new Error('No se pudo cargar Mercado Pago.'))
+    document.head.append(script)
+  })
+  return mercadoPagoSdk
+}
+
+function MercadoPagoCheckout({ items, customer, onCancel, onComplete }) {
+  const containerId = 'fenixis-card-payment'
+  const total = items.reduce((sum, item) => sum + Number(item.price || SHIRT_PRICE) * item.quantity, 0)
+  const [state, setState] = useState({ kind: 'loading', message: 'Estamos preparando el pago seguro…' })
+
+  useEffect(() => {
+    let mounted = true
+    let controller
+
+    if (!MERCADO_PAGO_PUBLIC_KEY) {
+      setState({ kind: 'error', message: 'El checkout todavía no está configurado. Probá nuevamente en unos minutos.' })
+      return undefined
+    }
+
+    const start = async () => {
+      try {
+        const MercadoPago = await loadMercadoPagoSdk()
+        if (!mounted) return
+        const mp = new MercadoPago(MERCADO_PAGO_PUBLIC_KEY, { locale: 'es-AR' })
+        const bricksBuilder = mp.bricks()
+        controller = await bricksBuilder.create('cardPayment', containerId, {
+          initialization: { amount: total },
+          customization: { paymentMethods: { maxInstallments: 12 } },
+          callbacks: {
+            onReady: () => mounted && setState({ kind: 'ready', message: '' }),
+            onSubmit: (formData, additionalData) => new Promise(async (resolve, reject) => {
+              try {
+                mounted && setState({ kind: 'processing', message: 'Procesando tu pago…' })
+                const response = await fetch('/api/process-order', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    cart: items.map((item) => ({ productId: item.productId || '', kind: item.kind, quantity: item.quantity })),
+                    customer,
+                    payment: {
+                      token: formData.token,
+                      paymentMethodId: formData.payment_method_id,
+                      paymentType: additionalData.paymentTypeId,
+                      installments: formData.installments,
+                      payer: formData.payer,
+                    },
+                  }),
+                })
+                const result = await response.json().catch(() => ({}))
+                if (!response.ok) throw new Error(result.message || 'No pudimos procesar el pago. Revisá los datos e intentá nuevamente.')
+                if (mounted) {
+                  const approved = result.status === 'processed' || result.status === 'approved'
+                  setState({
+                    kind: approved ? 'success' : 'pending',
+                    message: approved ? '¡Pago aprobado! Recibimos tu compra.' : 'Tu pago quedó en revisión. Te vamos a avisar cuando se confirme.',
+                  })
+                }
+                resolve()
+              } catch (error) {
+                mounted && setState({ kind: 'error', message: error.message || 'No pudimos procesar el pago.' })
+                reject(error)
+              }
+            }),
+            onError: () => mounted && setState({ kind: 'error', message: 'Revisá los datos de la tarjeta e intentá nuevamente.' }),
+          },
+        })
+      } catch (error) {
+        mounted && setState({ kind: 'error', message: error.message || 'No pudimos iniciar Mercado Pago.' })
+      }
+    }
+
+    start()
+    return () => {
+      mounted = false
+      controller?.unmount?.()
+    }
+  }, [total])
+
+  if (state.kind === 'success' || state.kind === 'pending') return <section className={`payment-result ${state.kind}`}><span>{state.kind === 'success' ? '✓' : '◌'}</span><h3>{state.kind === 'success' ? 'Compra realizada' : 'Pago en revisión'}</h3><p>{state.message}</p><button type="button" onClick={onComplete}>Volver a la tienda</button></section>
+
+  return <section className="mercado-pago-checkout"><div className="checkout-title"><div><p className="eyebrow">PAGO SEGURO</p><h3>Pagá con Mercado Pago</h3></div><button type="button" onClick={onCancel} aria-label="Volver a la bolsa">×</button></div><p className="checkout-total">Total a pagar <strong>$ {total.toLocaleString('es-AR')}</strong></p>{state.kind !== 'ready' && <p className={`payment-message ${state.kind}`}>{state.message}</p>}<div id={containerId}/><small>Los datos de tu tarjeta son procesados de forma segura por Mercado Pago.</small></section>
+}
+
+function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear }) {
   const [customer, setCustomer] = useState({ name: '', delivery: 'Retiro por el local', address: '', notes: '' })
+  const [checkoutOpen, setCheckoutOpen] = useState(false)
   const total = items.reduce((sum, item) => sum + Number(item.price || SHIRT_PRICE) * item.quantity, 0)
   const updateCustomer = (key, value) => setCustomer((current) => ({ ...current, [key]: value }))
   const details = items.map((item, index) => {
@@ -27,7 +123,8 @@ function CartDrawer({ open, items, onClose, onRemove, onQuantity }) {
   }).join('\n\n')
   const customerDetails = `${customer.name ? `\n\nNombre: ${customer.name}` : ''}\nEntrega: ${customer.delivery}${customer.delivery === 'Envío a domicilio' && customer.address ? `\nDirección: ${customer.address}` : ''}${customer.notes ? `\nNotas: ${customer.notes}` : ''}`
   const message = encodeURIComponent(`Hola, quiero confirmar mi pedido de Tinta Club.\n\n${details}${customerDetails}\n\nTotal: $ ${total.toLocaleString('es-AR')}\n\nImportante: si tu pedido incluye una remera personalizada, adjuntá el diseño original como documento (no como foto) para conservar la calidad de impresión DTF.`)
-  return <div className={`cart-layer ${open ? 'is-open' : ''}`} aria-hidden={!open}><button className="cart-backdrop" aria-label="Cerrar bolsa" onClick={onClose}/><aside className="cart-drawer" aria-label="Tu bolsa"><header><div><p className="eyebrow">TU COMPRA</p><h2>Bolsa</h2></div><button onClick={onClose} aria-label="Cerrar bolsa">×</button></header>{items.length ? <><div className="cart-items">{items.map((item) => { const price = Number(item.price || SHIRT_PRICE); const isCatalogProduct = item.kind === 'product'; return <article className="cart-item" key={item.id}><div className="cart-item-art">{isCatalogProduct && item.imageUrl ? <img src={item.imageUrl} alt="" /> : <span style={{ background: item.colorValue || '#e6e4de' }}/>}</div><div><h3>{item.title || 'Remera personalizada'}</h3><p>{isCatalogProduct ? item.category || 'Producto del catálogo' : `${item.color} · Talle ${item.size}`}</p><small>{isCatalogProduct ? item.description || 'Producto de Tinta Club' : `${item.front ? `Frente: ${item.front}` : ''}${item.back ? ` · Espalda: ${item.back}` : ''}`}</small><div className="quantity"><button onClick={() => onQuantity(item.id, item.quantity - 1)} aria-label="Restar una unidad">−</button><b>{item.quantity}</b><button onClick={() => onQuantity(item.id, item.quantity + 1)} aria-label="Sumar una unidad">+</button><button className="remove-cart-item" onClick={() => onRemove(item.id)}>Quitar</button></div></div><strong>$ {(price * item.quantity).toLocaleString('es-AR')}</strong></article>})}</div><footer className="cart-footer"><div><span>Total</span><strong>$ {total.toLocaleString('es-AR')}</strong></div><div className="cart-customer"><label>Tu nombre<input value={customer.name} onChange={(event) => updateCustomer('name', event.target.value)} placeholder="Opcional" /></label><label>Entrega<select value={customer.delivery} onChange={(event) => updateCustomer('delivery', event.target.value)}><option>Retiro por el local</option><option>Envío a domicilio</option></select></label>{customer.delivery === 'Envío a domicilio' && <label className="cart-wide">Dirección<input value={customer.address} onChange={(event) => updateCustomer('address', event.target.value)} placeholder="Calle, altura y localidad" /></label>}<label className="cart-wide">Notas para el pedido<textarea value={customer.notes} onChange={(event) => updateCustomer('notes', event.target.value)} placeholder="Ej. Necesito recibirlo antes del viernes" rows="2" /></label></div><a href={`https://wa.me/${window.tintaWhatsApp || DEFAULT_WHATSAPP}?text=${message}`} target="_blank" rel="noreferrer">Continuar por WhatsApp <span>→</span></a><p>Revisaremos tu pedido y coordinaremos el pago por WhatsApp.</p></footer></> : <div className="empty-cart"><span>◌</span><h3>Tu bolsa está vacía.</h3><p>Personalizá una remera o elegí un producto del catálogo.</p><button onClick={onClose}>Seguir viendo la tienda</button></div>}</aside></div>
+  const finish = () => { onClear(); setCheckoutOpen(false); onClose() }
+  return <div className={`cart-layer ${open ? 'is-open' : ''}`} aria-hidden={!open}><button className="cart-backdrop" aria-label="Cerrar bolsa" onClick={onClose}/><aside className="cart-drawer" aria-label="Tu bolsa"><header><div><p className="eyebrow">TU COMPRA</p><h2>{checkoutOpen ? 'Pago' : 'Bolsa'}</h2></div><button onClick={onClose} aria-label="Cerrar bolsa">×</button></header>{items.length ? checkoutOpen ? <MercadoPagoCheckout items={items} customer={customer} onCancel={() => setCheckoutOpen(false)} onComplete={finish}/> : <><div className="cart-items">{items.map((item) => { const price = Number(item.price || SHIRT_PRICE); const isCatalogProduct = item.kind === 'product'; return <article className="cart-item" key={item.id}><div className="cart-item-art">{isCatalogProduct && item.imageUrl ? <img src={item.imageUrl} alt="" /> : <span style={{ background: item.colorValue || '#e6e4de' }}/>}</div><div><h3>{item.title || 'Remera personalizada'}</h3><p>{isCatalogProduct ? item.category || 'Producto del catálogo' : `${item.color} · Talle ${item.size}`}</p><small>{isCatalogProduct ? item.description || 'Producto de Tinta Club' : `${item.front ? `Frente: ${item.front}` : ''}${item.back ? ` · Espalda: ${item.back}` : ''}`}</small><div className="quantity"><button onClick={() => onQuantity(item.id, item.quantity - 1)} aria-label="Restar una unidad">−</button><b>{item.quantity}</b><button onClick={() => onQuantity(item.id, item.quantity + 1)} aria-label="Sumar una unidad">+</button><button className="remove-cart-item" onClick={() => onRemove(item.id)}>Quitar</button></div></div><strong>$ {(price * item.quantity).toLocaleString('es-AR')}</strong></article>})}</div><footer className="cart-footer"><div><span>Total</span><strong>$ {total.toLocaleString('es-AR')}</strong></div><div className="cart-customer"><label>Tu nombre<input value={customer.name} onChange={(event) => updateCustomer('name', event.target.value)} placeholder="Opcional" /></label><label>Entrega<select value={customer.delivery} onChange={(event) => updateCustomer('delivery', event.target.value)}><option>Retiro por el local</option><option>Envío a domicilio</option></select></label>{customer.delivery === 'Envío a domicilio' && <label className="cart-wide">Dirección<input value={customer.address} onChange={(event) => updateCustomer('address', event.target.value)} placeholder="Calle, altura y localidad" /></label>}<label className="cart-wide">Notas para el pedido<textarea value={customer.notes} onChange={(event) => updateCustomer('notes', event.target.value)} placeholder="Ej. Necesito recibirlo antes del viernes" rows="2" /></label></div><button className="checkout-button" type="button" onClick={() => setCheckoutOpen(true)}>Pagar con Mercado Pago <span>→</span></button><p>Pago seguro procesado por Mercado Pago.</p></footer></> : <div className="empty-cart"><span>◌</span><h3>Tu bolsa está vacía.</h3><p>Personalizá una remera o elegí un producto del catálogo.</p><button onClick={onClose}>Seguir viendo la tienda</button></div>}</aside></div>
 }
 
 function Shirt({ color, design, transform, side, onPointerDown, onDesignPointerDown }) {
@@ -302,7 +399,7 @@ function App() {
     document.querySelectorAll('.order').forEach((link) => { link.href = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}` })
   }, [whatsappNumber, whatsappMessage])
   function addToCart() { if (!designs.Frente && !designs.Espalda) { setNotice('Primero agregá al menos un diseño a la remera.'); return } const item = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, kind: 'custom', title: 'Remera personalizada', price: SHIRT_PRICE, color: color.name, colorValue: color.value, size, front: fileNames.Frente, back: fileNames.Espalda, quantity: 1 }; setCart((current) => [...current, item]); setDesigns({ Frente: '', Espalda: '' }); setFileNames({ Frente: '', Espalda: '' }); setTransforms({ Frente: { x: 50, y: 43, scale: 54, rotation: 0 }, Espalda: { x: 50, y: 43, scale: 54, rotation: 0 } }); setColor(COLORS[0]); setSize('M'); setSide('Frente'); setCartOpen(false); setNotice('Remera agregada a la bolsa. Ya podés personalizar otra.') }
-  function addCatalogProduct(product) { if (!product) return; const item = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, kind: 'product', title: product.title || 'Producto', price: Number(product.price || 0), category: product.category || 'Producto del catálogo', description: product.description || '', imageUrl: product.imageUrl || '', quantity: 1 }; setCart((current) => [...current, item]); setCartOpen(true) }
+  function addCatalogProduct(product) { if (!product) return; const item = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, productId: product.id || '', kind: 'product', title: product.title || 'Producto', price: Number(product.price || 0), category: product.category || 'Producto del catálogo', description: product.description || '', imageUrl: product.imageUrl || '', quantity: 1 }; setCart((current) => [...current, item]); setCartOpen(true) }
   function removeCartItem(id) { setCart((current) => current.filter((item) => item.id !== id)) }
   function updateQuantity(id, quantity) { if (quantity < 1) return removeCartItem(id); setCart((current) => current.map((item) => item.id === id ? { ...item, quantity } : item)) }
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
@@ -312,7 +409,7 @@ function App() {
     return () => window.removeEventListener('tinta-add-catalog-product', add)
   }, [])
   useEffect(() => {
-    cartRoot.current?.render(<CartDrawer open={cartOpen} items={cart} onClose={() => setCartOpen(false)} onRemove={removeCartItem} onQuantity={updateQuantity}/>)
+    cartRoot.current?.render(<CartDrawer open={cartOpen} items={cart} onClose={() => setCartOpen(false)} onRemove={removeCartItem} onQuantity={updateQuantity} onClear={() => setCart([])}/>)
   }, [cartOpen, cart, whatsappNumber])
   useEffect(() => {
     const openCart = () => setCartOpen(true)
