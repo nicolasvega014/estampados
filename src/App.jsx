@@ -76,6 +76,26 @@ function App() {
     document.querySelectorAll('a[href="#personaliza"]').forEach((link) => { link.href = '/personaliza' })
     document.querySelectorAll('a[href="#como-funciona"], a[href="/#como-funciona"]').forEach((link) => { link.href = '/personaliza' })
   }, [])
+  useEffect(() => {
+    const cleanups = []
+    document.querySelectorAll('main > header').forEach((header) => {
+      const nav = header.querySelector('nav')
+      if (!nav || header.querySelector('.mobile-menu-toggle')) return
+      const toggle = document.createElement('button')
+      toggle.type = 'button'; toggle.className = 'mobile-menu-toggle'; toggle.setAttribute('aria-label', 'Abrir menú'); toggle.setAttribute('aria-expanded', 'false')
+      toggle.innerHTML = '<span></span><span></span><span></span>'
+      const close = () => { header.classList.remove('mobile-menu-open'); toggle.setAttribute('aria-expanded', 'false'); toggle.setAttribute('aria-label', 'Abrir menú') }
+      const toggleMenu = () => {
+        const open = header.classList.toggle('mobile-menu-open')
+        toggle.setAttribute('aria-expanded', String(open)); toggle.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú')
+      }
+      toggle.addEventListener('click', toggleMenu)
+      nav.querySelectorAll('a').forEach((link) => link.addEventListener('click', close))
+      header.insertBefore(toggle, header.querySelector('.cart'))
+      cleanups.push(() => { toggle.removeEventListener('click', toggleMenu); nav.querySelectorAll('a').forEach((link) => link.removeEventListener('click', close)); toggle.remove() })
+    })
+    return () => cleanups.forEach((clean) => clean())
+  }, [isCustomizerPage, isProductsPage])
   useEffect(() => { window.localStorage.setItem('tinta-club-cart', JSON.stringify(cart)) }, [cart])
   useEffect(() => {
     const stop = onSnapshot(doc(db, 'settings', 'store'), (snapshot) => {
@@ -141,8 +161,8 @@ function App() {
       const imageBox = document.createElement('div'); imageBox.className = 'store-product-image'
       if (product.imageUrl) { const image = document.createElement('img'); image.src = product.imageUrl; image.alt = product.title; image.loading = 'lazy'; imageBox.append(image) } else { const placeholder = document.createElement('div'); const stamp = document.createElement('span'); const note = document.createElement('small'); placeholder.className = 'store-product-placeholder'; stamp.innerHTML = 'FENIXIS<br/>STORE'; note.textContent = 'PRENDA PERSONALIZABLE'; placeholder.append(stamp, note); imageBox.append(placeholder) }
       const info = document.createElement('div'); info.className = 'store-product-info'
-      const category = document.createElement('span'); const name = document.createElement('h3'); const priceLine = document.createElement('div'); const price = document.createElement('strong'); const actions = document.createElement('span'); const link = document.createElement('a'); const add = document.createElement('button')
-      category.textContent = product.category || 'Remeras'; name.textContent = product.title; price.textContent = `$ ${Number(product.price || 0).toLocaleString('es-AR')}`; link.href = '/personaliza'; link.innerHTML = 'Personalizar <b>→</b>'; actions.className = 'store-product-actions'; add.type = 'button'; add.textContent = 'Agregar'; add.addEventListener('click', () => window.dispatchEvent(new CustomEvent('tinta-add-catalog-product', { detail: product }))); actions.append(link, add)
+      const category = document.createElement('span'); const name = document.createElement('h3'); const priceLine = document.createElement('div'); const price = document.createElement('strong'); const actions = document.createElement('span'); const add = document.createElement('button')
+      category.textContent = product.category || 'Remeras'; name.textContent = product.title; price.textContent = `$ ${Number(product.price || 0).toLocaleString('es-AR')}`; actions.className = 'store-product-actions'; add.type = 'button'; add.textContent = 'Agregar'; add.addEventListener('click', () => window.dispatchEvent(new CustomEvent('tinta-add-catalog-product', { detail: product }))); actions.append(add)
       info.append(category, name)
       if (product.description) { const description = document.createElement('p'); description.textContent = product.description; info.append(description) }
       priceLine.append(price, actions); info.append(priceLine); card.append(imageBox, info); grid.append(card)
