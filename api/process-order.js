@@ -2,15 +2,15 @@ import { randomUUID } from 'node:crypto'
 
 const CUSTOM_SHIRT_PRICE = 18900
 const CATALOG = {
-  'remeron-yorkie-bandana': { title: 'Remerón Yorkie Bandana', price: 15000 },
-  'remeron-golden-girasoles': { title: 'Remerón Golden Girasoles', price: 15000 },
-  'remeron-gato-limon': { title: 'Remerón Gato Limón', price: 15000 },
-  'remeron-perro-cafe': { title: 'Remerón Perro Café', price: 15000 },
-  'remeron-salchicha-retro': { title: 'Remerón Salchicha Retro', price: 15000 },
-  'remeron-a-ganar-lo-que-debo': { title: 'Remerón A Ganar Lo Que Debo', price: 15000 },
-  'remeron-snoopy-bakery': { title: 'Remerón Snoopy Bakery', price: 15000 },
-  'remeron-pug-cool': { title: 'Remerón Pug Cool', price: 15000 },
-  'remeron-la-dolce-vita': { title: 'Remerón La Dolce Vita', price: 15000 },
+  'remeron-yorkie-bandana': { title: 'Remerón Yorkie Bandana', price: 12000 },
+  'remeron-golden-girasoles': { title: 'Remerón Golden Girasoles', price: 12000 },
+  'remeron-gato-limon': { title: 'Remerón Gato Limón', price: 12000 },
+  'remeron-perro-cafe': { title: 'Remerón Perro Café', price: 12000 },
+  'remeron-salchicha-retro': { title: 'Remerón Salchicha Retro', price: 12000 },
+  'remeron-a-ganar-lo-que-debo': { title: 'Remerón A Ganar Lo Que Debo', price: 12000 },
+  'remeron-snoopy-bakery': { title: 'Remerón Snoopy Bakery', price: 12000 },
+  'remeron-pug-cool': { title: 'Remerón Pug Cool', price: 12000 },
+  'remeron-la-dolce-vita': { title: 'Remerón La Dolce Vita', price: 12000 },
 }
 
 function send(res, status, body) {
