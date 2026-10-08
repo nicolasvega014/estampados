@@ -7,12 +7,14 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "grant-admin": "node tools/grant-firebase-admin.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.7.0",
     "firebase": "^12.19.0",
+    "firebase-admin": "^13.10.0",
     "motion": "^13.4.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

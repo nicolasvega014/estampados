@@ -2,27 +2,65 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // El rol solo puede ser asignado desde una credencial privada de Firebase
+    // Admin. Nunca se obtiene desde la app ni desde una regla de Firestore.
+    function isStoreAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
     // Los productos se muestran en la tienda pública; solo el vendedor puede cambiarlos.
     match /products/{productId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isStoreAdmin();
     }
 
     // El número de contacto se lee en la tienda y solo el vendedor puede cambiarlo.
     match /settings/{settingId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isStoreAdmin();
     }
 
     // Las ofertas activas se muestran en el inicio; solo el vendedor puede administrarlas.
     match /offers/{offerId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isStoreAdmin();
     }
 
-    // Pedidos, diseños y categorías se administran desde el panel del vendedor.
+    // Estas colecciones sólo existen para el panel del vendedor.
+    match /designs/{designId} {
+      allow read, write: if isStoreAdmin();
+    }
+
+    match /categories/{categoryId} {
+      allow read, write: if isStoreAdmin();
+    }
+
+    match /coupons/{couponId} {
+      allow read, write: if isStoreAdmin();
+    }
+
+    // Los pedidos y los registros internos de cupones se escriben únicamente
+    // desde las funciones privadas del servidor (Admin SDK).
+    match /orders/{orderId} {
+      allow read: if isStoreAdmin();
+      allow write: if false;
+    }
+
+    match /couponReservations/{reservationId} {
+      allow read, write: if false;
+    }
+
+    match /couponRedemptions/{redemptionId} {
+      allow read, write: if false;
+    }
+
+    match /checkoutAttempts/{attemptId} {
+      allow read, write: if false;
+    }
+
+    // Todo lo demás queda cerrado por defecto.
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if false;
     }
   }
 }

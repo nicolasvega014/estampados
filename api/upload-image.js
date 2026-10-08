@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto'
+import { getAuth } from 'firebase-admin/auth'
+import { getAdminApp } from '../server/firebase-admin.js'
 
 const ALLOWED_FOLDERS = {
   products: 'fenixis/products',
@@ -9,20 +11,14 @@ function send(res, status, body) {
   res.status(status).json(body)
 }
 
-async function isSignedIn(request) {
+async function isStoreAdmin(request) {
   const authorization = request.headers.authorization || ''
   const idToken = authorization.startsWith('Bearer ') ? authorization.slice(7) : ''
-  const firebaseApiKey = process.env.FIREBASE_WEB_API_KEY || 'AIzaSyDnhBOiA2daTnPlgS4CB-rCk6JxmaKL4DI'
-
   if (!idToken) return false
-
-  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${firebaseApiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ idToken }),
-  })
-  const data = await response.json().catch(() => ({}))
-  return response.ok && Array.isArray(data.users) && data.users.length > 0
+  const app = getAdminApp()
+  if (!app) return false
+  const decoded = await getAuth(app).verifyIdToken(idToken)
+  return decoded.admin === true
 }
 
 export default async function handler(req, res) {
@@ -34,7 +30,8 @@ export default async function handler(req, res) {
   if (!cloudName || !apiKey || !apiSecret) return send(res, 503, { message: 'La carga de imágenes todavía no está configurada.' })
 
   try {
-    if (!(await isSignedIn(req))) return send(res, 401, { message: 'Tu sesión venció. Volvé a ingresar al panel.' })
+    if (!getAdminApp()) return send(res, 503, { message: 'La seguridad del panel todavía no está configurada.' })
+    if (!(await isStoreAdmin(req))) return send(res, 403, { message: 'Tu cuenta no tiene permiso para cargar imágenes.' })
     const folder = ALLOWED_FOLDERS[req.body?.kind]
     if (!folder) return send(res, 400, { message: 'El destino de la imagen no es válido.' })
 
