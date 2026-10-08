@@ -159,7 +159,7 @@ function App() {
     document.querySelectorAll('header .brand').forEach((brand) => {
       brand.classList.add('brand-logo')
       brand.href = '/'
-      brand.innerHTML = '<img src="/brand/fenixis-logo-navbar.png" alt="Fenixis Store">'
+      brand.innerHTML = '<span class="brand-wordmark" role="img" aria-label="Fenixis Store"></span>'
     })
     document.querySelectorAll('nav a').forEach((link) => { if (link.textContent === 'Cómo funciona') link.remove() })
     document.querySelectorAll('a[href="#productos"], a[href="/#productos"]').forEach((link) => { link.href = '/productos' })
@@ -216,7 +216,7 @@ function App() {
     footer.querySelector('a[href="/admin"]')?.remove()
     const footerLogo = footer.querySelector('.footer-brand > a')
     footerLogo.classList.add('footer-logo-image')
-    footerLogo.innerHTML = '<img src="/brand/fenixis-logo.png" alt="Fenixis Store">'
+    footerLogo.innerHTML = '<span class="brand-wordmark" role="img" aria-label="Fenixis Store"></span>'
     const contact = footer.querySelector('.footer-main > div:last-child')
     const socials = document.createElement('div')
     socials.className = 'footer-socials'
