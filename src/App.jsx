@@ -1,18 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { animate, inView } from 'motion'
 import { collection, doc, onSnapshot } from 'firebase/firestore'
 import Shirt3D from './Shirt3D'
 import Admin from './Admin'
 import { db } from './firebase'
+import { DEFAULT_CUSTOMIZER_COLORS, DEFAULT_CUSTOMIZER_SIZES, normalizeCustomizerSettings } from './customizerSettings'
 import './App.css'
 import './ProductCatalog.css'
 import './CartCheckout.css'
 import './StoreFooter.css'
 import './BrandLogo.css'
 
-const COLORS = [{ name: 'Blanco', value: '#f7f6f2' }, { name: 'Negro', value: '#1e1e21' }, { name: 'Arena', value: '#d9d0c3' }, { name: 'Verde', value: '#71866c' }, { name: 'Bordó', value: '#7d3541' }]
-const SIZES = ['S', 'M', 'L', 'XL', 'XXL']
 const SHIRT_PRICE = 18900
 const DEFAULT_WHATSAPP = '5491165937433'
 const MERCADO_PAGO_PUBLIC_KEY = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY || ''
@@ -143,11 +142,17 @@ function ProductCatalog({ products }) {
 
 function App() {
   if (window.location.pathname === '/admin') return <Admin />
-  const [color, setColor] = useState(COLORS[0]); const [size, setSize] = useState('M'); const [side, setSide] = useState('Frente'); const [designs, setDesigns] = useState({ Frente: '', Espalda: '' }); const [fileNames, setFileNames] = useState({ Frente: '', Espalda: '' }); const [notice, setNotice] = useState(''); const [transforms, setTransforms] = useState({ Frente: { x: 50, y: 43, scale: 54, rotation: 0 }, Espalda: { x: 50, y: 43, scale: 54, rotation: 0 } }); const transform = transforms[side]; const setTransform = (next) => setTransforms((current) => { const active = current[side]; return { ...current, [side]: typeof next === 'function' ? next(active) : next } }); const drag = useRef(null)
+  const [customizerSettings, setCustomizerSettings] = useState(() => normalizeCustomizerSettings())
+  const [color, setColor] = useState(DEFAULT_CUSTOMIZER_COLORS[0]); const [size, setSize] = useState(DEFAULT_CUSTOMIZER_SIZES.includes('M') ? 'M' : DEFAULT_CUSTOMIZER_SIZES[0]); const [side, setSide] = useState('Frente'); const [designs, setDesigns] = useState({ Frente: '', Espalda: '' }); const [fileNames, setFileNames] = useState({ Frente: '', Espalda: '' }); const [notice, setNotice] = useState(''); const [transforms, setTransforms] = useState({ Frente: { x: 50, y: 43, scale: 54, rotation: 0 }, Espalda: { x: 50, y: 43, scale: 54, rotation: 0 } }); const transform = transforms[side]; const setTransform = (next) => setTransforms((current) => { const active = current[side]; return { ...current, [side]: typeof next === 'function' ? next(active) : next } }); const drag = useRef(null)
   const [cartOpen, setCartOpen] = useState(false)
   const [cart, setCart] = useState(() => { try { return JSON.parse(window.localStorage.getItem('tinta-club-cart') || '[]') } catch { return [] } })
   const [products, setProducts] = useState([])
   const [whatsappNumber, setWhatsappNumber] = useState(DEFAULT_WHATSAPP)
+  const colors = customizerSettings.colors
+  const sizes = customizerSettings.sizes
+  const COLORS = colors
+  const SIZES = sizes
+  const whatsappMessage = ''
   const cartRoot = useRef(null)
   const activeTransform = useRef(transform)
   const pinch = useRef(null)
@@ -174,6 +179,7 @@ function App() {
     if (designSizeRange) designSizeRange.min = '5'
     document.querySelectorAll('a[href="#personaliza"]').forEach((link) => { link.href = '/personaliza' })
     document.querySelectorAll('a[href="#como-funciona"], a[href="/#como-funciona"]').forEach((link) => { link.href = '/personaliza' })
+    document.querySelectorAll('.customizer-intro > p:last-child').forEach((paragraph) => { paragraph.textContent = 'Subí tu diseño, acomodalo y agregalo al carrito.' })
   }, [])
   useEffect(() => {
     const cleanups = []
@@ -203,6 +209,16 @@ function App() {
     }, () => {})
     return () => stop()
   }, [])
+  useEffect(() => {
+    const stop = onSnapshot(doc(db, 'settings', 'customizer'), (snapshot) => {
+      setCustomizerSettings(normalizeCustomizerSettings(snapshot.data()))
+    }, () => {})
+    return () => stop()
+  }, [])
+  useEffect(() => {
+    setColor((current) => colors.find((item) => item.name === current.name) || colors[0])
+    setSize((current) => sizes.includes(current) ? current : (sizes.includes('M') ? 'M' : sizes[0]))
+  }, [colors, sizes, color, size])
   useEffect(() => { window.tintaWhatsApp = whatsappNumber }, [whatsappNumber])
   useEffect(() => {
     if (isCustomizerPage) return undefined
@@ -396,10 +412,6 @@ function App() {
     const stopWatching = inView('.product-catalog, .featured, .collections, .how', (element) => animate(element, { opacity: [0, 1], y: [24, 0] }, { duration: .55, ease: [.22, 1, .36, 1] }), { margin: '0px 0px -8% 0px' })
     return () => { running.forEach((animation) => animation.stop()); stopWatching() }
   }, [isCustomizerPage])
-  const whatsappMessage = useMemo(() => encodeURIComponent(`Hola, quiero pedir una remera personalizada.\nColor: ${color.name}\nTalle: ${size}\nDiseño frente: ${fileNames.Frente || 'sin diseño'}\nDiseño espalda: ${fileNames.Espalda || 'sin diseño'}\n\nImportante: voy a adjuntar mi diseño original como documento (no como foto) para conservar la calidad de impresión DTF.`), [color, fileNames, size])
-  useEffect(() => {
-    document.querySelectorAll('.order').forEach((link) => { link.href = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}` })
-  }, [whatsappNumber, whatsappMessage])
   function addToCart() { if (!designs.Frente && !designs.Espalda) { setNotice('Primero agregá al menos un diseño a la remera.'); return } const item = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, kind: 'custom', title: 'Remera personalizada', price: SHIRT_PRICE, color: color.name, colorValue: color.value, size, front: fileNames.Frente, back: fileNames.Espalda, quantity: 1 }; setCart((current) => [...current, item]); setDesigns({ Frente: '', Espalda: '' }); setFileNames({ Frente: '', Espalda: '' }); setTransforms({ Frente: { x: 50, y: 43, scale: 54, rotation: 0 }, Espalda: { x: 50, y: 43, scale: 54, rotation: 0 } }); setColor(COLORS[0]); setSize('M'); setSide('Frente'); setCartOpen(false); setNotice('Remera agregada a la bolsa. Ya podés personalizar otra.') }
   function addCatalogProduct(product) { if (!product) return; const item = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, productId: product.id || '', kind: 'product', title: product.title || 'Producto', price: Number(product.price || 0), category: product.category || 'Producto del catálogo', description: product.description || '', imageUrl: product.imageUrl || '', quantity: 1 }; setCart((current) => [...current, item]); setCartOpen(true) }
   function removeCartItem(id) { setCart((current) => current.filter((item) => item.id !== id)) }
@@ -421,12 +433,12 @@ function App() {
     buttons.forEach((button) => { const count = button.querySelector('span'); if (count) count.textContent = cartCount; button.addEventListener('click', openCart) })
     const addButtons = orders.map((order) => {
       const button = document.createElement('button')
-      button.type = 'button'; button.className = 'add-to-cart'; button.innerHTML = 'Agregar a la bolsa <span>+</span>'
+      button.type = 'button'; button.className = 'add-to-cart'; button.innerHTML = 'Agregar al carrito <span>+</span>'
       button.addEventListener('click', addProduct)
-      order.insertAdjacentElement('beforebegin', button)
-      return button
+      order.replaceWith(button)
+      return { order, button }
     })
-    return () => { buttons.forEach((button) => button.removeEventListener('click', openCart)); addButtons.forEach((button) => { button.removeEventListener('click', addProduct); button.remove() }) }
+    return () => { buttons.forEach((button) => button.removeEventListener('click', openCart)); addButtons.forEach(({ order, button }) => { button.removeEventListener('click', addProduct); if (button.parentNode) button.replaceWith(order) }) }
   }, [cartCount, color, size, designs, fileNames])
   useEffect(() => {
     if (!design) return undefined

@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
 import { auth, db } from './firebase'
+import { DEFAULT_CUSTOMIZER_COLORS, DEFAULT_CUSTOMIZER_SIZES, normalizeCustomizerSettings } from './customizerSettings'
 import './Admin.css'
 import './AdminProducts.css'
 import './AdminStoreSettings.css'
+import './CustomizerSettings.css'
 
 const DEFAULT_CATEGORIES = ['Anime', 'Flores', 'Mascotas', 'Verano', 'Coquette', 'Frases', 'Moda', 'Vintage']
 const EMPTY_PRODUCT = { title: '', description: '', price: '18900', category: '', imageUrl: '', imagePublicId: '', imageFile: null, id: '' }
@@ -179,7 +181,7 @@ export default function Admin() {
 
   if (!user) return <main className="admin-login"><a className="admin-brand" href="/">TINTA<span>•</span>CLUB</a><section><p className="admin-kicker">PANEL DEL VENDEDOR</p><h1>Administrá tu tienda.</h1><p>Ingresá con tu cuenta de vendedor para manejar el catálogo y los pedidos.</p><form onSubmit={login}><label>Correo<input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" required /></label><label>Contraseña<input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" required /></label>{message && <p className="admin-message">{message}</p>}<button>Ingresar al panel <span>→</span></button></form></section></main>
 
-  return <main className="admin-page"><header className="admin-header"><a className="admin-brand" href="/">TINTA<span>•</span>CLUB</a><div><span>{user.email}</span><button className="admin-logout" onClick={() => signOut(auth)}>Salir</button></div></header><div className="admin-layout"><aside><p className="admin-kicker">ADMINISTRACIÓN</p><button className={active === 'pedidos' ? 'active' : ''} onClick={() => setActive('pedidos')}>Pedidos <b>{orders.length}</b></button><button className={active === 'productos' ? 'active' : ''} onClick={() => setActive('productos')}>Productos <b>{products.length}</b></button><button className={active === 'disenos' ? 'active' : ''} onClick={() => setActive('disenos')}>Diseños <b>{designs.length}</b></button><button className={active === 'categorias' ? 'active' : ''} onClick={() => setActive('categorias')}>Categorías <b>{categories.length}</b></button><a href="/">Ver tienda <span>↗</span></a></aside><section className="admin-content">{message && <p className="admin-toast">{message}</p>}{active === 'pedidos' && <Orders orders={orders} />}{active === 'productos' && <Products items={products} value={product} setValue={setProduct} categories={categoryOptions} onAdd={addProduct} onRemove={remove} />}{active === 'disenos' && <Designs designs={designs} upload={upload} setUpload={setUpload} categories={categoryOptions} onAdd={addDesign} onRemove={remove} />}{active === 'categorias' && <Categories items={categories} value={categoryName} setValue={setCategoryName} onAdd={addCategory} onRemove={remove} />}</section></div></main>
+  return <main className="admin-page"><header className="admin-header"><a className="admin-brand" href="/">TINTA<span>•</span>CLUB</a><div><span>{user.email}</span><button className="admin-logout" onClick={() => signOut(auth)}>Salir</button></div></header><div className="admin-layout"><aside><p className="admin-kicker">ADMINISTRACIÓN</p><button className={active === 'pedidos' ? 'active' : ''} onClick={() => setActive('pedidos')}>Pedidos <b>{orders.length}</b></button><button className={active === 'productos' ? 'active' : ''} onClick={() => setActive('productos')}>Productos <b>{products.length}</b></button><button className={active === 'disenos' ? 'active' : ''} onClick={() => setActive('disenos')}>Diseños <b>{designs.length}</b></button><button className={active === 'personalizador' ? 'active' : ''} onClick={() => setActive('personalizador')}>Personalizador</button><button className={active === 'categorias' ? 'active' : ''} onClick={() => setActive('categorias')}>Categorías <b>{categories.length}</b></button><a href="/">Ver tienda <span>↗</span></a></aside><section className="admin-content">{message && <p className="admin-toast">{message}</p>}{active === 'pedidos' && <Orders orders={orders} />}{active === 'productos' && <Products items={products} value={product} setValue={setProduct} categories={categoryOptions} onAdd={addProduct} onRemove={remove} />}{active === 'disenos' && <Designs designs={designs} upload={upload} setUpload={setUpload} categories={categoryOptions} onAdd={addDesign} onRemove={remove} />}{active === 'personalizador' && <CustomizerSettings />}{active === 'categorias' && <Categories items={categories} value={categoryName} setValue={setCategoryName} onAdd={addCategory} onRemove={remove} />}</section></div></main>
 }
 
 function Orders({ orders }) { return <><div className="admin-title"><div><p className="admin-kicker">VENTAS</p><h1>Pedidos</h1></div><p>Acá vas a ver los pedidos confirmados por tus clientes.</p></div>{orders.length ? <div className="order-list">{orders.map((order) => <article className="order-card" key={order.id}><div><b>#{order.id.slice(0, 6).toUpperCase()}</b><span>{formatDate(order.createdAt)}</span></div><h2>{order.customerName || 'Pedido de remera personalizada'}</h2><p>{order.size || 'Talle sin indicar'} · {order.color || 'Color sin indicar'} · {order.status || 'Nuevo'}</p></article>)}</div> : <Empty title="Todavía no hay pedidos" text="Cuando conectemos el botón de compra, los pedidos van a aparecer acá." />}</> }
@@ -211,6 +213,74 @@ function Products({ items, value, setValue, categories, onAdd, onRemove }) {
     </form>
     {items.length ? <div className="product-grid">{items.map((product) => <article key={product.id}><div className="product-image-preview">{product.imageUrl ? <img src={product.imageUrl} alt={product.title} /> : <span>REMERA<br/>FENIXIS</span>}</div><div><span>{product.category}</span><h2>{product.title}</h2>{product.description && <p>{product.description}</p>}<strong>$ {Number(product.price || 0).toLocaleString('es-AR')}</strong><div className="admin-actions"><button onClick={() => editItem('products', product.id)}>Editar</button><button onClick={() => onRemove('products', product.id)}>Quitar</button></div></div></article>)}</div> : <Empty title="Todavía no hay productos" text="Podés empezar con la remera personalizada y agregar una foto cuando la tengas." />}
   </>
+}
+function CustomizerSettings() {
+  const [settings, setSettings] = useState(() => normalizeCustomizerSettings())
+  const [notice, setNotice] = useState('')
+
+  useEffect(() => onSnapshot(doc(db, 'settings', 'customizer'), (snapshot) => {
+    setSettings(normalizeCustomizerSettings(snapshot.data()))
+  }, () => setNotice('No se pudieron cargar los ajustes del personalizador.')), [])
+
+  const updateColor = (index, field, value) => setSettings((current) => ({
+    ...current,
+    colors: current.colors.map((color, colorIndex) => colorIndex === index ? { ...color, [field]: value } : color),
+  }))
+  const updateSize = (index, value) => setSettings((current) => ({
+    ...current,
+    sizes: current.sizes.map((size, sizeIndex) => sizeIndex === index ? value : size),
+  }))
+  const addColor = () => setSettings((current) => ({ ...current, colors: [...current.colors, { name: 'Nuevo color', value: '#1b1b1b' }] }))
+  const addSize = () => setSettings((current) => ({ ...current, sizes: [...current.sizes, ''] }))
+  const removeColor = (index) => setSettings((current) => ({ ...current, colors: current.colors.filter((_, colorIndex) => colorIndex !== index) }))
+  const removeSize = (index) => setSettings((current) => ({ ...current, sizes: current.sizes.filter((_, sizeIndex) => sizeIndex !== index) }))
+
+  function restoreDefaults() {
+    setSettings({ colors: DEFAULT_CUSTOMIZER_COLORS.map((color) => ({ ...color })), sizes: [...DEFAULT_CUSTOMIZER_SIZES] })
+    setNotice('Se restauraron las opciones iniciales. Guardá los cambios para aplicarlas en la tienda.')
+  }
+
+  async function save(event) {
+    event.preventDefault()
+    const colors = settings.colors.map((color) => ({ name: String(color.name || '').trim().slice(0, 30), value: String(color.value || '').trim() }))
+    const sizes = settings.sizes.map((size) => String(size || '').trim().toUpperCase().slice(0, 8)).filter(Boolean)
+
+    if (!colors.length || !sizes.length) { setNotice('Agregá al menos un color y un talle.'); return }
+    if (colors.some((color) => !color.name || !/^#[0-9a-f]{6}$/i.test(color.value))) { setNotice('Revisá los colores: cada uno necesita nombre y un código hexadecimal válido.'); return }
+    if (new Set(colors.map((color) => color.name.toLocaleLowerCase('es-AR'))).size !== colors.length) { setNotice('No repitas nombres de colores.'); return }
+    if (new Set(sizes).size !== sizes.length) { setNotice('No repitas talles.'); return }
+
+    try {
+      await setDoc(doc(db, 'settings', 'customizer'), { colors, sizes, updatedAt: serverTimestamp() }, { merge: true })
+      setSettings({ colors, sizes })
+      setNotice('Cambios guardados. La página Personalizá se actualizó.')
+    } catch { setNotice('No se pudieron guardar los cambios.') }
+  }
+
+  return <section className="customizer-settings">
+    <div className="admin-title"><div><p className="admin-kicker">PERSONALIZÁ</p><h1>Opciones de la remera</h1></div><p>Elegí los talles y colores que se mostrarán cuando una persona arme su remera.</p></div>
+    <form onSubmit={save}>
+      <section className="customizer-settings-group">
+        <div className="customizer-settings-heading"><div><h2>Colores</h2><p>Podés cambiar el nombre, el tono y el orden en que aparecen.</p></div><button type="button" className="customizer-settings-secondary" onClick={addColor}>+ Agregar color</button></div>
+        <div className="customizer-colors-list">
+          {settings.colors.map((color, index) => <div className="customizer-color-row" key={index}>
+            <input className="customizer-color-picker" type="color" aria-label={`Elegir color ${index + 1}`} value={/^#[0-9a-f]{6}$/i.test(color.value) ? color.value : '#1b1b1b'} onChange={(event) => updateColor(index, 'value', event.target.value)} />
+            <label>Nombre<input value={color.name} maxLength="30" onChange={(event) => updateColor(index, 'name', event.target.value)} placeholder="Ej. Blanco" /></label>
+            <label>Código<input value={color.value} maxLength="7" onChange={(event) => updateColor(index, 'value', event.target.value)} placeholder="#ffffff" /></label>
+            <button type="button" className="customizer-settings-remove" onClick={() => removeColor(index)} aria-label={`Quitar ${color.name || 'color'}`}>Quitar</button>
+          </div>)}
+        </div>
+      </section>
+      <section className="customizer-settings-group">
+        <div className="customizer-settings-heading"><div><h2>Talles</h2><p>Usá las abreviaturas que querés ofrecer, por ejemplo S, M, L o XL.</p></div><button type="button" className="customizer-settings-secondary" onClick={addSize}>+ Agregar talle</button></div>
+        <div className="customizer-sizes-list">
+          {settings.sizes.map((size, index) => <div className="customizer-size-row" key={index}><label>Talle<input value={size} maxLength="8" onChange={(event) => updateSize(index, event.target.value.toUpperCase())} placeholder="Ej. M" /></label><button type="button" className="customizer-settings-remove" onClick={() => removeSize(index)} aria-label={`Quitar talle ${size || index + 1}`}>Quitar</button></div>)}
+        </div>
+      </section>
+      <div className="customizer-settings-actions"><button type="button" className="customizer-settings-secondary" onClick={restoreDefaults}>Restablecer iniciales</button><button className="customizer-settings-save">Guardar cambios <span>✓</span></button></div>
+      {notice && <p className="customizer-settings-notice">{notice}</p>}
+    </form>
+  </section>
 }
 function Categories({ items, value, setValue, onAdd, onRemove }) { return <><div className="admin-title"><div><p className="admin-kicker">ORGANIZACIÓN</p><h1>Categorías</h1></div><p>Creá, editá o quitá las secciones que necesites para tu catálogo.</p></div><form className="category-form" onSubmit={onAdd}><input value={value} onChange={(event) => setValue(event.target.value)} placeholder="Nueva categoría" required /><button>Guardar <span>✓</span></button></form>{items.length ? <div className="category-list">{items.map((item) => <article key={item.id}><span>{item.name}</span><div className="admin-actions"><button onClick={() => editItem('categories', item.id)}>Editar</button><button onClick={() => onRemove('categories', item.id)}>Quitar</button></div></article>)}</div> : <Empty title="Usando categorías iniciales" text="Podés crear las tuyas desde arriba. Las sugeridas siguen disponibles para las primeras cargas." />}<StoreSettings /></> }
 function StoreSettings() { const [phone, setPhone] = useState('1165937433'); const [notice, setNotice] = useState(''); useEffect(() => onSnapshot(doc(db, 'settings', 'store'), (snapshot) => { const stored = snapshot.data()?.whatsappNumber?.replace(/\D/g, ''); if (stored) setPhone(stored.replace(/^549/, '')) }, () => {}), []); const save = async (event) => { event.preventDefault(); const digits = phone.replace(/\D/g, ''); if (digits.length < 10) { setNotice('Ingresá un número válido con característica y celular.'); return } try { await setDoc(doc(db, 'settings', 'store'), { whatsappNumber: digits.startsWith('549') ? digits : `549${digits}`, updatedAt: serverTimestamp() }, { merge: true }); setNotice('Número de WhatsApp actualizado.') } catch { setNotice('No se pudo guardar el número.') } }; return <section className="store-settings"><p className="admin-kicker">CONTACTO</p><h2>WhatsApp de la tienda</h2><p>Este es el número al que llegan los pedidos de clientes.</p><form onSubmit={save}><label>Celular argentino<input value={phone} onChange={(event) => setPhone(event.target.value)} inputMode="numeric" placeholder="11 6593 7433" /></label><button>Guardar número <span>✓</span></button></form>{notice && <small>{notice}</small>}</section> }
