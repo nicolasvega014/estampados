@@ -92,3 +92,19 @@ header .brand span { color: var(--lime); }
   header.mobile-menu-open nav a { padding: 13px 5px; color: #fff; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,.11); }
   header.mobile-menu-open nav a:last-child { border-bottom: 0; }
 }
+
+.home-offers { margin-top: 34px; padding: clamp(24px, 4vw, 46px); background: var(--ink); color: #fff; }
+.home-offers-heading { display: flex; align-items: end; justify-content: space-between; gap: 26px; margin-bottom: 28px; }
+.home-offers-heading .eyebrow { color: var(--lime); margin-bottom: 8px; }
+.home-offers-heading h2 { margin: 0; font-size: clamp(30px, 3.8vw, 50px); font-weight: 500; letter-spacing: -2.4px; line-height: .96; }
+.home-offers-heading > p { max-width: 265px; margin: 0 0 3px; color: rgba(255,255,255,.68); font-size: 13px; line-height: 1.45; }
+.home-offers-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.home-offer-card { display: flex; min-height: 212px; flex-direction: column; padding: 22px; background: #f3f0ea; color: var(--ink); }
+.home-offer-card.is-featured { background: var(--lime); }
+.home-offer-card > span { align-self: flex-start; border: 1px solid currentColor; padding: 4px 7px; font: 10px 'DM Mono'; letter-spacing: .8px; }
+.home-offer-card h3 { margin: 28px 0 8px; font-size: 24px; line-height: 1; letter-spacing: -1px; }
+.home-offer-card > p { margin: 0; color: #56574f; font-size: 13px; line-height: 1.45; }
+.home-offer-card > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 22px; font-size: 11px; }
+.home-offer-card strong { font: 10px 'DM Mono'; letter-spacing: .3px; }
+.home-offer-card a { border-bottom: 1px solid currentColor; padding-bottom: 2px; font-weight: 700; white-space: nowrap; }
+@media (max-width: 590px) { .home-offers { margin: 22px -14px 0; padding: 29px 18px; }.home-offers-heading { display: block; margin-bottom: 20px; }.home-offers-heading h2 { font-size: 34px; }.home-offers-heading > p { margin-top: 11px; font-size: 12px; }.home-offers-grid { grid-template-columns: 1fr; }.home-offer-card { min-height: 180px; padding: 20px; }.home-offer-card h3 { margin-top: 23px; } }

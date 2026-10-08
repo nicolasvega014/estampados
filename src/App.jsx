@@ -147,6 +147,7 @@ function App() {
   const [cartOpen, setCartOpen] = useState(false)
   const [cart, setCart] = useState(() => { try { return JSON.parse(window.localStorage.getItem('tinta-club-cart') || '[]') } catch { return [] } })
   const [products, setProducts] = useState([])
+  const [offers, setOffers] = useState([])
   const [whatsappNumber, setWhatsappNumber] = useState(DEFAULT_WHATSAPP)
   const colors = customizerSettings.colors
   const sizes = customizerSettings.sizes
@@ -258,6 +259,64 @@ function App() {
     return () => stop()
   }, [isCustomizerPage])
   useEffect(() => {
+    if (isCustomizerPage || isProductsPage) return undefined
+    const stop = onSnapshot(collection(db, 'offers'), (snapshot) => {
+      const activeOffers = snapshot.docs
+        .map((item) => ({ id: item.id, ...item.data() }))
+        .filter((offer) => offer.active !== false)
+        .sort((first, second) => {
+          const firstTime = first.updatedAt?.toMillis?.() || first.createdAt?.toMillis?.() || 0
+          const secondTime = second.updatedAt?.toMillis?.() || second.createdAt?.toMillis?.() || 0
+          return secondTime - firstTime
+        })
+      setOffers(activeOffers)
+    }, () => setOffers([]))
+    return () => stop()
+  }, [isCustomizerPage, isProductsPage])
+  useEffect(() => {
+    if (isCustomizerPage || isProductsPage) return undefined
+    const current = document.querySelector('.home-offers')
+    if (!offers.length) { current?.remove(); return undefined }
+    const landing = document.querySelector('.landing')
+    if (!landing) return undefined
+    const section = current || document.createElement('section')
+    section.className = 'home-offers'
+    section.id = 'ofertas'
+    if (!current) landing.insertAdjacentElement('afterend', section)
+
+    const heading = document.createElement('div')
+    heading.className = 'home-offers-heading'
+    const headingCopy = document.createElement('div')
+    const eyebrow = document.createElement('p')
+    const title = document.createElement('h2')
+    const copy = document.createElement('p')
+    eyebrow.className = 'eyebrow'; eyebrow.textContent = 'OFERTAS FENIXIS'
+    title.textContent = 'Algo especial para vos.'
+    copy.textContent = 'Aprovechá las promos que están activas ahora.'
+    headingCopy.append(eyebrow, title); heading.append(headingCopy, copy)
+
+    const grid = document.createElement('div')
+    grid.className = 'home-offers-grid'
+    offers.forEach((offer, index) => {
+      const card = document.createElement('article')
+      card.className = `home-offer-card ${index === 0 ? 'is-featured' : ''}`
+      const badge = document.createElement('span')
+      const offerTitle = document.createElement('h3')
+      const description = document.createElement('p')
+      const bottom = document.createElement('div')
+      const code = document.createElement('strong')
+      const link = document.createElement('a')
+      badge.textContent = offer.label || 'OFERTA'
+      offerTitle.textContent = offer.title || 'Oferta especial'
+      description.textContent = offer.description || 'Descubrí esta promo en nuestra tienda.'
+      code.textContent = offer.code ? `Código: ${offer.code}` : 'Por tiempo limitado'
+      link.href = '/productos'; link.textContent = 'Ver prendas →'
+      bottom.append(code, link); card.append(badge, offerTitle, description, bottom); grid.append(card)
+    })
+    section.replaceChildren(heading, grid)
+    return undefined
+  }, [offers, isCustomizerPage, isProductsPage])
+  useEffect(() => {
     if (!isProductsPage) return undefined
     const section = document.querySelector('.products-page-content')
     if (!section) return undefined
@@ -293,7 +352,7 @@ function App() {
     if (!landing) return undefined
     const section = oldRail || document.createElement('section')
     section.className = 'home-products-rail'
-    if (!oldRail) landing.insertAdjacentElement('afterend', section)
+    if (!oldRail) (document.querySelector('.home-offers') || landing).insertAdjacentElement('afterend', section)
     const heading = document.createElement('div'); heading.className = 'home-rail-heading'
     heading.innerHTML = '<div><p class="eyebrow">RECIÉN LLEGADO</p><h2>Encontrá tu próxima favorita.</h2></div><a href="/productos">Ver todos <span>→</span></a>'
     const viewport = document.createElement('div'); viewport.className = 'home-rail-viewport'

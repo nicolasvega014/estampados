@@ -7,9 +7,11 @@ import './Admin.css'
 import './AdminProducts.css'
 import './AdminStoreSettings.css'
 import './CustomizerSettings.css'
+import './AdminOffers.css'
 
 const DEFAULT_CATEGORIES = ['Anime', 'Flores', 'Mascotas', 'Verano', 'Coquette', 'Frases', 'Moda', 'Vintage']
 const EMPTY_PRODUCT = { title: '', description: '', price: '18900', category: '', imageUrl: '', imagePublicId: '', imageFile: null, id: '' }
+const EMPTY_OFFER = { id: '', title: '', description: '', code: '', label: '', active: true }
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 
@@ -181,7 +183,7 @@ export default function Admin() {
 
   if (!user) return <main className="admin-login"><a className="admin-brand" href="/">TINTA<span>•</span>CLUB</a><section><p className="admin-kicker">PANEL DEL VENDEDOR</p><h1>Administrá tu tienda.</h1><p>Ingresá con tu cuenta de vendedor para manejar el catálogo y los pedidos.</p><form onSubmit={login}><label>Correo<input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" required /></label><label>Contraseña<input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" required /></label>{message && <p className="admin-message">{message}</p>}<button>Ingresar al panel <span>→</span></button></form></section></main>
 
-  return <main className="admin-page"><header className="admin-header"><a className="admin-brand" href="/">TINTA<span>•</span>CLUB</a><div><span>{user.email}</span><button className="admin-logout" onClick={() => signOut(auth)}>Salir</button></div></header><div className="admin-layout"><aside><p className="admin-kicker">ADMINISTRACIÓN</p><button className={active === 'pedidos' ? 'active' : ''} onClick={() => setActive('pedidos')}>Pedidos <b>{orders.length}</b></button><button className={active === 'productos' ? 'active' : ''} onClick={() => setActive('productos')}>Productos <b>{products.length}</b></button><button className={active === 'disenos' ? 'active' : ''} onClick={() => setActive('disenos')}>Diseños <b>{designs.length}</b></button><button className={active === 'personalizador' ? 'active' : ''} onClick={() => setActive('personalizador')}>Personalizador</button><button className={active === 'categorias' ? 'active' : ''} onClick={() => setActive('categorias')}>Categorías <b>{categories.length}</b></button><a href="/">Ver tienda <span>↗</span></a></aside><section className="admin-content">{message && <p className="admin-toast">{message}</p>}{active === 'pedidos' && <Orders orders={orders} />}{active === 'productos' && <Products items={products} value={product} setValue={setProduct} categories={categoryOptions} onAdd={addProduct} onRemove={remove} />}{active === 'disenos' && <Designs designs={designs} upload={upload} setUpload={setUpload} categories={categoryOptions} onAdd={addDesign} onRemove={remove} />}{active === 'personalizador' && <CustomizerSettings />}{active === 'categorias' && <Categories items={categories} value={categoryName} setValue={setCategoryName} onAdd={addCategory} onRemove={remove} />}</section></div></main>
+  return <main className="admin-page"><header className="admin-header"><a className="admin-brand" href="/">TINTA<span>•</span>CLUB</a><div><span>{user.email}</span><button className="admin-logout" onClick={() => signOut(auth)}>Salir</button></div></header><div className="admin-layout"><aside><p className="admin-kicker">ADMINISTRACIÓN</p><button className={active === 'pedidos' ? 'active' : ''} onClick={() => setActive('pedidos')}>Pedidos <b>{orders.length}</b></button><button className={active === 'productos' ? 'active' : ''} onClick={() => setActive('productos')}>Productos <b>{products.length}</b></button><button className={active === 'disenos' ? 'active' : ''} onClick={() => setActive('disenos')}>Diseños <b>{designs.length}</b></button><button className={active === 'ofertas' ? 'active' : ''} onClick={() => setActive('ofertas')}>Ofertas</button><button className={active === 'personalizador' ? 'active' : ''} onClick={() => setActive('personalizador')}>Personalizador</button><button className={active === 'categorias' ? 'active' : ''} onClick={() => setActive('categorias')}>Categorías <b>{categories.length}</b></button><a href="/">Ver tienda <span>↗</span></a></aside><section className="admin-content">{message && <p className="admin-toast">{message}</p>}{active === 'pedidos' && <Orders orders={orders} />}{active === 'productos' && <Products items={products} value={product} setValue={setProduct} categories={categoryOptions} onAdd={addProduct} onRemove={remove} />}{active === 'disenos' && <Designs designs={designs} upload={upload} setUpload={setUpload} categories={categoryOptions} onAdd={addDesign} onRemove={remove} />}{active === 'ofertas' && <Offers />}{active === 'personalizador' && <CustomizerSettings />}{active === 'categorias' && <Categories items={categories} value={categoryName} setValue={setCategoryName} onAdd={addCategory} onRemove={remove} />}</section></div></main>
 }
 
 function Orders({ orders }) { return <><div className="admin-title"><div><p className="admin-kicker">VENTAS</p><h1>Pedidos</h1></div><p>Acá vas a ver los pedidos confirmados por tus clientes.</p></div>{orders.length ? <div className="order-list">{orders.map((order) => <article className="order-card" key={order.id}><div><b>#{order.id.slice(0, 6).toUpperCase()}</b><span>{formatDate(order.createdAt)}</span></div><h2>{order.customerName || 'Pedido de remera personalizada'}</h2><p>{order.size || 'Talle sin indicar'} · {order.color || 'Color sin indicar'} · {order.status || 'Nuevo'}</p></article>)}</div> : <Empty title="Todavía no hay pedidos" text="Cuando conectemos el botón de compra, los pedidos van a aparecer acá." />}</> }
@@ -213,6 +215,95 @@ function Products({ items, value, setValue, categories, onAdd, onRemove }) {
     </form>
     {items.length ? <div className="product-grid">{items.map((product) => <article key={product.id}><div className="product-image-preview">{product.imageUrl ? <img src={product.imageUrl} alt={product.title} /> : <span>REMERA<br/>FENIXIS</span>}</div><div><span>{product.category}</span><h2>{product.title}</h2>{product.description && <p>{product.description}</p>}<strong>$ {Number(product.price || 0).toLocaleString('es-AR')}</strong><div className="admin-actions"><button onClick={() => editItem('products', product.id)}>Editar</button><button onClick={() => onRemove('products', product.id)}>Quitar</button></div></div></article>)}</div> : <Empty title="Todavía no hay productos" text="Podés empezar con la remera personalizada y agregar una foto cuando la tengas." />}
   </>
+}
+function Offers() {
+  const [offers, setOffers] = useState([])
+  const [offer, setOffer] = useState(EMPTY_OFFER)
+  const [notice, setNotice] = useState('')
+
+  useEffect(() => onSnapshot(query(collection(db, 'offers'), orderBy('createdAt', 'desc')), (snapshot) => {
+    setOffers(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })))
+  }, () => setNotice('No se pudieron cargar las ofertas.')), [])
+
+  const update = (field, value) => setOffer((current) => ({ ...current, [field]: value }))
+
+  async function saveOffer(event) {
+    event.preventDefault()
+    const title = offer.title.trim()
+    const description = offer.description.trim()
+    if (!title || !description) { setNotice('Completá el título y la descripción de la oferta.'); return }
+
+    const data = {
+      title,
+      description,
+      code: offer.code.trim().toUpperCase(),
+      label: offer.label.trim().toUpperCase(),
+      active: Boolean(offer.active),
+      updatedAt: serverTimestamp(),
+    }
+
+    try {
+      if (offer.id) await updateDoc(doc(db, 'offers', offer.id), data)
+      else await addDoc(collection(db, 'offers'), { ...data, createdAt: serverTimestamp() })
+      setNotice(offer.id ? 'Oferta actualizada.' : 'Oferta creada y lista para mostrar en el inicio.')
+      setOffer(EMPTY_OFFER)
+    } catch { setNotice('No se pudo guardar la oferta.') }
+  }
+
+  function editOffer(item) {
+    setOffer({
+      id: item.id,
+      title: item.title || '',
+      description: item.description || '',
+      code: item.code || '',
+      label: item.label || '',
+      active: item.active !== false,
+    })
+    setNotice('Editando oferta. Guardá los cambios cuando termines.')
+  }
+
+  async function toggleOffer(item) {
+    try {
+      await updateDoc(doc(db, 'offers', item.id), { active: item.active === false, updatedAt: serverTimestamp() })
+      setNotice(item.active === false ? 'Oferta activada.' : 'Oferta pausada. Ya no se mostrará en el inicio.')
+    } catch { setNotice('No se pudo cambiar el estado de la oferta.') }
+  }
+
+  async function removeOffer(item) {
+    if (!window.confirm(`¿Querés eliminar la oferta “${item.title}”?`)) return
+    try {
+      await deleteDoc(doc(db, 'offers', item.id))
+      if (offer.id === item.id) setOffer(EMPTY_OFFER)
+      setNotice('Oferta eliminada.')
+    } catch { setNotice('No se pudo eliminar la oferta.') }
+  }
+
+  function cancelEdit() {
+    setOffer(EMPTY_OFFER)
+    setNotice('Edición cancelada.')
+  }
+
+  return <section className="admin-offers">
+    <div className="admin-title"><div><p className="admin-kicker">INICIO</p><h1>Ofertas</h1></div><p>Creá avisos, promociones o códigos para destacarlos en la página principal.</p></div>
+    <form className="offer-form" onSubmit={saveOffer}>
+      <div className="offer-form-heading"><div><h2>{offer.id ? 'Editar oferta' : 'Nueva oferta'}</h2><p>Las ofertas activas serán las que puedan aparecer en el inicio.</p></div>{offer.id && <button type="button" className="offer-button-secondary" onClick={cancelEdit}>Cancelar edición</button>}</div>
+      <div className="offer-form-fields">
+        <label>Título<input value={offer.title} onChange={(event) => update('title', event.target.value)} maxLength="70" placeholder="Ej. 2 remeras por $22.000" required /></label>
+        <label>Etiqueta <small>Opcional</small><input value={offer.label} onChange={(event) => update('label', event.target.value)} maxLength="28" placeholder="Ej. OFERTA ESPECIAL" /></label>
+        <label className="offer-form-description">Descripción<textarea value={offer.description} onChange={(event) => update('description', event.target.value)} maxLength="180" rows="3" placeholder="Contá brevemente qué incluye o cómo aprovechar la oferta." required /></label>
+        <label>Código promocional <small>Opcional</small><input value={offer.code} onChange={(event) => update('code', event.target.value)} maxLength="30" placeholder="Ej. FENIX10" /></label>
+      </div>
+      <div className="offer-form-footer"><label className="offer-active"><input type="checkbox" checked={offer.active} onChange={(event) => update('active', event.target.checked)} /><span><b>Oferta activa</b><small>Mostrala en la página de inicio.</small></span></label><button className="offer-save">{offer.id ? 'Guardar cambios' : 'Crear oferta'} <span>{offer.id ? '✓' : '+'}</span></button></div>
+    </form>
+    {notice && <p className="offer-notice">{notice}</p>}
+    {offers.length ? <div className="offer-list">{offers.map((item) => <article className={`offer-card ${item.active === false ? 'is-paused' : ''}`} key={item.id}>
+      <div className="offer-card-top"><span>{item.label || 'OFERTA'}</span><b className={item.active === false ? 'is-paused' : ''}>{item.active === false ? 'Pausada' : 'Activa'}</b></div>
+      <h2>{item.title}</h2>
+      <p>{item.description}</p>
+      {item.code && <div className="offer-code"><span>Código</span><strong>{item.code}</strong></div>}
+      <div className="offer-card-actions"><button type="button" onClick={() => editOffer(item)}>Editar</button><button type="button" onClick={() => toggleOffer(item)}>{item.active === false ? 'Activar' : 'Pausar'}</button><button type="button" className="offer-delete" onClick={() => removeOffer(item)}>Eliminar</button></div>
+    </article>)}</div> : <Empty title="Todavía no hay ofertas" text="Creá la primera promoción para poder destacarla en el inicio." />}
+  </section>
 }
 function CustomizerSettings() {
   const [settings, setSettings] = useState(() => normalizeCustomizerSettings())
