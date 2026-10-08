@@ -159,7 +159,7 @@ function App() {
     document.querySelectorAll('header .brand').forEach((brand) => {
       brand.classList.add('brand-logo')
       brand.href = '/'
-      brand.innerHTML = '<img src="/brand/fenixis-logo.png" alt="Fenixis Store">'
+      brand.innerHTML = '<img src="/brand/fenixis-logo-navbar.png" alt="Fenixis Store">'
     })
     document.querySelectorAll('nav a').forEach((link) => { if (link.textContent === 'Cómo funciona') link.remove() })
     document.querySelectorAll('a[href="#productos"], a[href="/#productos"]').forEach((link) => { link.href = '/productos' })
