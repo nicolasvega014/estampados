@@ -4,17 +4,46 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 let adminApp
 let firestore
 
+function parseServiceAccount(raw) {
+  try {
+    const account = JSON.parse(raw)
+    if (account.project_id && account.client_email && account.private_key) return account
+  } catch {
+    throw new Error('La configuración privada de Firebase no es válida.')
+  }
+
+  throw new Error('La configuración privada de Firebase está incompleta.')
+}
+
+function serviceAccountFromBase64(encoded) {
+  const normalized = encoded.trim().replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/')
+
+  if (
+    !normalized ||
+    !/^[A-Za-z0-9+/]*={0,2}$/.test(normalized) ||
+    normalized.length % 4 === 1
+  ) {
+    throw new Error('La configuración privada de Firebase no es válida.')
+  }
+
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=')
+
+  try {
+    return parseServiceAccount(Buffer.from(padded, 'base64').toString('utf8'))
+  } catch {
+    throw new Error('La configuración privada de Firebase no es válida.')
+  }
+}
+
 function serviceAccountFromEnvironment() {
+  const encoded = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64
+  if (encoded !== undefined) {
+    return serviceAccountFromBase64(encoded)
+  }
+
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
   if (raw) {
-    try {
-      const account = JSON.parse(raw)
-      if (account.project_id && account.client_email && account.private_key) return account
-    } catch {
-      throw new Error('La configuración privada de Firebase no es válida.')
-    }
-
-    throw new Error('La configuración privada de Firebase está incompleta.')
+    return parseServiceAccount(raw)
   }
 
   const projectId = process.env.FIREBASE_PROJECT_ID
