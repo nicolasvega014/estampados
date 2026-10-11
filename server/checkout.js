@@ -44,6 +44,10 @@ function safeTitle(value, fallback) {
   return title && title.length <= 160 ? title : fallback
 }
 
+function safeOptionalText(value, maximum) {
+  return String(value || '').trim().replace(/\s+/g, ' ').slice(0, maximum)
+}
+
 /**
  * Price every cart item on the server. Firestore products take priority so new
  * products created from the admin panel work without changing this file; the
@@ -59,7 +63,17 @@ export async function calculateCart(cart, db = null) {
     if (!quantity) throw new CheckoutError('La cantidad elegida no es válida.')
 
     if (item?.kind === 'custom') {
-      return { kind: 'custom', quantity, unitPrice: CUSTOM_SHIRT_PRICE, title: 'Remera personalizada', productId: null }
+      return {
+        kind: 'custom',
+        quantity,
+        unitPrice: CUSTOM_SHIRT_PRICE,
+        title: 'Remera personalizada',
+        productId: null,
+        color: safeOptionalText(item?.color, 60),
+        size: safeOptionalText(item?.size, 20),
+        front: safeOptionalText(item?.front, 180),
+        back: safeOptionalText(item?.back, 180),
+      }
     }
 
     const productId = validProductId(item?.productId)
@@ -442,17 +456,28 @@ export function safeOrderItems(items) {
     quantity: item.quantity,
     unitPrice: item.unitPrice,
     lineTotal: item.lineTotal,
+    ...(item.kind === 'custom' ? {
+      color: safeOptionalText(item.color, 60),
+      size: safeOptionalText(item.size, 20),
+      front: safeOptionalText(item.front, 180),
+      back: safeOptionalText(item.back, 180),
+    } : {}),
   }))
 }
 
 export function safeCustomer(customer, payerEmail) {
-  const read = (value, max) => String(value || '').trim().replace(/\s+/g, ' ').slice(0, max)
+  const submittedEmail = String(customer?.email || '').trim().toLowerCase().slice(0, 254)
+  const paymentEmail = String(payerEmail || '').trim().toLowerCase().slice(0, 254)
   return {
-    email: String(payerEmail || '').trim().toLowerCase().slice(0, 254),
-    name: read(customer?.name, 120),
-    delivery: read(customer?.delivery, 80),
-    address: read(customer?.address, 300),
-    notes: read(customer?.notes, 1000),
+    // The email requested in the bag is where the customer wants their
+    // confirmation. Keep the Mercado Pago payer email separately for payment
+    // audit and coupon limits, because it may legitimately differ.
+    email: submittedEmail || paymentEmail,
+    ...(paymentEmail && paymentEmail !== submittedEmail ? { paymentEmail } : {}),
+    name: safeOptionalText(customer?.name, 120),
+    delivery: safeOptionalText(customer?.delivery, 80),
+    address: safeOptionalText(customer?.address, 300),
+    notes: safeOptionalText(customer?.notes, 1000),
   }
 }
 

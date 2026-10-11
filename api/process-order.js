@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { getAdminFirestore, FieldValue } from '../server/firebase-admin.js'
+import { notifyPaidOrder } from '../server/order-email.js'
 import {
   CheckoutError,
   checkoutErrorPayload,
@@ -191,6 +192,12 @@ export default async function handler(req, res) {
       throw new CheckoutError('Los códigos promocionales todavía no están configurados para confirmar pagos pendientes.', 'COUPON_WEBHOOK_NOT_CONFIGURED', 503)
     }
     const safeBuyer = safeCustomer(customer, payerEmail)
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(safeBuyer.email)) {
+      return send(res, 400, { message: 'Ingresá un correo electrónico válido para confirmar la compra.' })
+    }
+    if (safeBuyer.delivery === 'Envío a domicilio' && !safeBuyer.address) {
+      return send(res, 400, { message: 'Ingresá la dirección para poder preparar el envío.' })
+    }
     const attemptResult = db
       ? await beginCheckoutAttempt(db, attemptId, quote)
       : {
@@ -342,6 +349,21 @@ export default async function handler(req, res) {
           ...(final ? { completedAt: FieldValue.serverTimestamp() } : {}),
         }).catch(() => {}),
       ])
+
+      if (paid) {
+        const notificationOrder = {
+          reference: externalReference,
+          customer: safeBuyer,
+          items: safeOrderItems(quote.items),
+          subtotal: quote.totals.subtotal,
+          discount: quote.totals.discount,
+          total: quote.totals.total,
+          coupon: couponSnapshot(quote.coupon),
+          status: paymentState.status || 'approved',
+          statusDetail: paymentState.statusDetail || '',
+        }
+        await notifyPaidOrder({ db, reference: externalReference, order: notificationOrder }).catch(() => {})
+      }
     }
 
     if (final && !paid && !couponRedeemed) {

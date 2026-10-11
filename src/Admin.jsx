@@ -22,6 +22,59 @@ function formatDate(value) {
   return value.toDate().toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })
 }
 
+function formatOrderMoney(value) {
+  const amount = Number(value)
+  return Number.isFinite(amount) ? `$ ${amount.toLocaleString('es-AR')}` : '—'
+}
+
+function orderCustomer(order) {
+  const customer = order?.customer && typeof order.customer === 'object' ? order.customer : {}
+  return {
+    name: String(customer.name || order?.customerName || '').trim(),
+    email: String(customer.email || order?.customerEmail || order?.email || '').trim(),
+    delivery: String(customer.delivery || order?.delivery || '').trim(),
+    address: String(customer.address || order?.address || '').trim(),
+    notes: String(customer.notes || order?.notes || '').trim(),
+  }
+}
+
+function orderItems(order) {
+  return Array.isArray(order?.items) ? order.items : []
+}
+
+function orderStatus(order) {
+  const status = String(order?.status || '').trim().toLowerCase()
+  const detail = String(order?.statusDetail || '').trim().toLowerCase()
+  const labels = {
+    approved: 'Pago aprobado',
+    processed: detail === 'accredited' ? 'Pago acreditado' : 'Procesado',
+    processing: 'Pago en proceso',
+    pending: 'Pago pendiente',
+    rejected: 'Pago rechazado',
+    failed: 'Pago rechazado',
+    cancelled: 'Pago cancelado',
+    canceled: 'Pago cancelado',
+  }
+  return labels[status] || (status ? status.replace(/_/g, ' ') : 'Nuevo')
+}
+
+function orderHeading(order) {
+  const customer = orderCustomer(order)
+  if (customer.name) return customer.name
+  const firstItem = orderItems(order)[0]
+  if (firstItem?.title) return firstItem.title
+  return 'Pedido de remera personalizada'
+}
+
+function orderPreview(order) {
+  const firstItem = orderItems(order)[0]
+  if (firstItem?.kind === 'custom') {
+    const options = [firstItem.color, firstItem.size ? `Talle ${firstItem.size}` : ''].filter(Boolean)
+    return options.length ? options.join(' · ') : 'Remera personalizada'
+  }
+  return firstItem?.title || 'Detalles del pedido'
+}
+
 function getCouponDate(value) {
   if (!value) return null
   const date = value?.toDate ? value.toDate() : value instanceof Date ? value : new Date(value)
@@ -233,12 +286,109 @@ export default function Admin() {
 
   if (loading) return <main className="admin-loading">Cargando panel…</main>
 
-  if (!user) return <main className="admin-login"><a className="admin-brand" href="/">TINTA<span>•</span>CLUB</a><section><p className="admin-kicker">PANEL DEL VENDEDOR</p><h1>Administrá tu tienda.</h1><p>Ingresá con tu cuenta de vendedor para manejar el catálogo y los pedidos.</p><form onSubmit={login}><label>Correo<input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" required /></label><label>Contraseña<input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" required /></label>{message && <p className="admin-message">{message}</p>}<button>Ingresar al panel <span>→</span></button></form></section></main>
+  if (!user) return <main className="admin-login"><a className="admin-brand" href="/" aria-label="Fenixis Store"><span className="admin-brand-wordmark" aria-hidden="true" /></a><section><p className="admin-kicker">PANEL DEL VENDEDOR</p><h1>Administrá tu tienda.</h1><p>Ingresá con tu cuenta de vendedor para manejar el catálogo y los pedidos.</p><form onSubmit={login}><label>Correo<input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" required /></label><label>Contraseña<input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" required /></label>{message && <p className="admin-message">{message}</p>}<button>Ingresar al panel <span>→</span></button></form></section></main>
 
-  return <main className="admin-page"><header className="admin-header"><a className="admin-brand" href="/">TINTA<span>•</span>CLUB</a><div><span>{user.email}</span><button className="admin-logout" onClick={() => signOut(auth)}>Salir</button></div></header><div className="admin-layout"><aside><p className="admin-kicker">ADMINISTRACIÓN</p><button className={active === 'pedidos' ? 'active' : ''} onClick={() => setActive('pedidos')}>Pedidos <b>{orders.length}</b></button><button className={active === 'productos' ? 'active' : ''} onClick={() => setActive('productos')}>Productos <b>{products.length}</b></button><button className={active === 'disenos' ? 'active' : ''} onClick={() => setActive('disenos')}>Diseños <b>{designs.length}</b></button><button className={active === 'ofertas' ? 'active' : ''} onClick={() => setActive('ofertas')}>Ofertas</button><button className={active === 'cupones' ? 'active' : ''} onClick={() => setActive('cupones')}>Cupones</button><button className={active === 'personalizador' ? 'active' : ''} onClick={() => setActive('personalizador')}>Personalizador</button><button className={active === 'categorias' ? 'active' : ''} onClick={() => setActive('categorias')}>Categorías <b>{categories.length}</b></button><a href="/">Ver tienda <span>↗</span></a></aside><section className="admin-content">{message && <p className="admin-toast">{message}</p>}{active === 'pedidos' && <Orders orders={orders} />}{active === 'productos' && <Products items={products} value={product} setValue={setProduct} categories={categoryOptions} onAdd={addProduct} onRemove={remove} />}{active === 'disenos' && <Designs designs={designs} upload={upload} setUpload={setUpload} categories={categoryOptions} onAdd={addDesign} onRemove={remove} />}{active === 'ofertas' && <Offers />}{active === 'cupones' && <Coupons products={products} />}{active === 'personalizador' && <CustomizerSettings />}{active === 'categorias' && <Categories items={categories} value={categoryName} setValue={setCategoryName} onAdd={addCategory} onRemove={remove} />}</section></div></main>
+  return <main className="admin-page"><header className="admin-header"><a className="admin-brand" href="/" aria-label="Fenixis Store"><span className="admin-brand-wordmark" aria-hidden="true" /></a><div><span>{user.email}</span><button className="admin-logout" onClick={() => signOut(auth)}>Salir</button></div></header><div className="admin-layout"><aside><p className="admin-kicker">ADMINISTRACIÓN</p><button className={active === 'pedidos' ? 'active' : ''} onClick={() => setActive('pedidos')}>Pedidos <b>{orders.length}</b></button><button className={active === 'productos' ? 'active' : ''} onClick={() => setActive('productos')}>Productos <b>{products.length}</b></button><button className={active === 'disenos' ? 'active' : ''} onClick={() => setActive('disenos')}>Diseños <b>{designs.length}</b></button><button className={active === 'ofertas' ? 'active' : ''} onClick={() => setActive('ofertas')}>Ofertas</button><button className={active === 'cupones' ? 'active' : ''} onClick={() => setActive('cupones')}>Cupones</button><button className={active === 'personalizador' ? 'active' : ''} onClick={() => setActive('personalizador')}>Personalizador</button><button className={active === 'categorias' ? 'active' : ''} onClick={() => setActive('categorias')}>Categorías <b>{categories.length}</b></button><a href="/">Ver tienda <span>↗</span></a></aside><section className="admin-content">{message && <p className="admin-toast">{message}</p>}{active === 'pedidos' && <Orders orders={orders} />}{active === 'productos' && <Products items={products} value={product} setValue={setProduct} categories={categoryOptions} onAdd={addProduct} onRemove={remove} />}{active === 'disenos' && <Designs designs={designs} upload={upload} setUpload={setUpload} categories={categoryOptions} onAdd={addDesign} onRemove={remove} />}{active === 'ofertas' && <Offers />}{active === 'cupones' && <Coupons products={products} />}{active === 'personalizador' && <CustomizerSettings />}{active === 'categorias' && <Categories items={categories} value={categoryName} setValue={setCategoryName} onAdd={addCategory} onRemove={remove} />}</section></div></main>
 }
 
-function Orders({ orders }) { return <><div className="admin-title"><div><p className="admin-kicker">VENTAS</p><h1>Pedidos</h1></div><p>Acá vas a ver los pedidos confirmados por tus clientes.</p></div>{orders.length ? <div className="order-list">{orders.map((order) => <article className="order-card" key={order.id}><div><b>#{order.id.slice(0, 6).toUpperCase()}</b><span>{formatDate(order.createdAt)}</span></div><h2>{order.customerName || 'Pedido de remera personalizada'}</h2><p>{order.size || 'Talle sin indicar'} · {order.color || 'Color sin indicar'} · {order.status || 'Nuevo'}</p></article>)}</div> : <Empty title="Todavía no hay pedidos" text="Cuando conectemos el botón de compra, los pedidos van a aparecer acá." />}</> }
+function Orders({ orders }) {
+  const [selectedOrderId, setSelectedOrderId] = useState('')
+  const selectedOrder = orders.find((item) => item.id === selectedOrderId) || null
+
+  return <>
+    <div className="admin-title">
+      <div><p className="admin-kicker">VENTAS</p><h1>Pedidos</h1></div>
+      <p>Entrá en cada pedido para ver la compra, la entrega y los datos de contacto.</p>
+    </div>
+    {orders.length ? <div className="order-list">{orders.map((order) => {
+      const buyer = orderCustomer(order)
+      return <button className="order-card" type="button" key={order.id} onClick={() => setSelectedOrderId(order.id)} aria-label={`Ver detalle del pedido ${order.id}`}>
+        <div><b>#{String(order.id || '').slice(0, 6).toUpperCase()}</b><span>{formatDate(order.createdAt)}</span></div>
+        <h2>{orderHeading(order)}</h2>
+        <p>{orderPreview(order)} · {orderStatus(order)}</p>
+        <small>{buyer.delivery || 'Entrega sin indicar'} <span>Ver detalle →</span></small>
+      </button>
+    })}</div> : <Empty title="Todavía no hay pedidos" text="Cuando un cliente complete el pago, el pedido y todos sus datos van a aparecer acá." />}
+    {selectedOrder && <OrderDetail order={selectedOrder} onClose={() => setSelectedOrderId('')} />}
+  </>
+}
+
+function OrderDetail({ order, onClose }) {
+  const buyer = orderCustomer(order)
+  const items = orderItems(order)
+  const coupon = order?.coupon && typeof order.coupon === 'object' ? order.coupon : null
+  const orderId = String(order?.reference || order?.id || '')
+
+  useEffect(() => {
+    const closeOnEscape = (event) => { if (event.key === 'Escape') onClose() }
+    document.addEventListener('keydown', closeOnEscape)
+    document.body.classList.add('admin-dialog-open')
+    return () => {
+      document.removeEventListener('keydown', closeOnEscape)
+      document.body.classList.remove('admin-dialog-open')
+    }
+  }, [onClose])
+
+  return <div className="order-dialog-backdrop" onMouseDown={onClose}>
+    <section className="order-dialog" role="dialog" aria-modal="true" aria-labelledby="order-detail-title" onMouseDown={(event) => event.stopPropagation()}>
+      <header className="order-dialog-header">
+        <div><p className="admin-kicker">PEDIDO #{orderId.slice(0, 12).toUpperCase()}</p><h2 id="order-detail-title">Detalle del pedido</h2></div>
+        <button type="button" onClick={onClose} aria-label="Cerrar detalle">×</button>
+      </header>
+
+      <div className="order-status-row"><span className={`order-status order-status-${String(order.status || 'new').toLowerCase()}`}>{orderStatus(order)}</span><span>{formatDate(order.createdAt)}</span></div>
+
+      <div className="order-detail-grid">
+        <section>
+          <p className="order-section-title">CLIENTE</p>
+          <dl className="order-facts">
+            <div><dt>Nombre</dt><dd>{buyer.name || 'No indicado'}</dd></div>
+            <div><dt>Email</dt><dd>{buyer.email ? <a href={`mailto:${buyer.email}`}>{buyer.email}</a> : 'No indicado'}</dd></div>
+          </dl>
+        </section>
+        <section>
+          <p className="order-section-title">ENTREGA</p>
+          <dl className="order-facts">
+            <div><dt>Modalidad</dt><dd>{buyer.delivery || 'No indicada'}</dd></div>
+            <div><dt>Dirección</dt><dd>{buyer.address || (buyer.delivery === 'Retiro por el local' ? 'Retira por el local' : 'No indicada')}</dd></div>
+            {buyer.notes && <div className="order-fact-wide"><dt>Notas</dt><dd>{buyer.notes}</dd></div>}
+          </dl>
+        </section>
+      </div>
+
+      <section className="order-detail-section">
+        <p className="order-section-title">PRENDAS</p>
+        {items.length ? <div className="order-detail-items">{items.map((item, index) => {
+          const isCustom = item?.kind === 'custom'
+          const customDetails = [item?.color && `Color: ${item.color}`, item?.size && `Talle: ${item.size}`, item?.front && `Frente: ${item.front}`, item?.back && `Espalda: ${item.back}`].filter(Boolean)
+          return <article key={`${item?.productId || item?.title || 'item'}-${index}`}>
+            <div><h3>{item?.title || (isCustom ? 'Remera personalizada' : 'Producto')}</h3>{isCustom && <p>{customDetails.length ? customDetails.join(' · ') : 'Diseño personalizado (detalle no disponible en este pedido anterior).'}</p>}{!isCustom && item?.productId && <p>Producto: {item.productId}</p>}</div>
+            <div className="order-item-amount"><span>{Number(item?.quantity || 1)} u. × {formatOrderMoney(item?.unitPrice)}</span><strong>{formatOrderMoney(item?.lineTotal ?? Number(item?.unitPrice || 0) * Number(item?.quantity || 1))}</strong></div>
+          </article>
+        })}</div> : <p className="order-empty-detail">Este pedido no tiene prendas detalladas porque fue creado con una versión anterior de la tienda.</p>}
+      </section>
+
+      <div className="order-detail-grid order-payment-grid">
+        <section>
+          <p className="order-section-title">PAGO</p>
+          <dl className="order-facts">
+            <div><dt>Estado</dt><dd>{orderStatus(order)}{order.statusDetail ? ` · ${String(order.statusDetail).replace(/_/g, ' ')}` : ''}</dd></div>
+            {order.mercadoPagoOrderId && <div><dt>Operación Mercado Pago</dt><dd>{order.mercadoPagoOrderId}</dd></div>}
+            <div><dt>Referencia</dt><dd>{order.reference || order.id}</dd></div>
+          </dl>
+        </section>
+        <section>
+          <p className="order-section-title">TOTAL</p>
+          <dl className="order-facts order-totals-detail">
+            <div><dt>Subtotal</dt><dd>{formatOrderMoney(order.subtotal)}</dd></div>
+            {Number(order.discount) > 0 && <div><dt>Descuento{coupon?.code ? ` (${coupon.code})` : ''}</dt><dd>− {formatOrderMoney(order.discount)}</dd></div>}
+            <div><dt>Total</dt><dd><strong>{formatOrderMoney(order.total ?? order.subtotal)}</strong></dd></div>
+          </dl>
+        </section>
+      </div>
+    </section>
+  </div>
+}
 function editItem(type, id) { window.dispatchEvent(new CustomEvent('tinta-admin-edit', { detail: { type, id } })) }
 function Designs({ designs, upload, setUpload, categories, onAdd, onRemove }) {
   return <>

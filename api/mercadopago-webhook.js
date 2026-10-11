@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { getAdminFirestore, FieldValue } from '../server/firebase-admin.js'
+import { notifyPaidOrder } from '../server/order-email.js'
 import { isFinalMercadoPagoOrder, isPaidMercadoPagoOrder, settleCouponUse, shouldRedeemCouponUse } from '../server/checkout.js'
 
 function send(res, status, body) {
@@ -105,6 +106,13 @@ export default async function handler(req, res) {
       ...(paid ? { paidAt: FieldValue.serverTimestamp() } : {}),
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true })
+
+    if (paid) {
+      const refreshedOrder = await orderRef.get()
+      if (refreshedOrder.exists) {
+        await notifyPaidOrder({ db, reference, order: { id: refreshedOrder.id, ...refreshedOrder.data() } }).catch(() => {})
+      }
+    }
 
     return send(res, 200, { received: true })
   } catch {

@@ -41,6 +41,12 @@ function checkoutCart(items) {
     productId: item.productId || '',
     kind: item.kind,
     quantity: item.quantity,
+    ...(item.kind === 'custom' ? {
+      color: item.color || '',
+      size: item.size || '',
+      front: item.front || '',
+      back: item.back || '',
+    } : {}),
   }))
 }
 
@@ -94,7 +100,7 @@ function MercadoPagoCheckout({ items, customer, couponCode = '', couponTotals, o
         const mp = new MercadoPago(MERCADO_PAGO_PUBLIC_KEY, { locale: 'es-AR' })
         const bricksBuilder = mp.bricks()
         controller = await bricksBuilder.create('cardPayment', containerId, {
-          initialization: { amount: total },
+          initialization: { amount: total, payer: { email: customer.email } },
           customization: { paymentMethods: { maxInstallments: 12 } },
           callbacks: {
             onReady: () => mounted && setState({ kind: 'ready', message: '' }),
@@ -158,8 +164,9 @@ function MercadoPagoCheckout({ items, customer, couponCode = '', couponTotals, o
 }
 
 function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear }) {
-  const [customer, setCustomer] = useState({ name: '', delivery: 'Retiro por el local', address: '', notes: '' })
+  const [customer, setCustomer] = useState({ name: '', email: '', delivery: 'Retiro por el local', address: '', notes: '' })
   const [checkoutOpen, setCheckoutOpen] = useState(false)
+  const [checkoutValidationError, setCheckoutValidationError] = useState('')
   const [couponCode, setCouponCode] = useState('')
   const [couponState, setCouponState] = useState('idle')
   const [couponMessage, setCouponMessage] = useState('')
@@ -171,7 +178,24 @@ function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear }) {
   const couponTotals = couponIsApplied ? couponResult.totals : null
   const total = couponTotals ? couponTotals.total : subtotal
   const appliedCouponCode = couponIsApplied ? String(couponResult?.coupon?.code || couponCode).trim().toUpperCase() : ''
-  const updateCustomer = (key, value) => setCustomer((current) => ({ ...current, [key]: value }))
+  const updateCustomer = (key, value) => {
+    setCustomer((current) => ({ ...current, [key]: value }))
+    if (checkoutValidationError) setCheckoutValidationError('')
+  }
+
+  const beginCheckout = () => {
+    const email = String(customer.email || '').trim().toLowerCase()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setCheckoutValidationError('Ingresá un correo electrónico válido para enviarte la confirmación de compra.')
+      return
+    }
+    if (customer.delivery === 'Envío a domicilio' && !String(customer.address || '').trim()) {
+      setCheckoutValidationError('Ingresá la dirección para poder preparar el envío.')
+      return
+    }
+    setCustomer((current) => ({ ...current, email }))
+    setCheckoutOpen(true)
+  }
 
   useEffect(() => {
     if (!couponCartFingerprint || couponCartFingerprint === cartFingerprint) return
@@ -269,8 +293,9 @@ function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear }) {
             </form>
             {couponMessage && <p className={`coupon-message ${couponState}`} role="status">{couponState === 'success' ? '✓ ' : ''}{couponMessage}</p>}
           </section>
-          <div className="cart-customer"><label>Tu nombre<input value={customer.name} onChange={(event) => updateCustomer('name', event.target.value)} placeholder="Opcional" /></label><label>Entrega<select value={customer.delivery} onChange={(event) => updateCustomer('delivery', event.target.value)}><option>Retiro por el local</option><option>Envío a domicilio</option></select></label>{customer.delivery === 'Envío a domicilio' && <label className="cart-wide">Dirección<input value={customer.address} onChange={(event) => updateCustomer('address', event.target.value)} placeholder="Calle, altura y localidad" /></label>}<label className="cart-wide">Notas para el pedido<textarea value={customer.notes} onChange={(event) => updateCustomer('notes', event.target.value)} placeholder="Ej. Necesito recibirlo antes del viernes" rows="2" /></label></div>
-          <button className="checkout-button" type="button" onClick={() => setCheckoutOpen(true)}>Pagar con Mercado Pago <span>→</span></button>
+          <div className="cart-customer"><label>Tu nombre<input value={customer.name} onChange={(event) => updateCustomer('name', event.target.value)} placeholder="Opcional" autoComplete="name" /></label><label>Correo electrónico<input value={customer.email} onChange={(event) => updateCustomer('email', event.target.value)} placeholder="nombre@email.com" type="email" autoComplete="email" required /></label><label>Entrega<select value={customer.delivery} onChange={(event) => updateCustomer('delivery', event.target.value)}><option>Retiro por el local</option><option>Envío a domicilio</option></select></label>{customer.delivery === 'Envío a domicilio' && <label className="cart-wide">Dirección<input value={customer.address} onChange={(event) => updateCustomer('address', event.target.value)} placeholder="Calle, altura y localidad" autoComplete="street-address" required /></label>}<label className="cart-wide">Notas para el pedido<textarea value={customer.notes} onChange={(event) => updateCustomer('notes', event.target.value)} placeholder="Ej. Necesito recibirlo antes del viernes" rows="2" /></label></div>
+          {checkoutValidationError && <p className="cart-customer-error" role="alert">{checkoutValidationError}</p>}
+          <button className="checkout-button" type="button" onClick={beginCheckout}>Pagar con Mercado Pago <span>→</span></button>
           <p>Pago seguro procesado por Mercado Pago.</p>
         </footer>
       </> : <div className="empty-cart"><span>◌</span><h3>Tu bolsa está vacía.</h3><p>Personalizá una remera o elegí un producto del catálogo.</p><button onClick={onClose}>Seguir viendo la tienda</button></div>}
