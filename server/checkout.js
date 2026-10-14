@@ -468,6 +468,7 @@ export function safeOrderItems(items) {
 export function safeCustomer(customer, payerEmail) {
   const submittedEmail = String(customer?.email || '').trim().toLowerCase().slice(0, 254)
   const paymentEmail = String(payerEmail || '').trim().toLowerCase().slice(0, 254)
+  const phone = String(customer?.phone || '').trim().replace(/[^0-9+()\-\s]/g, '').slice(0, 40)
   return {
     // The email requested in the bag is where the customer wants their
     // confirmation. Keep the Mercado Pago payer email separately for payment
@@ -475,6 +476,7 @@ export function safeCustomer(customer, payerEmail) {
     email: submittedEmail || paymentEmail,
     ...(paymentEmail && paymentEmail !== submittedEmail ? { paymentEmail } : {}),
     name: safeOptionalText(customer?.name, 120),
+    phone,
     delivery: safeOptionalText(customer?.delivery, 80),
     address: safeOptionalText(customer?.address, 300),
     notes: safeOptionalText(customer?.notes, 1000),

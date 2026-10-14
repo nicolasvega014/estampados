@@ -32,10 +32,42 @@ function orderCustomer(order) {
   return {
     name: String(customer.name || order?.customerName || '').trim(),
     email: String(customer.email || order?.customerEmail || order?.email || '').trim(),
+    phone: String(customer.phone || order?.customerPhone || order?.phone || '').trim(),
     delivery: String(customer.delivery || order?.delivery || '').trim(),
     address: String(customer.address || order?.address || '').trim(),
     notes: String(customer.notes || order?.notes || '').trim(),
   }
+}
+
+const FULFILLMENT_OPTIONS = [
+  ['en_preparacion', 'En preparación'],
+  ['a_retirar', 'A retirar'],
+  ['a_enviar', 'A enviar'],
+  ['enviado', 'Enviado'],
+  ['retirado', 'Retirado'],
+  ['cancelado', 'Cancelado'],
+]
+
+function fulfillmentStatus(order) {
+  return String(order?.fulfillmentStatus || '').trim().toLowerCase()
+}
+
+function fulfillmentLabel(order) {
+  const status = fulfillmentStatus(order)
+  return FULFILLMENT_OPTIONS.find(([value]) => value === status)?.[1] || 'Nuevo'
+}
+
+function orderSearchText(order) {
+  const buyer = orderCustomer(order)
+  const items = orderItems(order)
+  return [
+    order.id,
+    order.reference,
+    buyer.name,
+    buyer.email,
+    buyer.phone,
+    ...items.flatMap((item) => [item?.title, item?.productId]),
+  ].filter(Boolean).join(' ').toLocaleLowerCase('es-AR')
 }
 
 function orderItems(order) {
@@ -179,8 +211,9 @@ export default function Admin() {
     const catalog = new Map(seedProducts.map((item) => [item.id, { ...item, isSeed: true }]))
     storedProducts.forEach((item) => {
       const isSeed = catalog.has(item.id)
-      if (item.hidden) catalog.delete(item.id)
-      else catalog.set(item.id, { ...catalog.get(item.id), ...item, isSeed })
+      // Keep hidden products in the seller panel so they can be published
+      // again when stock returns. The storefront filters them independently.
+      catalog.set(item.id, { ...catalog.get(item.id), ...item, isSeed })
     })
     setProducts([...catalog.values()])
   }, [seedProducts, storedProducts])
@@ -270,6 +303,19 @@ export default function Admin() {
     catch { setMessage('No se pudo eliminar el elemento.') }
   }
 
+  async function toggleProductVisibility(item) {
+    const nextHidden = !item.hidden
+    try {
+      await setDoc(doc(db, 'products', item.id), {
+        hidden: nextHidden,
+        updatedAt: serverTimestamp(),
+      }, { merge: true })
+      setMessage(nextHidden ? 'Producto oculto de la tienda por falta de stock.' : 'Producto publicado nuevamente en la tienda.')
+    } catch {
+      setMessage('No se pudo actualizar la visibilidad del producto.')
+    }
+  }
+
   function editProduct(item) { setProduct({ id: item.id, title: item.title || '', description: item.description || '', price: String(item.price ?? ''), category: item.category || '', imageUrl: item.imageUrl || '', imagePublicId: item.imagePublicId || '', imageFile: null }); setMessage('Editando producto. Guardá los cambios cuando termines.') }
   function editDesign(item) { setUpload({ id: item.id, title: item.title || '', category: item.category || '', file: null }); setMessage('Editando diseño. La imagen actual se conserva.') }
   function editCategory(item) { setCategoryName(item.name || ''); setEditingCategoryId(item.id); setMessage('Editando categoría.') }
@@ -288,36 +334,74 @@ export default function Admin() {
 
   if (!user) return <main className="admin-login"><a className="admin-brand" href="/" aria-label="Fenixis Store"><span className="admin-brand-wordmark" aria-hidden="true" /></a><section><p className="admin-kicker">PANEL DEL VENDEDOR</p><h1>Administrá tu tienda.</h1><p>Ingresá con tu cuenta de vendedor para manejar el catálogo y los pedidos.</p><form onSubmit={login}><label>Correo<input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" required /></label><label>Contraseña<input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" required /></label>{message && <p className="admin-message">{message}</p>}<button>Ingresar al panel <span>→</span></button></form></section></main>
 
-  return <main className="admin-page"><header className="admin-header"><a className="admin-brand" href="/" aria-label="Fenixis Store"><span className="admin-brand-wordmark" aria-hidden="true" /></a><div><span>{user.email}</span><button className="admin-logout" onClick={() => signOut(auth)}>Salir</button></div></header><div className="admin-layout"><aside><p className="admin-kicker">ADMINISTRACIÓN</p><button className={active === 'pedidos' ? 'active' : ''} onClick={() => setActive('pedidos')}>Pedidos <b>{orders.length}</b></button><button className={active === 'productos' ? 'active' : ''} onClick={() => setActive('productos')}>Productos <b>{products.length}</b></button><button className={active === 'disenos' ? 'active' : ''} onClick={() => setActive('disenos')}>Diseños <b>{designs.length}</b></button><button className={active === 'ofertas' ? 'active' : ''} onClick={() => setActive('ofertas')}>Ofertas</button><button className={active === 'cupones' ? 'active' : ''} onClick={() => setActive('cupones')}>Cupones</button><button className={active === 'personalizador' ? 'active' : ''} onClick={() => setActive('personalizador')}>Personalizador</button><button className={active === 'categorias' ? 'active' : ''} onClick={() => setActive('categorias')}>Categorías <b>{categories.length}</b></button><a href="/">Ver tienda <span>↗</span></a></aside><section className="admin-content">{message && <p className="admin-toast">{message}</p>}{active === 'pedidos' && <Orders orders={orders} />}{active === 'productos' && <Products items={products} value={product} setValue={setProduct} categories={categoryOptions} onAdd={addProduct} onRemove={remove} />}{active === 'disenos' && <Designs designs={designs} upload={upload} setUpload={setUpload} categories={categoryOptions} onAdd={addDesign} onRemove={remove} />}{active === 'ofertas' && <Offers />}{active === 'cupones' && <Coupons products={products} />}{active === 'personalizador' && <CustomizerSettings />}{active === 'categorias' && <Categories items={categories} value={categoryName} setValue={setCategoryName} onAdd={addCategory} onRemove={remove} />}</section></div></main>
+  return <main className="admin-page"><header className="admin-header"><a className="admin-brand" href="/" aria-label="Fenixis Store"><span className="admin-brand-wordmark" aria-hidden="true" /></a><div><span>{user.email}</span><button className="admin-logout" onClick={() => signOut(auth)}>Salir</button></div></header><div className="admin-layout"><aside><p className="admin-kicker">ADMINISTRACIÓN</p><button className={active === 'pedidos' ? 'active' : ''} onClick={() => setActive('pedidos')}>Pedidos <b>{orders.length}</b></button><button className={active === 'productos' ? 'active' : ''} onClick={() => setActive('productos')}>Productos <b>{products.length}</b></button><button className={active === 'disenos' ? 'active' : ''} onClick={() => setActive('disenos')}>Diseños <b>{designs.length}</b></button><button className={active === 'ofertas' ? 'active' : ''} onClick={() => setActive('ofertas')}>Ofertas</button><button className={active === 'cupones' ? 'active' : ''} onClick={() => setActive('cupones')}>Cupones</button><button className={active === 'personalizador' ? 'active' : ''} onClick={() => setActive('personalizador')}>Personalizador</button><button className={active === 'categorias' ? 'active' : ''} onClick={() => setActive('categorias')}>Categorías <b>{categories.length}</b></button><a href="/">Ver tienda <span>↗</span></a></aside><section className="admin-content">{message && <p className="admin-toast">{message}</p>}{active === 'pedidos' && <Orders orders={orders} user={user} onNotice={setMessage} />}{active === 'productos' && <Products items={products} value={product} setValue={setProduct} categories={categoryOptions} onAdd={addProduct} onRemove={remove} onToggleVisibility={toggleProductVisibility} />}{active === 'disenos' && <Designs designs={designs} upload={upload} setUpload={setUpload} categories={categoryOptions} onAdd={addDesign} onRemove={remove} />}{active === 'ofertas' && <Offers />}{active === 'cupones' && <Coupons products={products} />}{active === 'personalizador' && <CustomizerSettings />}{active === 'categorias' && <Categories items={categories} value={categoryName} setValue={setCategoryName} onAdd={addCategory} onRemove={remove} />}</section></div></main>
 }
 
-function Orders({ orders }) {
+function Orders({ orders, user, onNotice }) {
   const [selectedOrderId, setSelectedOrderId] = useState('')
+  const [search, setSearch] = useState('')
+  const [section, setSection] = useState('all')
+  const [sort, setSort] = useState('recent')
   const selectedOrder = orders.find((item) => item.id === selectedOrderId) || null
+  const queryText = search.trim().toLocaleLowerCase('es-AR')
+  const visibleOrders = orders.filter((order) => {
+    const status = fulfillmentStatus(order) || 'new'
+    return (!queryText || orderSearchText(order).includes(queryText)) && (section === 'all' || status === section)
+  }).sort((left, right) => {
+    const leftDate = left?.createdAt?.toDate?.().getTime?.() || 0
+    const rightDate = right?.createdAt?.toDate?.().getTime?.() || 0
+    if (sort === 'oldest') return leftDate - rightDate
+    if (sort === 'status') return fulfillmentLabel(left).localeCompare(fulfillmentLabel(right), 'es-AR') || rightDate - leftDate
+    return rightDate - leftDate
+  })
+  const sections = [['all', 'Todos'], ['new', 'Nuevos'], ...FULFILLMENT_OPTIONS]
 
   return <>
     <div className="admin-title">
       <div><p className="admin-kicker">VENTAS</p><h1>Pedidos</h1></div>
-      <p>Entrá en cada pedido para ver la compra, la entrega y los datos de contacto.</p>
+      <p>Buscá por comprador, número de pedido, producto o código. Organizalos según cómo los vas preparando.</p>
     </div>
-    {orders.length ? <div className="order-list">{orders.map((order) => {
+    <div className="order-toolbar">
+      <label className="order-search"><span>Buscar</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nombre, código o producto" /></label>
+      <label><span>Ordenar</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="recent">Más recientes</option><option value="oldest">Más antiguos</option><option value="status">Por estado</option></select></label>
+    </div>
+    <div className="order-sections" aria-label="Filtrar pedidos por preparación">{sections.map(([value, label]) => <button type="button" key={value} className={section === value ? 'active' : ''} onClick={() => setSection(value)}>{label}<span>{value === 'all' ? orders.length : orders.filter((order) => (fulfillmentStatus(order) || 'new') === value).length}</span></button>)}</div>
+    {visibleOrders.length ? <div className="order-list">{visibleOrders.map((order) => {
       const buyer = orderCustomer(order)
-      return <button className="order-card" type="button" key={order.id} onClick={() => setSelectedOrderId(order.id)} aria-label={`Ver detalle del pedido ${order.id}`}>
-        <div><b>#{String(order.id || '').slice(0, 6).toUpperCase()}</b><span>{formatDate(order.createdAt)}</span></div>
+      return <button className={`order-card status-${fulfillmentStatus(order) || 'new'}`} type="button" key={order.id} onClick={() => setSelectedOrderId(order.id)} aria-label={`Ver detalle del pedido ${order.id}`}>
+        <div><b>#{String(order.reference || order.id || '').slice(-8).toUpperCase()}</b><span>{formatDate(order.createdAt)}</span></div>
         <h2>{orderHeading(order)}</h2>
         <p>{orderPreview(order)} · {orderStatus(order)}</p>
-        <small>{buyer.delivery || 'Entrega sin indicar'} <span>Ver detalle →</span></small>
+        <small><span className={`fulfillment-chip ${fulfillmentStatus(order) || 'new'}`}>{fulfillmentLabel(order)}</span><span>Ver detalle →</span></small>
+        <em>{buyer.delivery || 'Entrega sin indicar'}</em>
       </button>
-    })}</div> : <Empty title="Todavía no hay pedidos" text="Cuando un cliente complete el pago, el pedido y todos sus datos van a aparecer acá." />}
-    {selectedOrder && <OrderDetail order={selectedOrder} onClose={() => setSelectedOrderId('')} />}
+    })}</div> : <Empty title={orders.length ? 'No hay pedidos que coincidan' : 'Todavía no hay pedidos'} text={orders.length ? 'Probá con otra búsqueda o sección.' : 'Cuando un cliente complete el pago, el pedido y todos sus datos van a aparecer acá.'} />}
+    {selectedOrder && <OrderDetail order={selectedOrder} user={user} onClose={() => setSelectedOrderId('')} onNotice={onNotice} />}
   </>
 }
 
-function OrderDetail({ order, onClose }) {
+async function updateOrderFromAdmin(user, orderId, action, payload = {}) {
+  const token = await user?.getIdToken()
+  if (!token) throw new Error('Tu sesión venció. Volvé a ingresar al panel.')
+  const response = await fetch('/api/admin-order', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ orderId, action, ...payload }),
+  })
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(data.message || 'No se pudo actualizar el pedido.')
+  return data
+}
+
+function OrderDetail({ order, user, onClose, onNotice }) {
   const buyer = orderCustomer(order)
   const items = orderItems(order)
   const coupon = order?.coupon && typeof order.coupon === 'object' ? order.coupon : null
   const orderId = String(order?.reference || order?.id || '')
+  const [nextStatus, setNextStatus] = useState(fulfillmentStatus(order) || 'en_preparacion')
+  const [cancelReason, setCancelReason] = useState('No tenemos stock disponible para preparar tu pedido.')
+  const [busy, setBusy] = useState(false)
+  const [actionNotice, setActionNotice] = useState('')
 
   useEffect(() => {
     const closeOnEscape = (event) => { if (event.key === 'Escape') onClose() }
@@ -329,14 +413,48 @@ function OrderDetail({ order, onClose }) {
     }
   }, [onClose])
 
+  useEffect(() => setNextStatus(fulfillmentStatus(order) || 'en_preparacion'), [order.id, order.fulfillmentStatus])
+
+  async function saveFulfillment() {
+    setBusy(true)
+    setActionNotice('')
+    try {
+      await updateOrderFromAdmin(user, order.id, 'fulfillment', { fulfillmentStatus: nextStatus })
+      const text = `Pedido marcado como “${FULFILLMENT_OPTIONS.find(([value]) => value === nextStatus)?.[1] || 'actualizado'}”.`
+      setActionNotice(text)
+      onNotice?.(text)
+    } catch (error) { setActionNotice(error.message || 'No se pudo actualizar el pedido.') }
+    finally { setBusy(false) }
+  }
+
+  async function cancelOrder() {
+    const reason = cancelReason.trim()
+    if (reason.length < 8) { setActionNotice('Escribí un motivo breve para avisarle al cliente.'); return }
+    if (!window.confirm('¿Cancelar este pedido? Se avisará al cliente por email si dejó uno. Esto no hace un reintegro automático.')) return
+    setBusy(true)
+    setActionNotice('')
+    try {
+      const result = await updateOrderFromAdmin(user, order.id, 'cancel', { reason })
+      const text = result.emailSent ? 'Pedido cancelado y aviso enviado por email.' : 'Pedido cancelado. El email no pudo enviarse porque falta configurar el correo o el pedido no tiene email.'
+      setActionNotice(text)
+      onNotice?.(text)
+    } catch (error) { setActionNotice(error.message || 'No se pudo cancelar el pedido.') }
+    finally { setBusy(false) }
+  }
+
   return <div className="order-dialog-backdrop" onMouseDown={onClose}>
     <section className="order-dialog" role="dialog" aria-modal="true" aria-labelledby="order-detail-title" onMouseDown={(event) => event.stopPropagation()}>
       <header className="order-dialog-header">
         <div><p className="admin-kicker">PEDIDO #{orderId.slice(0, 12).toUpperCase()}</p><h2 id="order-detail-title">Detalle del pedido</h2></div>
-        <button type="button" onClick={onClose} aria-label="Cerrar detalle">×</button>
+        <button type="button" onClick={onClose} aria-label="Cerrar detalle">Cerrar <span aria-hidden="true">×</span></button>
       </header>
 
       <div className="order-status-row"><span className={`order-status order-status-${String(order.status || 'new').toLowerCase()}`}>{orderStatus(order)}</span><span>{formatDate(order.createdAt)}</span></div>
+
+      <section className="order-fulfillment-panel">
+        <div><p className="order-section-title">PREPARACIÓN DEL PEDIDO</p><strong className={`fulfillment-chip ${fulfillmentStatus(order) || 'new'}`}>{fulfillmentLabel(order)}</strong></div>
+        <div className="order-fulfillment-actions"><label>Estado<select value={nextStatus} disabled={busy || fulfillmentStatus(order) === 'cancelado'} onChange={(event) => setNextStatus(event.target.value)}>{FULFILLMENT_OPTIONS.filter(([value]) => value !== 'cancelado').map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><button type="button" onClick={saveFulfillment} disabled={busy || fulfillmentStatus(order) === 'cancelado'}>{busy ? 'Guardando…' : 'Guardar estado'}</button></div>
+      </section>
 
       <div className="order-detail-grid">
         <section>
@@ -344,6 +462,7 @@ function OrderDetail({ order, onClose }) {
           <dl className="order-facts">
             <div><dt>Nombre</dt><dd>{buyer.name || 'No indicado'}</dd></div>
             <div><dt>Email</dt><dd>{buyer.email ? <a href={`mailto:${buyer.email}`}>{buyer.email}</a> : 'No indicado'}</dd></div>
+            <div><dt>Teléfono</dt><dd>{buyer.phone ? <a href={`tel:${buyer.phone}`}>{buyer.phone}</a> : 'No indicado'}</dd></div>
           </dl>
         </section>
         <section>
@@ -386,6 +505,13 @@ function OrderDetail({ order, onClose }) {
           </dl>
         </section>
       </div>
+
+      {fulfillmentStatus(order) !== 'cancelado' && <section className="order-cancel-panel">
+        <div><p className="order-section-title">CANCELAR PEDIDO</p><h3>Cancelalo solo si no podés cumplirlo.</h3><p>Se envía un email al comprador con el motivo. El reintegro, si corresponde, se coordina aparte.</p></div>
+        <label>Motivo para el cliente<textarea value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} maxLength="800" rows="3" disabled={busy} /></label>
+        <button type="button" onClick={cancelOrder} disabled={busy}>{busy ? 'Cancelando…' : 'Cancelar pedido y avisar'}</button>
+      </section>}
+      {actionNotice && <p className="order-action-notice" role="status">{actionNotice}</p>}
     </section>
   </div>
 }
@@ -403,8 +529,11 @@ function Designs({ designs, upload, setUpload, categories, onAdd, onRemove }) {
   </>
 }
 
-function Products({ items, value, setValue, categories, onAdd, onRemove }) {
+function Products({ items, value, setValue, categories, onAdd, onRemove, onToggleVisibility }) {
   const update = (field, next) => setValue({ ...value, [field]: next })
+  const [search, setSearch] = useState('')
+  const normalizedSearch = search.trim().toLocaleLowerCase('es-AR')
+  const matchingItems = items.filter((product) => [product.title, product.id, product.category].filter(Boolean).join(' ').toLocaleLowerCase('es-AR').includes(normalizedSearch))
   return <>
     <div className="admin-title"><div><p className="admin-kicker">TIENDA</p><h1>Productos</h1></div><p>Creá tus remeras, packs o servicios. Elegí una foto desde tu equipo: queda guardada con el producto.</p></div>
     <form className="product-form" onSubmit={onAdd}>
@@ -415,7 +544,8 @@ function Products({ items, value, setValue, categories, onAdd, onRemove }) {
       <label className="product-image">Foto del producto <small>{value.imageFile?.name || (value.imageUrl ? 'Elegí otra foto para reemplazar la actual.' : 'Opcional · PNG, JPG o WEBP · Máx. 10 MB')}</small><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => update('imageFile', event.target.files?.[0] || null)} /></label>
       <button>{value.id ? 'Guardar cambios' : 'Guardar producto'} <span>{value.id ? '✓' : '+'}</span></button>
     </form>
-    {items.length ? <div className="product-grid">{items.map((product) => <article key={product.id}><div className="product-image-preview">{product.imageUrl ? <img src={product.imageUrl} alt={product.title} /> : <span>REMERA<br/>FENIXIS</span>}</div><div><span>{product.category}</span><h2>{product.title}</h2>{product.description && <p>{product.description}</p>}<strong>$ {Number(product.price || 0).toLocaleString('es-AR')}</strong><div className="admin-actions"><button onClick={() => editItem('products', product.id)}>Editar</button><button onClick={() => onRemove('products', product.id)}>Quitar</button></div></div></article>)}</div> : <Empty title="Todavía no hay productos" text="Podés empezar con la remera personalizada y agregar una foto cuando la tengas." />}
+    {items.length && <label className="admin-product-search"><span>Buscar producto</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nombre o código del producto" /><small>{matchingItems.length} de {items.length} productos</small></label>}
+    {items.length ? matchingItems.length ? <div className="product-grid">{matchingItems.map((product) => <article className={product.hidden ? 'is-hidden' : ''} key={product.id}><div className="product-image-preview">{product.imageUrl ? <img src={product.imageUrl} alt={product.title} /> : <span>REMERA<br/>FENIXIS</span>}{product.hidden && <b className="product-hidden-badge">Oculto · sin stock</b>}</div><div><span>{product.category}</span><h2>{product.title}</h2><code>{product.id}</code>{product.description && <p>{product.description}</p>}<strong>$ {Number(product.price || 0).toLocaleString('es-AR')}</strong><div className="admin-actions"><button onClick={() => editItem('products', product.id)}>Editar</button><button type="button" onClick={() => onToggleVisibility(product)}>{product.hidden ? 'Mostrar en tienda' : 'Ocultar por stock'}</button><button onClick={() => onRemove('products', product.id)}>Quitar</button></div></div></article>)}</div> : <Empty title="No hay productos que coincidan" text="Probá buscar por otro nombre o código." /> : <Empty title="Todavía no hay productos" text="Podés empezar con la remera personalizada y agregar una foto cuando la tengas." />}
   </>
 }
 function Coupons({ products }) {

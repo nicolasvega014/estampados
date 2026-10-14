@@ -164,7 +164,7 @@ function MercadoPagoCheckout({ items, customer, couponCode = '', couponTotals, o
 }
 
 function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear }) {
-  const [customer, setCustomer] = useState({ name: '', email: '', delivery: 'Retiro por el local', address: '', notes: '' })
+  const [customer, setCustomer] = useState({ name: '', email: '', phone: '', delivery: 'Retiro por el local', address: '', notes: '' })
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [checkoutValidationError, setCheckoutValidationError] = useState('')
   const [couponCode, setCouponCode] = useState('')
@@ -187,6 +187,11 @@ function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear }) {
     const email = String(customer.email || '').trim().toLowerCase()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setCheckoutValidationError('Ingresá un correo electrónico válido para enviarte la confirmación de compra.')
+      return
+    }
+    const phoneDigits = String(customer.phone || '').replace(/\D/g, '')
+    if (phoneDigits.length < 8 || phoneDigits.length > 16) {
+      setCheckoutValidationError('Ingresá un número de teléfono válido para poder contactarte si hace falta.')
       return
     }
     if (customer.delivery === 'Envío a domicilio' && !String(customer.address || '').trim()) {
@@ -293,7 +298,7 @@ function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear }) {
             </form>
             {couponMessage && <p className={`coupon-message ${couponState}`} role="status">{couponState === 'success' ? '✓ ' : ''}{couponMessage}</p>}
           </section>
-          <div className="cart-customer"><label>Tu nombre<input value={customer.name} onChange={(event) => updateCustomer('name', event.target.value)} placeholder="Opcional" autoComplete="name" /></label><label>Correo electrónico<input value={customer.email} onChange={(event) => updateCustomer('email', event.target.value)} placeholder="nombre@email.com" type="email" autoComplete="email" required /></label><label>Entrega<select value={customer.delivery} onChange={(event) => updateCustomer('delivery', event.target.value)}><option>Retiro por el local</option><option>Envío a domicilio</option></select></label>{customer.delivery === 'Envío a domicilio' && <label className="cart-wide">Dirección<input value={customer.address} onChange={(event) => updateCustomer('address', event.target.value)} placeholder="Calle, altura y localidad" autoComplete="street-address" required /></label>}<label className="cart-wide">Notas para el pedido<textarea value={customer.notes} onChange={(event) => updateCustomer('notes', event.target.value)} placeholder="Ej. Necesito recibirlo antes del viernes" rows="2" /></label></div>
+          <div className="cart-customer"><label>Tu nombre<input value={customer.name} onChange={(event) => updateCustomer('name', event.target.value)} placeholder="Opcional" autoComplete="name" /></label><label>Correo electrónico<input value={customer.email} onChange={(event) => updateCustomer('email', event.target.value)} placeholder="nombre@email.com" type="email" autoComplete="email" required /></label><label>Teléfono<input value={customer.phone} onChange={(event) => updateCustomer('phone', event.target.value)} placeholder="Ej. 11 1234 5678" type="tel" inputMode="tel" autoComplete="tel" required /></label><label>Entrega<select value={customer.delivery} onChange={(event) => updateCustomer('delivery', event.target.value)}><option>Retiro por el local</option><option>Envío a domicilio</option></select></label>{customer.delivery === 'Envío a domicilio' && <label className="cart-wide">Dirección<input value={customer.address} onChange={(event) => updateCustomer('address', event.target.value)} placeholder="Calle, altura y localidad" autoComplete="street-address" required /></label>}<label className="cart-wide">Notas para el pedido<textarea value={customer.notes} onChange={(event) => updateCustomer('notes', event.target.value)} placeholder="Ej. Necesito recibirlo antes del viernes" rows="2" /></label></div>
           {checkoutValidationError && <p className="cart-customer-error" role="alert">{checkoutValidationError}</p>}
           <button className="checkout-button" type="button" onClick={beginCheckout}>Pagar con Mercado Pago <span>→</span></button>
           <p>Pago seguro procesado por Mercado Pago.</p>

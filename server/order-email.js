@@ -32,6 +32,7 @@ function customerFrom(order) {
   return {
     name: cleanText(customer.name || order?.customerName, 120),
     email: validEmail(customer.email || order?.customerEmail || order?.email),
+    phone: cleanText(customer.phone || order?.customerPhone || order?.phone, 40),
     delivery: cleanText(customer.delivery || order?.delivery, 80),
     address: cleanText(customer.address || order?.address, 300),
     notes: cleanText(customer.notes || order?.notes, 1000),
@@ -89,7 +90,7 @@ function plainOrderLines(summary, includeCustomerContact) {
   ]
   if (summary.customer.notes) lines.push(`Notas: ${summary.customer.notes}`)
   if (includeCustomerContact) {
-    lines.push('', `Cliente: ${summary.customer.name || 'No indicado'}`, `Email: ${summary.customer.email || 'No indicado'}`)
+    lines.push('', `Cliente: ${summary.customer.name || 'No indicado'}`, `Email: ${summary.customer.email || 'No indicado'}`, `Teléfono: ${summary.customer.phone || 'No indicado'}`)
   }
   return lines
 }
@@ -203,4 +204,29 @@ export async function notifyPaidOrder({ db, reference, order }) {
     }),
   ])
   return { merchant: merchantResult, customer: customerResult }
+}
+
+/**
+ * Sends a one-time cancellation notice when the seller cannot fulfil an order.
+ * This deliberately changes only fulfilment communication: any refund still
+ * has to be coordinated by the store through the appropriate payment flow.
+ */
+export async function notifyOrderCancellation({ db, reference, order, reason }) {
+  if (!db || !reference || !order) return { skipped: true, reason: 'missing_order' }
+  const orderRef = db.collection('orders').doc(reference)
+  const summary = orderSummary({ ...order, reference })
+  const safeReason = cleanText(reason, 800) || 'No podemos preparar este pedido por un problema de stock.'
+  const lines = [
+    `Pedido: ${summary.reference}`,
+    '',
+    'Motivo de la cancelación:',
+    safeReason,
+    '',
+    'Si ya realizaste un pago, te vamos a contactar para coordinar los pasos correspondientes.',
+  ]
+  return deliver(orderRef, 'cancellation', summary.customer.email, {
+    subject: `Actualización de tu pedido · ${summary.reference}`,
+    text: ['Hola, lamentamos informarte que no podremos completar tu pedido.', '', ...lines].join('\n'),
+    html: emailHtml('Actualización de tu pedido', 'Lamentamos informarte que no podremos completar este pedido.', lines),
+  })
 }

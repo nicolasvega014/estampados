@@ -195,6 +195,10 @@ export default async function handler(req, res) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(safeBuyer.email)) {
       return send(res, 400, { message: 'Ingresá un correo electrónico válido para confirmar la compra.' })
     }
+    const phoneDigits = String(safeBuyer.phone || '').replace(/\D/g, '')
+    if (phoneDigits.length < 8 || phoneDigits.length > 16) {
+      return send(res, 400, { message: 'Ingresá un número de teléfono válido para poder contactarte si hace falta.' })
+    }
     if (safeBuyer.delivery === 'Envío a domicilio' && !safeBuyer.address) {
       return send(res, 400, { message: 'Ingresá la dirección para poder preparar el envío.' })
     }
