@@ -402,6 +402,7 @@ async function updateOrderFromAdmin(user, orderId, action, payload = {}) {
   // Si el navegador conserva permisos anteriores, renovamos el token una vez.
   if ((result.response.status === 401 || result.response.status === 403) && user) result = await sendUpdate(true)
   if (!result.response.ok) throw new Error(result.data.message || 'No se pudo actualizar el pedido.')
+  if (result.data.refreshAuth) await user?.getIdToken(true).catch(() => {})
   return result.data
 }
 

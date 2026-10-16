@@ -3,6 +3,7 @@ import { FieldValue, getAdminApp, getAdminFirestore } from '../server/firebase-a
 import { notifyOrderCancellation } from '../server/order-email.js'
 
 const FULFILLMENT_STATUSES = new Set(['en_preparacion', 'a_retirar', 'a_enviar', 'enviado', 'retirado'])
+const STORE_OWNER_EMAIL = String(process.env.FENIXIS_STORE_OWNER_EMAIL || 'nicolasvega014@gmail.com').trim().toLowerCase()
 
 function send(res, status, body) {
   res.status(status).json(body)
@@ -15,18 +16,31 @@ function cleanReason(value) {
 async function requireStoreAdmin(request) {
   const authorization = request.headers.authorization || ''
   const idToken = authorization.startsWith('Bearer ') ? authorization.slice(7) : ''
-  if (!idToken) return false
+  if (!idToken) return { allowed: false, refreshAuth: false }
   const app = getAdminApp()
-  if (!app) return false
-  const decoded = await getAuth(app).verifyIdToken(idToken)
-  return decoded.admin === true
+  if (!app) return { allowed: false, refreshAuth: false }
+  const auth = getAuth(app)
+  const decoded = await auth.verifyIdToken(idToken)
+  if (decoded.admin === true) return { allowed: true, refreshAuth: false }
+
+  // La cuenta del dueño existía antes de que se agregaran los permisos por
+  // custom claim. Solo la identidad exacta que Firebase reconoce como dueña
+  // puede reparar ese permiso una vez; nadie más puede autoasignarse acceso.
+  const email = String(decoded.email || '').trim().toLowerCase()
+  if (!STORE_OWNER_EMAIL || email !== STORE_OWNER_EMAIL) return { allowed: false, refreshAuth: false }
+  const owner = await auth.getUser(decoded.uid)
+  if (String(owner.email || '').trim().toLowerCase() !== STORE_OWNER_EMAIL || owner.disabled) return { allowed: false, refreshAuth: false }
+
+  await auth.setCustomUserClaims(owner.uid, { ...(owner.customClaims || {}), admin: true })
+  return { allowed: true, refreshAuth: true }
 }
 
 export default async function handler(req, res) {
   if (req.method !== 'PATCH') return send(res, 405, { message: 'Método no permitido.' })
 
   try {
-    if (!(await requireStoreAdmin(req))) return send(res, 403, { message: 'Tu cuenta no tiene permiso para actualizar pedidos.' })
+    const access = await requireStoreAdmin(req)
+    if (!access.allowed) return send(res, 403, { message: 'Tu cuenta no tiene permiso para actualizar pedidos.' })
 
     const orderId = String(req.body?.orderId || '').trim()
     const action = String(req.body?.action || '').trim()
@@ -48,7 +62,7 @@ export default async function handler(req, res) {
         fulfillmentUpdatedAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       }, { merge: true })
-      return send(res, 200, { ok: true, fulfillmentStatus })
+      return send(res, 200, { ok: true, fulfillmentStatus, refreshAuth: access.refreshAuth })
     }
 
     if (action === 'cancel') {
@@ -73,6 +87,7 @@ export default async function handler(req, res) {
       return send(res, 200, {
         ok: true,
         fulfillmentStatus: 'cancelado',
+        refreshAuth: access.refreshAuth,
         emailSent: Boolean(delivery && !delivery.skipped),
         emailDelivery: delivery?.reason || 'sent',
       })
