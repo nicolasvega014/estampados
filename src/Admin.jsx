@@ -10,6 +10,7 @@ import './CustomizerSettings.css'
 import './AdminOffers.css'
 import './AdminCoupons.css'
 import './AdminOrderStatus.css'
+import './AdminButtonPolish.css'
 
 const DEFAULT_CATEGORIES = ['Anime', 'Flores', 'Mascotas', 'Verano', 'Coquette', 'Frases', 'Moda', 'Vintage']
 const EMPTY_PRODUCT = { title: '', description: '', price: '18900', category: '', imageUrl: '', imagePublicId: '', imageFile: null, id: '' }

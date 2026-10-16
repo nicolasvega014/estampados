@@ -1,0 +1,298 @@
+/* A small shared action layer: it keeps the editorial Fenixis language while
+   making the actions easier to spot, tap, and use with a keyboard. */
+:root {
+  --fenixis-action-ease: cubic-bezier(.22, .8, .28, 1);
+  --fenixis-focus: #b7ef15;
+}
+
+.primary-cta,
+.add-to-cart,
+.order,
+.store-product-info .store-product-actions button,
+.home-rail-info button,
+.browse-designs,
+.payment-result button,
+.send-design-after-payment {
+  position: relative;
+  isolation: isolate;
+  border-radius: 8px;
+  box-shadow: 0 8px 18px rgba(29, 30, 28, .12);
+  transition: transform .22s var(--fenixis-action-ease), box-shadow .22s var(--fenixis-action-ease), background-color .22s ease, color .22s ease, border-color .22s ease;
+}
+
+.primary-cta,
+.add-to-cart,
+.order {
+  min-height: 52px;
+  box-sizing: border-box;
+  align-items: center;
+}
+
+.primary-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 26px;
+  overflow: hidden;
+  border: 1px solid var(--ink);
+}
+
+.primary-cta::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  content: '';
+  background: var(--lime);
+  transform: translateX(-102%);
+  transition: transform .28s var(--fenixis-action-ease);
+}
+
+.primary-cta span,
+.add-to-cart span,
+.order span,
+.checkout-button span,
+.send-design-after-payment span {
+  transition: transform .22s var(--fenixis-action-ease);
+}
+
+.primary-cta:hover,
+.primary-cta:focus-visible {
+  color: var(--ink);
+}
+
+.primary-cta:hover::before,
+.primary-cta:focus-visible::before {
+  transform: translateX(0);
+}
+
+.primary-cta:hover span,
+.primary-cta:focus-visible span,
+.add-to-cart:hover span,
+.add-to-cart:focus-visible span,
+.order:hover span,
+.order:focus-visible span,
+.checkout-button:hover span,
+.checkout-button:focus-visible span,
+.send-design-after-payment:hover span,
+.send-design-after-payment:focus-visible span {
+  transform: translateX(4px);
+}
+
+.add-to-cart,
+.order {
+  overflow: hidden;
+  border-color: var(--lime);
+  background: var(--lime);
+  color: var(--ink);
+}
+
+.add-to-cart::before,
+.order::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  content: '';
+  background: #e7ff7e;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .24s var(--fenixis-action-ease);
+}
+
+.add-to-cart:hover::before,
+.add-to-cart:focus-visible::before,
+.order:hover::before,
+.order:focus-visible::before {
+  transform: scaleX(1);
+}
+
+.store-product-info .store-product-actions button,
+.home-rail-info button,
+.browse-designs,
+.payment-result button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: #fff;
+  font-weight: 700;
+}
+
+.store-product-info .store-product-actions button:hover,
+.store-product-info .store-product-actions button:focus-visible,
+.home-rail-info button:hover,
+.home-rail-info button:focus-visible,
+.browse-designs:hover,
+.browse-designs:focus-visible,
+.payment-result button:hover,
+.payment-result button:focus-visible {
+  border-color: var(--lime);
+  background: var(--lime);
+  color: var(--ink);
+}
+
+.checkout-button {
+  min-height: 52px;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(0, 158, 227, .24);
+  transition: transform .22s var(--fenixis-action-ease), box-shadow .22s var(--fenixis-action-ease), filter .22s ease;
+}
+
+.cart {
+  min-height: 40px;
+  border-color: rgba(255, 255, 255, .7);
+  color: #fff;
+  transition: transform .2s var(--fenixis-action-ease), background-color .2s ease, border-color .2s ease;
+}
+
+.cart span {
+  transition: transform .2s var(--fenixis-action-ease), background-color .2s ease, color .2s ease;
+}
+
+.cart:hover {
+  transform: translateY(-1px);
+  border-color: var(--lime);
+  background: var(--lime);
+  color: var(--ink);
+}
+
+.cart:hover span {
+  transform: scale(1.08);
+  background: var(--ink);
+  color: #fff;
+}
+
+.primary-cta:hover,
+.add-to-cart:hover,
+.order:hover,
+.store-product-info .store-product-actions button:hover,
+.home-rail-info button:hover,
+.browse-designs:hover,
+.checkout-button:hover,
+.payment-result button:hover,
+.send-design-after-payment:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 13px 26px rgba(29, 30, 28, .16);
+}
+
+.checkout-button:hover {
+  box-shadow: 0 14px 28px rgba(0, 158, 227, .3);
+  filter: saturate(1.06) brightness(1.02);
+}
+
+.primary-cta:active,
+.add-to-cart:active,
+.order:active,
+.store-product-info .store-product-actions button:active,
+.home-rail-info button:active,
+.browse-designs:active,
+.checkout-button:active,
+.payment-result button:active,
+.send-design-after-payment:active,
+.cart:active {
+  transform: translateY(0) scale(.98);
+}
+
+:where(.primary-cta, .add-to-cart, .order, .store-product-info .store-product-actions button, .home-rail-info button, .browse-designs, .checkout-button, .payment-result button, .send-design-after-payment, .cart, .mobile-menu-toggle, .cart-drawer header button, .checkout-title button):focus-visible {
+  outline: 2px solid var(--fenixis-focus);
+  outline-offset: 3px;
+}
+
+.cart-drawer header button,
+.checkout-title button {
+  display: inline-grid;
+  min-width: 38px;
+  min-height: 38px;
+  place-items: center;
+  transition: transform .2s var(--fenixis-action-ease), background-color .2s ease, border-color .2s ease;
+}
+
+.cart-drawer header button:hover,
+.checkout-title button:hover {
+  transform: rotate(4deg) scale(1.04);
+  border-color: var(--lime);
+  background: var(--lime);
+  color: var(--ink);
+}
+
+@media (hover: none), (prefers-reduced-motion: reduce) {
+  .home-rail-track {
+    width: max-content;
+    animation: none;
+  }
+
+  .home-rail-viewport {
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+  }
+
+  .home-rail-card { scroll-snap-align: start; }
+}
+
+@media (max-width: 700px) {
+  .store-product-info > div {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .store-product-info .store-product-actions { width: 100%; }
+  .store-product-info .store-product-actions button {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 11px;
+    font-size: 11px;
+  }
+
+  .home-rail-info strong {
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  .home-rail-info button {
+    float: none;
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 590px) {
+  header .mobile-menu-toggle,
+  header .cart {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  header .mobile-menu-toggle:hover,
+  header .mobile-menu-toggle:focus-visible {
+    border-color: var(--lime);
+    background: var(--lime);
+  }
+
+  header .mobile-menu-toggle:hover span,
+  header .mobile-menu-toggle:focus-visible span { background: var(--ink); }
+
+  .cart-drawer header button,
+  .checkout-title button {
+    min-width: 42px;
+    min-height: 42px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primary-cta,
+  .add-to-cart,
+  .order,
+  .store-product-info .store-product-actions button,
+  .home-rail-info button,
+  .browse-designs,
+  .checkout-button,
+  .payment-result button,
+  .send-design-after-payment,
+  .cart,
+  .cart span { transition-duration: .01ms; }
+}

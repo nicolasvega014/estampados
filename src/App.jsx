@@ -11,6 +11,7 @@ import './ProductCatalog.css'
 import './CartCheckout.css'
 import './StoreFooter.css'
 import './BrandLogo.css'
+import './StoreButtonPolish.css'
 
 const SHIRT_PRICE = 18900
 const DEFAULT_WHATSAPP = '5491165937433'

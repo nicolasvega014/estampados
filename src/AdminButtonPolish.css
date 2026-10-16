@@ -1,0 +1,85 @@
+/* Shared button states for the administration area without changing its calm,
+   editorial layout. */
+.admin-page :is(.admin-login button, .upload-form button, .category-form button, .product-form button, .coupon-save, .offer-save, .customizer-settings-save, .store-settings button, .order-fulfillment-actions button) {
+  border: 1px solid transparent;
+  border-radius: 7px;
+  box-shadow: 0 8px 17px rgba(29, 29, 27, .11);
+  cursor: pointer;
+  transition: transform .2s cubic-bezier(.22, .8, .28, 1), box-shadow .2s ease, background-color .2s ease, border-color .2s ease;
+}
+
+.admin-page :is(.admin-login button, .upload-form button, .category-form button, .product-form button, .coupon-save, .offer-save, .customizer-settings-save, .store-settings button, .order-fulfillment-actions button):hover:not(:disabled),
+.admin-page :is(.admin-login button, .upload-form button, .category-form button, .product-form button, .coupon-save, .offer-save, .customizer-settings-save, .store-settings button, .order-fulfillment-actions button):focus-visible:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 23px rgba(29, 29, 27, .16);
+}
+
+.admin-page :is(.admin-login button, .upload-form button, .category-form button, .product-form button, .coupon-save, .offer-save, .customizer-settings-save, .store-settings button, .order-fulfillment-actions button):active:not(:disabled) {
+  transform: translateY(0) scale(.985);
+}
+
+.admin-page :is(.coupon-button-secondary, .offer-button-secondary, .customizer-settings-secondary, .customizer-settings-remove) {
+  min-height: 38px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: transform .2s ease, background-color .2s ease, border-color .2s ease;
+}
+
+.admin-page :is(.coupon-button-secondary, .offer-button-secondary, .customizer-settings-secondary, .customizer-settings-remove):hover {
+  transform: translateY(-1px);
+  border-color: #1b1b1b;
+  background: #f0eee8;
+}
+
+.admin-page :is(.admin-actions button, .coupon-card-actions button, .offer-card-actions button, .design-grid button, .category-list button) {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 6px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color .2s ease, color .2s ease, transform .2s ease;
+}
+
+.admin-page :is(.admin-actions button, .coupon-card-actions button, .offer-card-actions button, .design-grid button, .category-list button):hover,
+.admin-page :is(.admin-actions button, .coupon-card-actions button, .offer-card-actions button, .design-grid button, .category-list button):focus-visible {
+  transform: translateY(-1px);
+  background: #efede8;
+  text-decoration: underline;
+}
+
+.admin-layout aside button,
+.admin-layout aside a,
+.order-sections button,
+.admin-logout {
+  transition: transform .18s ease, background-color .18s ease, color .18s ease, border-color .18s ease;
+}
+
+.admin-layout aside button:not(.active):hover,
+.admin-layout aside button:not(.active):focus-visible,
+.admin-layout aside a:hover,
+.admin-layout aside a:focus-visible {
+  background: #efede8;
+  outline: none;
+}
+
+.order-sections button:focus-visible,
+.admin-page :is(.admin-login button, .upload-form button, .category-form button, .product-form button, .coupon-save, .offer-save, .customizer-settings-save, .store-settings button, .order-fulfillment-actions button, .coupon-button-secondary, .offer-button-secondary, .customizer-settings-secondary, .customizer-settings-remove, .admin-actions button, .coupon-card-actions button, .offer-card-actions button, .design-grid button, .category-list button):focus-visible {
+  outline: 2px solid #86ad00;
+  outline-offset: 3px;
+}
+
+.admin-logout:hover,
+.admin-logout:focus-visible {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 760px) {
+  .admin-page :is(.admin-actions button, .coupon-card-actions button, .offer-card-actions button, .design-grid button, .category-list button) { min-height: 40px; }
+  .order-sections button { min-height: 42px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-page :is(button, a) { transition-duration: .01ms; }
+}
