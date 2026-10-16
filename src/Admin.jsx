@@ -9,6 +9,7 @@ import './AdminStoreSettings.css'
 import './CustomizerSettings.css'
 import './AdminOffers.css'
 import './AdminCoupons.css'
+import './AdminOrderStatus.css'
 
 const DEFAULT_CATEGORIES = ['Anime', 'Flores', 'Mascotas', 'Verano', 'Coquette', 'Frases', 'Moda', 'Vintage']
 const EMPTY_PRODUCT = { title: '', description: '', price: '18900', category: '', imageUrl: '', imagePublicId: '', imageFile: null, id: '' }
@@ -54,6 +55,10 @@ function fulfillmentStatus(order) {
 
 function fulfillmentLabel(order) {
   const status = fulfillmentStatus(order)
+  return fulfillmentLabelFromStatus(status)
+}
+
+function fulfillmentLabelFromStatus(status) {
   return FULFILLMENT_OPTIONS.find(([value]) => value === status)?.[1] || 'Nuevo'
 }
 
@@ -381,16 +386,23 @@ function Orders({ orders, user, onNotice }) {
 }
 
 async function updateOrderFromAdmin(user, orderId, action, payload = {}) {
-  const token = await user?.getIdToken()
-  if (!token) throw new Error('Tu sesión venció. Volvé a ingresar al panel.')
-  const response = await fetch('/api/admin-order', {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ orderId, action, ...payload }),
-  })
-  const data = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(data.message || 'No se pudo actualizar el pedido.')
-  return data
+  async function sendUpdate(forceRefresh = false) {
+    const token = await user?.getIdToken(forceRefresh)
+    if (!token) throw new Error('Tu sesión venció. Volvé a ingresar al panel.')
+    const response = await fetch('/api/admin-order', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ orderId, action, ...payload }),
+    })
+    const data = await response.json().catch(() => ({}))
+    return { response, data }
+  }
+
+  let result = await sendUpdate()
+  // Si el navegador conserva permisos anteriores, renovamos el token una vez.
+  if ((result.response.status === 401 || result.response.status === 403) && user) result = await sendUpdate(true)
+  if (!result.response.ok) throw new Error(result.data.message || 'No se pudo actualizar el pedido.')
+  return result.data
 }
 
 function OrderDetail({ order, user, onClose, onNotice }) {
@@ -399,9 +411,15 @@ function OrderDetail({ order, user, onClose, onNotice }) {
   const coupon = order?.coupon && typeof order.coupon === 'object' ? order.coupon : null
   const orderId = String(order?.reference || order?.id || '')
   const [nextStatus, setNextStatus] = useState(fulfillmentStatus(order) || 'en_preparacion')
+  const [savedFulfillmentStatus, setSavedFulfillmentStatus] = useState(fulfillmentStatus(order))
   const [cancelReason, setCancelReason] = useState('No tenemos stock disponible para preparar tu pedido.')
-  const [busy, setBusy] = useState(false)
-  const [actionNotice, setActionNotice] = useState('')
+  const [operation, setOperation] = useState('')
+  const [actionNotice, setActionNotice] = useState(null)
+  const currentFulfillmentStatus = savedFulfillmentStatus || fulfillmentStatus(order)
+  const isCancelled = currentFulfillmentStatus === 'cancelado'
+  const isSaving = operation === 'fulfillment'
+  const isCancelling = operation === 'cancel'
+  const isBusy = Boolean(operation)
 
   useEffect(() => {
     const closeOnEscape = (event) => { if (event.key === 'Escape') onClose() }
@@ -413,33 +431,50 @@ function OrderDetail({ order, user, onClose, onNotice }) {
     }
   }, [onClose])
 
-  useEffect(() => setNextStatus(fulfillmentStatus(order) || 'en_preparacion'), [order.id, order.fulfillmentStatus])
+  useEffect(() => {
+    const status = fulfillmentStatus(order)
+    setNextStatus(status || 'en_preparacion')
+    setSavedFulfillmentStatus(status)
+  }, [order.id, order.fulfillmentStatus])
+
+  function showActionNotice(message, tone = 'success') {
+    setActionNotice({ message, tone })
+  }
 
   async function saveFulfillment() {
-    setBusy(true)
-    setActionNotice('')
+    setOperation('fulfillment')
+    showActionNotice('Guardando el estado del pedido…', 'pending')
     try {
-      await updateOrderFromAdmin(user, order.id, 'fulfillment', { fulfillmentStatus: nextStatus })
-      const text = `Pedido marcado como “${FULFILLMENT_OPTIONS.find(([value]) => value === nextStatus)?.[1] || 'actualizado'}”.`
-      setActionNotice(text)
+      const result = await updateOrderFromAdmin(user, order.id, 'fulfillment', { fulfillmentStatus: nextStatus })
+      const updatedStatus = result.fulfillmentStatus || nextStatus
+      setSavedFulfillmentStatus(updatedStatus)
+      const text = `Estado actualizado: ${fulfillmentLabelFromStatus(updatedStatus)}.`
+      showActionNotice(text)
       onNotice?.(text)
-    } catch (error) { setActionNotice(error.message || 'No se pudo actualizar el pedido.') }
-    finally { setBusy(false) }
+    } catch (error) {
+      const text = error.message || 'No se pudo actualizar el pedido. Probá nuevamente.'
+      showActionNotice(text, 'error')
+      onNotice?.(text)
+    } finally { setOperation('') }
   }
 
   async function cancelOrder() {
     const reason = cancelReason.trim()
-    if (reason.length < 8) { setActionNotice('Escribí un motivo breve para avisarle al cliente.'); return }
+    if (reason.length < 8) { showActionNotice('Escribí un motivo breve para avisarle al cliente.', 'error'); return }
     if (!window.confirm('¿Cancelar este pedido? Se avisará al cliente por email si dejó uno. Esto no hace un reintegro automático.')) return
-    setBusy(true)
-    setActionNotice('')
+    setOperation('cancel')
+    showActionNotice('Cancelando el pedido y preparando el aviso…', 'pending')
     try {
       const result = await updateOrderFromAdmin(user, order.id, 'cancel', { reason })
+      setSavedFulfillmentStatus(result.fulfillmentStatus || 'cancelado')
       const text = result.emailSent ? 'Pedido cancelado y aviso enviado por email.' : 'Pedido cancelado. El email no pudo enviarse porque falta configurar el correo o el pedido no tiene email.'
-      setActionNotice(text)
+      showActionNotice(text)
       onNotice?.(text)
-    } catch (error) { setActionNotice(error.message || 'No se pudo cancelar el pedido.') }
-    finally { setBusy(false) }
+    } catch (error) {
+      const text = error.message || 'No se pudo cancelar el pedido.'
+      showActionNotice(text, 'error')
+      onNotice?.(text)
+    } finally { setOperation('') }
   }
 
   return <div className="order-dialog-backdrop" onMouseDown={onClose}>
@@ -452,9 +487,10 @@ function OrderDetail({ order, user, onClose, onNotice }) {
       <div className="order-status-row"><span className={`order-status order-status-${String(order.status || 'new').toLowerCase()}`}>{orderStatus(order)}</span><span>{formatDate(order.createdAt)}</span></div>
 
       <section className="order-fulfillment-panel">
-        <div><p className="order-section-title">PREPARACIÓN DEL PEDIDO</p><strong className={`fulfillment-chip ${fulfillmentStatus(order) || 'new'}`}>{fulfillmentLabel(order)}</strong></div>
-        <div className="order-fulfillment-actions"><label>Estado<select value={nextStatus} disabled={busy || fulfillmentStatus(order) === 'cancelado'} onChange={(event) => setNextStatus(event.target.value)}>{FULFILLMENT_OPTIONS.filter(([value]) => value !== 'cancelado').map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><button type="button" onClick={saveFulfillment} disabled={busy || fulfillmentStatus(order) === 'cancelado'}>{busy ? 'Guardando…' : 'Guardar estado'}</button></div>
+        <div><p className="order-section-title">PREPARACIÓN DEL PEDIDO</p><strong className={`fulfillment-chip ${currentFulfillmentStatus || 'new'}`}>{fulfillmentLabelFromStatus(currentFulfillmentStatus)}</strong></div>
+        <div className="order-fulfillment-actions"><label>Estado<select value={nextStatus} disabled={isBusy || isCancelled} onChange={(event) => setNextStatus(event.target.value)}>{FULFILLMENT_OPTIONS.filter(([value]) => value !== 'cancelado').map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><button type="button" onClick={saveFulfillment} disabled={isBusy || isCancelled}>{isSaving ? 'Guardando…' : 'Guardar estado'}</button></div>
       </section>
+      {actionNotice && <p className={`order-action-notice is-${actionNotice.tone}`} role={actionNotice.tone === 'error' ? 'alert' : 'status'} aria-live="polite">{actionNotice.message}</p>}
 
       <div className="order-detail-grid">
         <section>
@@ -506,12 +542,11 @@ function OrderDetail({ order, user, onClose, onNotice }) {
         </section>
       </div>
 
-      {fulfillmentStatus(order) !== 'cancelado' && <section className="order-cancel-panel">
+      {!isCancelled && <section className="order-cancel-panel">
         <div><p className="order-section-title">CANCELAR PEDIDO</p><h3>Cancelalo solo si no podés cumplirlo.</h3><p>Se envía un email al comprador con el motivo. El reintegro, si corresponde, se coordina aparte.</p></div>
-        <label>Motivo para el cliente<textarea value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} maxLength="800" rows="3" disabled={busy} /></label>
-        <button type="button" onClick={cancelOrder} disabled={busy}>{busy ? 'Cancelando…' : 'Cancelar pedido y avisar'}</button>
+        <label>Motivo para el cliente<textarea value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} maxLength="800" rows="3" disabled={isBusy} /></label>
+        <button type="button" onClick={cancelOrder} disabled={isBusy}>{isCancelling ? 'Cancelando…' : 'Cancelar pedido y avisar'}</button>
       </section>}
-      {actionNotice && <p className="order-action-notice" role="status">{actionNotice}</p>}
     </section>
   </div>
 }

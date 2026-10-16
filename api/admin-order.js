@@ -79,7 +79,8 @@ export default async function handler(req, res) {
     }
 
     return send(res, 400, { message: 'La acción solicitada no es válida.' })
-  } catch {
+  } catch (error) {
+    console.error('[admin-order] No se pudo actualizar el pedido.', { name: error?.name, message: error?.message })
     return send(res, 500, { message: 'No se pudo actualizar el pedido. Probá nuevamente.' })
   }
 }

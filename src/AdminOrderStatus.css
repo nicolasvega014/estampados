@@ -1,0 +1,19 @@
+.order-action-notice {
+  margin: 14px 0 0;
+  padding: 11px 13px;
+  background: #efffb5;
+  color: #465007;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.order-action-notice.is-pending {
+  background: #eef5ff;
+  color: #225b94;
+}
+
+.order-action-notice.is-error {
+  background: #fff0ed;
+  color: #8a3025;
+}
