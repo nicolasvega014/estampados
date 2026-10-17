@@ -132,10 +132,17 @@
   color: var(--ink);
 }
 
+.store-product-info .store-product-actions button,
+.home-rail-info button {
+  padding: 8px 11px;
+  font-size: 11px;
+}
+
 .checkout-button {
   min-height: 52px;
   border-radius: 8px;
-  box-shadow: 0 10px 24px rgba(0, 158, 227, .24);
+  background: #0077ad;
+  box-shadow: 0 10px 24px rgba(0, 119, 173, .24);
   transition: transform .22s var(--fenixis-action-ease), box-shadow .22s var(--fenixis-action-ease), filter .22s ease;
 }
 
@@ -177,7 +184,7 @@
 }
 
 .checkout-button:hover {
-  box-shadow: 0 14px 28px rgba(0, 158, 227, .3);
+  box-shadow: 0 14px 28px rgba(0, 119, 173, .3);
   filter: saturate(1.06) brightness(1.02);
 }
 
