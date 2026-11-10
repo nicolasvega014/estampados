@@ -3,6 +3,7 @@ import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebas
 import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, runTransaction, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
 import { auth, db } from './firebase'
 import { DEFAULT_CUSTOMIZER_COLORS, DEFAULT_CUSTOMIZER_SIZES, normalizeCustomizerSettings } from './customizerSettings'
+import { PRODUCT_COLOR_OPTIONS, PRODUCT_SIZE_OPTIONS, normalizeProductColors, normalizeProductSizes, productOptions, productOptionsSummary } from './productOptions'
 import './Admin.css'
 import './AdminProducts.css'
 import './AdminStoreSettings.css'
@@ -13,7 +14,7 @@ import './AdminOrderStatus.css'
 import './AdminButtonPolish.css'
 
 const DEFAULT_CATEGORIES = ['Anime', 'Flores', 'Mascotas', 'Verano', 'Coquette', 'Frases', 'Moda', 'Vintage']
-const EMPTY_PRODUCT = { title: '', description: '', price: '18900', category: '', imageUrl: '', imagePublicId: '', imageFile: null, id: '' }
+const EMPTY_PRODUCT = { title: '', description: '', price: '18900', category: '', imageUrl: '', imagePublicId: '', imageFile: null, sizes: [], colors: [], id: '' }
 const EMPTY_OFFER = { id: '', title: '', description: '', code: '', label: '', active: true }
 const EMPTY_COUPON = { id: '', campaignId: '', code: '', title: '', type: 'percentage', value: '', active: true, startsAt: '', expiresAt: '', maxUses: '', usageCount: 0, minPurchase: '', appliesTo: 'all', productIds: [], perCustomerLimit: '' }
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024
@@ -289,10 +290,20 @@ export default function Admin() {
     if (!title || !Number.isFinite(price) || price < 0) { setMessage('Completá el nombre y un precio válido.'); return }
     try {
       setMessage(product.imageFile ? 'Subiendo imagen…' : 'Guardando producto…')
-      const data = { title, description: product.description.trim(), price, category: product.category || 'Remeras', imageUrl: product.imageUrl.trim(), imagePublicId: product.imagePublicId || '' }
+      const data = {
+        title,
+        description: product.description.trim(),
+        price,
+        category: product.category || 'Remeras',
+        imageUrl: product.imageUrl.trim(),
+        imagePublicId: product.imagePublicId || '',
+        sizes: normalizeProductSizes(product.sizes),
+        colors: normalizeProductColors(product.colors),
+      }
       if (product.imageFile) Object.assign(data, await uploadImage(product.imageFile, 'products'))
-      if (product.id) await setDoc(doc(db, 'products', product.id), { ...data, hidden: false }, { merge: true })
-      else await addDoc(collection(db, 'products'), { ...data, createdAt: serverTimestamp() })
+      // Editing the availability must not publish a product that was hidden for stock.
+      if (product.id) await setDoc(doc(db, 'products', product.id), data, { merge: true })
+      else await addDoc(collection(db, 'products'), { ...data, hidden: false, createdAt: serverTimestamp() })
       setProduct(EMPTY_PRODUCT)
       setMessage(product.id ? 'Producto actualizado.' : 'Producto guardado en el catálogo.')
     } catch (error) { setMessage(error.message || 'No se pudo guardar el producto.') }
@@ -322,7 +333,7 @@ export default function Admin() {
     }
   }
 
-  function editProduct(item) { setProduct({ id: item.id, title: item.title || '', description: item.description || '', price: String(item.price ?? ''), category: item.category || '', imageUrl: item.imageUrl || '', imagePublicId: item.imagePublicId || '', imageFile: null }); setMessage('Editando producto. Guardá los cambios cuando termines.') }
+  function editProduct(item) { const options = productOptions(item); setProduct({ id: item.id, title: item.title || '', description: item.description || '', price: String(item.price ?? ''), category: item.category || '', imageUrl: item.imageUrl || '', imagePublicId: item.imagePublicId || '', imageFile: null, sizes: options.sizes, colors: options.colors }); setMessage('Editando producto. Guardá los cambios cuando termines.') }
   function editDesign(item) { setUpload({ id: item.id, title: item.title || '', category: item.category || '', file: null }); setMessage('Editando diseño. La imagen actual se conserva.') }
   function editCategory(item) { setCategoryName(item.name || ''); setEditingCategoryId(item.id); setMessage('Editando categoría.') }
   useEffect(() => {
@@ -517,9 +528,9 @@ function OrderDetail({ order, user, onClose, onNotice }) {
         <p className="order-section-title">PRENDAS</p>
         {items.length ? <div className="order-detail-items">{items.map((item, index) => {
           const isCustom = item?.kind === 'custom'
-          const customDetails = [item?.color && `Color: ${item.color}`, item?.size && `Talle: ${item.size}`, item?.front && `Frente: ${item.front}`, item?.back && `Espalda: ${item.back}`].filter(Boolean)
+          const customDetails = [item?.color && `Color: ${item.color}`, item?.size && `Talle: ${item.size}`, isCustom && item?.front && `Frente: ${item.front}`, isCustom && item?.back && `Espalda: ${item.back}`].filter(Boolean)
           return <article key={`${item?.productId || item?.title || 'item'}-${index}`}>
-            <div><h3>{item?.title || (isCustom ? 'Remera personalizada' : 'Producto')}</h3>{isCustom && <p>{customDetails.length ? customDetails.join(' · ') : 'Diseño personalizado (detalle no disponible en este pedido anterior).'}</p>}{!isCustom && item?.productId && <p>Producto: {item.productId}</p>}</div>
+            <div><h3>{item?.title || (isCustom ? 'Remera personalizada' : 'Producto')}</h3>{customDetails.length ? <p>{customDetails.join(' · ')}</p> : isCustom ? <p>Diseño personalizado (detalle no disponible en este pedido anterior).</p> : item?.productId && <p>Producto: {item.productId}</p>}</div>
             <div className="order-item-amount"><span>{Number(item?.quantity || 1)} u. × {formatOrderMoney(item?.unitPrice)}</span><strong>{formatOrderMoney(item?.lineTotal ?? Number(item?.unitPrice || 0) * Number(item?.quantity || 1))}</strong></div>
           </article>
         })}</div> : <p className="order-empty-detail">Este pedido no tiene prendas detalladas porque fue creado con una versión anterior de la tienda.</p>}
@@ -566,6 +577,52 @@ function Designs({ designs, upload, setUpload, categories, onAdd, onRemove }) {
   </>
 }
 
+function ProductOptions({ value, onChange }) {
+  const selectedSizes = normalizeProductSizes(value.sizes)
+  const selectedColors = normalizeProductColors(value.colors)
+
+  const toggleSize = (size) => {
+    const next = selectedSizes.includes(size)
+      ? selectedSizes.filter((item) => item !== size)
+      : [...selectedSizes, size]
+    onChange({ ...value, sizes: next })
+  }
+
+  const toggleColor = (color) => {
+    const selected = selectedColors.some((item) => item.name === color.name)
+    const next = selected
+      ? selectedColors.filter((item) => item.name !== color.name)
+      : [...selectedColors, color]
+    onChange({ ...value, colors: next })
+  }
+
+  return <section className="product-options" aria-label="Opciones disponibles del producto">
+    <div className="product-options-heading"><div><h2>Disponibilidad</h2><p>Marcá solamente los talles y colores que tenés para esta prenda.</p></div><small>Si no marcás nada, se vende sin pedir esa opción.</small></div>
+    <fieldset>
+      <legend>Talles disponibles</legend>
+      <div className="product-option-grid">
+        {PRODUCT_SIZE_OPTIONS.map((size) => <label className={`product-option-chip ${selectedSizes.includes(size) ? 'is-selected' : ''}`} key={size}>
+          <input type="checkbox" checked={selectedSizes.includes(size)} onChange={() => toggleSize(size)} />
+          <span>{size}</span>
+        </label>)}
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Colores disponibles</legend>
+      <div className="product-option-grid product-color-grid">
+        {PRODUCT_COLOR_OPTIONS.map((color) => {
+          const selected = selectedColors.some((item) => item.name === color.name)
+          return <label className={`product-option-chip product-color-chip ${selected ? 'is-selected' : ''}`} key={color.name}>
+            <input type="checkbox" checked={selected} onChange={() => toggleColor(color)} />
+            <i aria-hidden="true" style={{ backgroundColor: color.value }} />
+            <span>{color.name}</span>
+          </label>
+        })}
+      </div>
+    </fieldset>
+  </section>
+}
+
 function Products({ items, value, setValue, categories, onAdd, onRemove, onToggleVisibility }) {
   const update = (field, next) => setValue({ ...value, [field]: next })
   const [search, setSearch] = useState('')
@@ -578,11 +635,12 @@ function Products({ items, value, setValue, categories, onAdd, onRemove, onToggl
       <label>Precio<input value={value.price} onChange={(event) => update('price', event.target.value)} type="number" min="0" step="1" required /></label>
       <label>Categoría<select value={value.category} onChange={(event) => update('category', event.target.value)}><option value="">Remeras</option>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
       <label className="product-description">Descripción<textarea value={value.description} onChange={(event) => update('description', event.target.value)} placeholder="Ej. Algodón premium, estampado personalizado incluido." rows="3" /></label>
+      <ProductOptions value={value} onChange={setValue} />
       <label className="product-image">Foto del producto <small>{value.imageFile?.name || (value.imageUrl ? 'Elegí otra foto para reemplazar la actual.' : 'Opcional · PNG, JPG o WEBP · Máx. 10 MB')}</small><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => update('imageFile', event.target.files?.[0] || null)} /></label>
       <button>{value.id ? 'Guardar cambios' : 'Guardar producto'} <span>{value.id ? '✓' : '+'}</span></button>
     </form>
     {items.length && <label className="admin-product-search"><span>Buscar producto</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nombre o código del producto" /><small>{matchingItems.length} de {items.length} productos</small></label>}
-    {items.length ? matchingItems.length ? <div className="product-grid">{matchingItems.map((product) => <article className={product.hidden ? 'is-hidden' : ''} key={product.id}><div className="product-image-preview">{product.imageUrl ? <img src={product.imageUrl} alt={product.title} /> : <span>REMERA<br/>FENIXIS</span>}{product.hidden && <b className="product-hidden-badge">Oculto · sin stock</b>}</div><div><span>{product.category}</span><h2>{product.title}</h2><code>{product.id}</code>{product.description && <p>{product.description}</p>}<strong>$ {Number(product.price || 0).toLocaleString('es-AR')}</strong><div className="admin-actions"><button onClick={() => editItem('products', product.id)}>Editar</button><button type="button" onClick={() => onToggleVisibility(product)}>{product.hidden ? 'Mostrar en tienda' : 'Ocultar por stock'}</button><button onClick={() => onRemove('products', product.id)}>Quitar</button></div></div></article>)}</div> : <Empty title="No hay productos que coincidan" text="Probá buscar por otro nombre o código." /> : <Empty title="Todavía no hay productos" text="Podés empezar con la remera personalizada y agregar una foto cuando la tengas." />}
+    {items.length ? matchingItems.length ? <div className="product-grid">{matchingItems.map((product) => <article className={product.hidden ? 'is-hidden' : ''} key={product.id}><div className="product-image-preview">{product.imageUrl ? <img src={product.imageUrl} alt={product.title} /> : <span>REMERA<br/>FENIXIS</span>}{product.hidden && <b className="product-hidden-badge">Oculto · sin stock</b>}</div><div><span>{product.category}</span><h2>{product.title}</h2><code>{product.id}</code>{productOptionsSummary(product) && <p className="product-availability">{productOptionsSummary(product)}</p>}{product.description && <p>{product.description}</p>}<strong>$ {Number(product.price || 0).toLocaleString('es-AR')}</strong><div className="admin-actions"><button onClick={() => editItem('products', product.id)}>Editar</button><button type="button" onClick={() => onToggleVisibility(product)}>{product.hidden ? 'Mostrar en tienda' : 'Ocultar por stock'}</button><button onClick={() => onRemove('products', product.id)}>Quitar</button></div></div></article>)}</div> : <Empty title="No hay productos que coincidan" text="Probá buscar por otro nombre o código." /> : <Empty title="Todavía no hay productos" text="Podés empezar con la remera personalizada y agregar una foto cuando la tengas." />}
   </>
 }
 function Coupons({ products }) {

@@ -48,6 +48,34 @@ function safeOptionalText(value, maximum) {
   return String(value || '').trim().replace(/\s+/g, ' ').slice(0, maximum)
 }
 
+function productSizes(product) {
+  if (!Array.isArray(product?.sizes)) return []
+  const seen = new Set()
+  return product.sizes.map((size) => safeOptionalText(size, 20)).filter((size) => {
+    const key = size.toLocaleLowerCase('es-AR')
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+function productColors(product) {
+  if (!Array.isArray(product?.colors)) return []
+  const seen = new Set()
+  return product.colors.map((color) => safeOptionalText(typeof color === 'string' ? color : color?.name, 30)).filter((color) => {
+    const key = color.toLocaleLowerCase('es-AR')
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+function selectedOption(value, options, maximum) {
+  const submitted = safeOptionalText(value, maximum)
+  if (!submitted) return ''
+  return options.find((option) => option.toLocaleLowerCase('es-AR') === submitted.toLocaleLowerCase('es-AR')) || ''
+}
+
 /**
  * Price every cart item on the server. Firestore products take priority so new
  * products created from the admin panel work without changing this file; the
@@ -78,7 +106,13 @@ export async function calculateCart(cart, db = null) {
 
     const productId = validProductId(item?.productId)
     if (!productId) throw new CheckoutError('Uno de los productos cambió. Quitalo de la bolsa y volvé a agregarlo para pagar.')
-    return { kind: 'product', quantity, productId }
+    return {
+      kind: 'product',
+      quantity,
+      productId,
+      color: safeOptionalText(item?.color, 30),
+      size: safeOptionalText(item?.size, 20),
+    }
   })
 
   const productIds = [...new Set(normalized.filter((item) => item.kind === 'product').map((item) => item.productId))]
@@ -111,6 +145,17 @@ export async function calculateCart(cart, db = null) {
       throw new CheckoutError('Uno de los productos cambió. Quitalo de la bolsa y volvé a agregarlo para pagar.', 'PRODUCT_CHANGED')
     }
 
+    const availableSizes = productSizes(firestoreProduct)
+    const availableColors = productColors(firestoreProduct)
+    const size = selectedOption(item.size, availableSizes, 20)
+    const color = selectedOption(item.color, availableColors, 30)
+    if (availableSizes.length && !size) {
+      throw new CheckoutError('El talle elegido ya no está disponible. Quitá la prenda de la bolsa y elegí una opción vigente.', 'PRODUCT_SIZE_UNAVAILABLE')
+    }
+    if (availableColors.length && !color) {
+      throw new CheckoutError('El color elegido ya no está disponible. Quitá la prenda de la bolsa y elegí una opción vigente.', 'PRODUCT_COLOR_UNAVAILABLE')
+    }
+
     return {
       kind: 'product',
       productId: item.productId,
@@ -118,6 +163,8 @@ export async function calculateCart(cart, db = null) {
       unitPrice,
       title: safeTitle(firestoreProduct?.title, catalogProduct?.title || 'Producto de Fenixis'),
       lineTotal: unitPrice * item.quantity,
+      ...(size ? { size } : {}),
+      ...(color ? { color } : {}),
     }
   })
 
@@ -456,9 +503,13 @@ export function safeOrderItems(items) {
     quantity: item.quantity,
     unitPrice: item.unitPrice,
     lineTotal: item.lineTotal,
-    ...(item.kind === 'custom' ? {
+    ...(['custom', 'product'].includes(item.kind) && item.color ? {
       color: safeOptionalText(item.color, 60),
+    } : {}),
+    ...(['custom', 'product'].includes(item.kind) && item.size ? {
       size: safeOptionalText(item.size, 20),
+    } : {}),
+    ...(item.kind === 'custom' ? {
       front: safeOptionalText(item.front, 180),
       back: safeOptionalText(item.back, 180),
     } : {}),

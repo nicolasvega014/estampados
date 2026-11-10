@@ -6,6 +6,7 @@ import Shirt3D from './Shirt3D'
 import Admin from './Admin'
 import { db } from './firebase'
 import { DEFAULT_CUSTOMIZER_COLORS, DEFAULT_CUSTOMIZER_SIZES, normalizeCustomizerSettings } from './customizerSettings'
+import { productOptions, productOptionsSummary } from './productOptions'
 import './App.css'
 import './ProductCatalog.css'
 import './CartCheckout.css'
@@ -42,9 +43,11 @@ function checkoutCart(items) {
     productId: item.productId || '',
     kind: item.kind,
     quantity: item.quantity,
-    ...(item.kind === 'custom' ? {
+    ...(['custom', 'product'].includes(item.kind) ? {
       color: item.color || '',
       size: item.size || '',
+    } : {}),
+    ...(item.kind === 'custom' ? {
       front: item.front || '',
       back: item.back || '',
     } : {}),
@@ -174,7 +177,7 @@ function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear }) {
   const [couponResult, setCouponResult] = useState(null)
   const [couponCartFingerprint, setCouponCartFingerprint] = useState('')
   const subtotal = cartSubtotal(items)
-  const cartFingerprint = items.map((item) => `${item.id}:${item.productId || ''}:${item.kind}:${item.quantity}`).join('|')
+  const cartFingerprint = items.map((item) => `${item.id}:${item.productId || ''}:${item.kind}:${item.size || ''}:${item.color || ''}:${item.quantity}`).join('|')
   const couponIsApplied = couponState === 'success' && couponCartFingerprint === cartFingerprint && Boolean(couponResult?.totals)
   const couponTotals = couponIsApplied ? couponResult.totals : null
   const total = couponTotals ? couponTotals.total : subtotal
@@ -283,7 +286,7 @@ function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear }) {
           const isCatalogProduct = item.kind === 'product'
           return <article className="cart-item" key={item.id}>
             <div className="cart-item-art">{isCatalogProduct && item.imageUrl ? <img src={item.imageUrl} alt="" /> : <span style={{ background: item.colorValue || '#e6e4de' }}/>}</div>
-            <div><h3>{item.title || 'Remera personalizada'}</h3><p>{isCatalogProduct ? item.category || 'Producto del catálogo' : `${item.color} · Talle ${item.size}`}</p><small>{isCatalogProduct ? item.description || 'Producto de Tinta Club' : `${item.front ? `Frente: ${item.front}` : ''}${item.back ? ` · Espalda: ${item.back}` : ''}`}</small><div className="quantity"><button onClick={() => onQuantity(item.id, item.quantity - 1)} aria-label="Restar una unidad">−</button><b>{item.quantity}</b><button onClick={() => onQuantity(item.id, item.quantity + 1)} aria-label="Sumar una unidad">+</button><button className="remove-cart-item" onClick={() => onRemove(item.id)}>Quitar</button></div></div>
+            <div><h3>{item.title || 'Remera personalizada'}</h3><p>{isCatalogProduct ? item.category || 'Producto del catálogo' : `${item.color} · Talle ${item.size}`}</p><small>{isCatalogProduct ? [[item.color && `Color: ${item.color}`, item.size && `Talle ${item.size}`].filter(Boolean).join(' · '), item.description || 'Producto de Fenixis'].filter(Boolean).join(' · ') : `${item.front ? `Frente: ${item.front}` : ''}${item.back ? ` · Espalda: ${item.back}` : ''}`}</small><div className="quantity"><button onClick={() => onQuantity(item.id, item.quantity - 1)} aria-label="Restar una unidad">−</button><b>{item.quantity}</b><button onClick={() => onQuantity(item.id, item.quantity + 1)} aria-label="Sumar una unidad">+</button><button className="remove-cart-item" onClick={() => onRemove(item.id)}>Quitar</button></div></div>
             <strong>$ {(price * item.quantity).toLocaleString('es-AR')}</strong>
           </article>
         })}</div>
@@ -309,6 +312,34 @@ function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear }) {
   </div>
 }
 
+function CatalogProductOptions({ product, onClose, onAdd }) {
+  const { sizes, colors } = productOptions(product)
+  const [size, setSize] = useState('')
+  const [color, setColor] = useState(null)
+
+  useEffect(() => {
+    const nextOptions = productOptions(product)
+    setSize(nextOptions.sizes[0] || '')
+    setColor(nextOptions.colors[0] || null)
+  }, [product])
+
+  if (!product) return null
+
+  const selectedSize = size || sizes[0] || ''
+  const selectedColor = color || colors[0] || null
+
+  return <div className="catalog-options-layer" role="presentation">
+    <button className="catalog-options-backdrop" type="button" aria-label="Cerrar opciones del producto" onClick={onClose} />
+    <section className="catalog-options-dialog" role="dialog" aria-modal="true" aria-labelledby="catalog-options-title">
+      <header><div><p className="eyebrow">ELEGÍ TU PRENDA</p><h2 id="catalog-options-title">{product.title}</h2></div><button type="button" aria-label="Cerrar" onClick={onClose}>×</button></header>
+      <p className="catalog-options-copy">Elegí las opciones que están disponibles antes de agregarla a la bolsa.</p>
+      {sizes.length > 0 && <fieldset><legend>Talle</legend><div className="catalog-option-buttons">{sizes.map((item) => <button type="button" key={item} className={selectedSize === item ? 'is-selected' : ''} aria-pressed={selectedSize === item} onClick={() => setSize(item)}>{item}</button>)}</div></fieldset>}
+      {colors.length > 0 && <fieldset><legend>Color</legend><div className="catalog-color-buttons">{colors.map((item) => <button type="button" key={item.name} className={selectedColor?.name === item.name ? 'is-selected' : ''} aria-pressed={selectedColor?.name === item.name} onClick={() => setColor(item)}><i aria-hidden="true" style={{ backgroundColor: item.value }} />{item.name}</button>)}</div></fieldset>}
+      <footer><strong>$ {Number(product.price || 0).toLocaleString('es-AR')}</strong><button className="catalog-options-add" type="button" onClick={() => onAdd({ size: selectedSize, color: selectedColor })}>Agregar a la bolsa <span>+</span></button></footer>
+    </section>
+  </div>
+}
+
 function Shirt({ color, design, transform, side, onPointerDown, onDesignPointerDown }) {
   const designPointerDown = onDesignPointerDown || onPointerDown
   return <Shirt3D color={color} design={design} side={side} transform={transform} onDesignPointerDown={designPointerDown}/>
@@ -325,6 +356,7 @@ function Storefront() {
   const [customizerSettings, setCustomizerSettings] = useState(() => normalizeCustomizerSettings())
   const [color, setColor] = useState(DEFAULT_CUSTOMIZER_COLORS[0]); const [size, setSize] = useState(DEFAULT_CUSTOMIZER_SIZES.includes('M') ? 'M' : DEFAULT_CUSTOMIZER_SIZES[0]); const [side, setSide] = useState('Frente'); const [designs, setDesigns] = useState({ Frente: '', Espalda: '' }); const [fileNames, setFileNames] = useState({ Frente: '', Espalda: '' }); const [notice, setNotice] = useState(''); const [transforms, setTransforms] = useState({ Frente: { x: 50, y: 43, scale: 54, rotation: 0 }, Espalda: { x: 50, y: 43, scale: 54, rotation: 0 } }); const transform = transforms[side]; const setTransform = (next) => setTransforms((current) => { const active = current[side]; return { ...current, [side]: typeof next === 'function' ? next(active) : next } }); const drag = useRef(null)
   const [cartOpen, setCartOpen] = useState(false)
+  const [catalogProduct, setCatalogProduct] = useState(null)
   const [cart, setCart] = useState(() => { try { return JSON.parse(window.localStorage.getItem('tinta-club-cart') || '[]') } catch { return [] } })
   const [products, setProducts] = useState([])
   const [offers, setOffers] = useState([])
@@ -519,6 +551,8 @@ function Storefront() {
       category.textContent = product.category || 'Remeras'; name.textContent = product.title; price.textContent = `$ ${Number(product.price || 0).toLocaleString('es-AR')}`; actions.className = 'store-product-actions'; add.type = 'button'; add.textContent = 'Agregar'; add.addEventListener('click', () => window.dispatchEvent(new CustomEvent('tinta-add-catalog-product', { detail: product }))); actions.append(add)
       info.append(category, name)
       if (product.description) { const description = document.createElement('p'); description.textContent = product.description; info.append(description) }
+      const availability = productOptionsSummary(product)
+      if (availability) { const options = document.createElement('small'); options.className = 'store-product-availability'; options.textContent = availability; info.append(options) }
       priceLine.append(price, actions); info.append(priceLine); card.append(imageBox, info); grid.append(card)
     })
     section.replaceChildren(head, grid)
@@ -652,18 +686,24 @@ function Storefront() {
     return () => { running.forEach((animation) => animation.stop()); stopWatching() }
   }, [isCustomizerPage])
   function addToCart() { if (!designs.Frente && !designs.Espalda) { setNotice('Primero agregá al menos un diseño a la remera.'); return } const item = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, kind: 'custom', title: 'Remera personalizada', price: SHIRT_PRICE, color: color.name, colorValue: color.value, size, front: fileNames.Frente, back: fileNames.Espalda, quantity: 1 }; setCart((current) => [...current, item]); setDesigns({ Frente: '', Espalda: '' }); setFileNames({ Frente: '', Espalda: '' }); setTransforms({ Frente: { x: 50, y: 43, scale: 54, rotation: 0 }, Espalda: { x: 50, y: 43, scale: 54, rotation: 0 } }); setColor(COLORS[0]); setSize('M'); setSide('Frente'); setCartOpen(false); setNotice('Remera agregada a la bolsa. Ya podés personalizar otra.') }
-  function addCatalogProduct(product) { if (!product) return; const item = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, productId: product.id || '', kind: 'product', title: product.title || 'Producto', price: Number(product.price || 0), category: product.category || 'Producto del catálogo', description: product.description || '', imageUrl: product.imageUrl || '', quantity: 1 }; setCart((current) => [...current, item]); setCartOpen(true) }
+  function addCatalogProduct(product, selection = {}) { if (!product) return; const chosenColor = selection.color && typeof selection.color === 'object' ? selection.color : null; const item = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, productId: product.id || '', kind: 'product', title: product.title || 'Producto', price: Number(product.price || 0), category: product.category || 'Producto del catálogo', description: product.description || '', imageUrl: product.imageUrl || '', color: chosenColor?.name || '', colorValue: chosenColor?.value || '', size: selection.size || '', quantity: 1 }; setCart((current) => [...current, item]); setCartOpen(true) }
   function removeCartItem(id) { setCart((current) => current.filter((item) => item.id !== id)) }
   function updateQuantity(id, quantity) { if (quantity < 1) return removeCartItem(id); setCart((current) => current.map((item) => item.id === id ? { ...item, quantity } : item)) }
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
   useEffect(() => {
-    const add = (event) => addCatalogProduct(event.detail)
+    const add = (event) => {
+      const product = event.detail
+      if (!product) return
+      const { sizes, colors } = productOptions(product)
+      if (sizes.length || colors.length) { setCatalogProduct(product); return }
+      addCatalogProduct(product)
+    }
     window.addEventListener('tinta-add-catalog-product', add)
     return () => window.removeEventListener('tinta-add-catalog-product', add)
   }, [])
   useEffect(() => {
-    cartRoot.current?.render(<CartDrawer open={cartOpen} items={cart} onClose={() => setCartOpen(false)} onRemove={removeCartItem} onQuantity={updateQuantity} onClear={() => setCart([])}/>)
-  }, [cartOpen, cart, whatsappNumber])
+    cartRoot.current?.render(<><CartDrawer open={cartOpen} items={cart} onClose={() => setCartOpen(false)} onRemove={removeCartItem} onQuantity={updateQuantity} onClear={() => setCart([])}/><CatalogProductOptions product={catalogProduct} onClose={() => setCatalogProduct(null)} onAdd={(selection) => { addCatalogProduct(catalogProduct, selection); setCatalogProduct(null) }} /></>)
+  }, [cartOpen, cart, catalogProduct, whatsappNumber])
   useEffect(() => {
     const openCart = () => setCartOpen(true)
     const addProduct = (event) => { event.preventDefault(); addToCart() }

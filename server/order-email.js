@@ -46,9 +46,12 @@ function orderReference(order) {
 function itemDescription(item) {
   const quantity = Math.max(1, Number(item?.quantity || 1))
   const title = cleanText(item?.title || (item?.kind === 'custom' ? 'Remera personalizada' : 'Producto'), 160)
-  const customDetails = item?.kind === 'custom'
-    ? [item?.color && `Color: ${cleanText(item.color, 60)}`, item?.size && `Talle: ${cleanText(item.size, 20)}`, item?.front && `Frente: ${cleanText(item.front, 180)}`, item?.back && `Espalda: ${cleanText(item.back, 180)}`].filter(Boolean)
-    : []
+  const customDetails = [
+    item?.color && `Color: ${cleanText(item.color, 60)}`,
+    item?.size && `Talle: ${cleanText(item.size, 20)}`,
+    item?.kind === 'custom' && item?.front && `Frente: ${cleanText(item.front, 180)}`,
+    item?.kind === 'custom' && item?.back && `Espalda: ${cleanText(item.back, 180)}`,
+  ].filter(Boolean)
   return {
     title,
     quantity,
