@@ -1,0 +1,17 @@
+.product-catalog-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:end;margin-bottom:29px;padding:17px 0 22px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.product-catalog-search{min-width:0}
+.product-catalog-search label,.product-collection-filter label{display:block;margin-bottom:8px;color:#565851;font:700 11px/1.2 'DM Sans',sans-serif;letter-spacing:.02em}
+.product-catalog-search input,.product-collection-filter select{box-sizing:border-box;width:100%;min-height:48px;border:1px solid #c9c7c0;border-radius:0;background:#fff;color:var(--ink);font:500 15px/1.2 'DM Sans',sans-serif}
+.product-catalog-search input{padding:0 14px}
+.product-catalog-search input::placeholder{color:#767870;opacity:1}
+.product-catalog-search input:focus,.product-collection-filter select:focus{border-color:var(--ink);outline:2px solid var(--lime);outline-offset:2px}
+.product-catalog-result-meta{display:flex;align-items:center;justify-content:flex-end;gap:14px;min-height:48px}
+.product-catalog-count{margin:0;white-space:nowrap;color:var(--muted);font:600 12px 'DM Sans',sans-serif}
+.product-catalog-clear{min-height:42px;border:1px solid var(--ink);background:#fff;color:var(--ink);padding:8px 12px;font:700 11px 'DM Sans',sans-serif;cursor:pointer;transition:background-color .18s ease,color .18s ease}
+.product-catalog-clear:hover{background:var(--ink);color:#fff}
+.product-catalog-clear:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+.product-catalog-filters{display:grid;gap:22px;min-width:0}
+.product-collection-filter select{padding:0 11px;cursor:pointer}
+.product-collection-filter select:focus{outline-offset:2px}
+@media(max-width:760px){.product-catalog-controls{display:block;margin-bottom:24px;padding:16px 0 19px}.product-catalog-result-meta{justify-content:space-between;margin-top:12px;min-height:42px}.product-catalog-clear{min-height:44px}.product-catalog-filters{gap:16px}.product-collection-filter{padding:0}.product-collection-filter select{min-height:48px}.product-type-nav{margin-top:0}}
+@media(hover:none){.product-catalog-clear:hover{background:#fff;color:var(--ink)}}

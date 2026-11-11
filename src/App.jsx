@@ -10,6 +10,7 @@ import { productOptions, productOptionsSummary } from './productOptions'
 import { DEFAULT_PRODUCT_TYPES, catalogProductTypes, productTypeIdFor, productTypeNameFor } from './productTypes'
 import './App.css'
 import './ProductCatalog.css'
+import './ProductCatalogSearch.css'
 import './CartCheckout.css'
 import './StoreFooter.css'
 import './BrandLogo.css'
@@ -18,6 +19,14 @@ import './StoreButtonPolish.css'
 const SHIRT_PRICE = 18900
 const DEFAULT_WHATSAPP = '5491165937433'
 const MERCADO_PAGO_PUBLIC_KEY = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY || ''
+
+function normalizeCatalogSearch(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('es-AR')
+    .trim()
+}
 
 let mercadoPagoSdk
 
@@ -362,6 +371,8 @@ function Storefront() {
   const [products, setProducts] = useState([])
   const [productTypes, setProductTypes] = useState(DEFAULT_PRODUCT_TYPES)
   const [selectedProductType, setSelectedProductType] = useState('all')
+  const [catalogSearch, setCatalogSearch] = useState('')
+  const [selectedProductCategory, setSelectedProductCategory] = useState('all')
   const [offers, setOffers] = useState([])
   const [whatsappNumber, setWhatsappNumber] = useState(DEFAULT_WHATSAPP)
   const colors = customizerSettings.colors
@@ -549,22 +560,76 @@ function Storefront() {
     }
     const head = document.createElement('div'); head.className = 'product-catalog-head'
     const title = document.createElement('div'); const eyebrow = document.createElement('p'); const heading = document.createElement('h2'); const copy = document.createElement('p')
-    eyebrow.className = 'eyebrow'; eyebrow.textContent = 'CATÁLOGO'; heading.textContent = 'Elegí tu próxima prenda.'; copy.textContent = 'Elegí por tipo de prenda y encontrá tu próxima favorita.'
+    eyebrow.className = 'eyebrow'; eyebrow.textContent = 'CATÁLOGO'; heading.textContent = 'Elegí tu próxima prenda.'; copy.textContent = 'Buscá por nombre, explorá por tipo y encontrá tu próxima favorita.'
     title.append(eyebrow, heading); head.append(title, copy)
-    const layout = document.createElement('div'); layout.className = 'product-catalog-layout'
-    const filters = document.createElement('nav'); filters.className = 'product-type-nav'; filters.setAttribute('aria-label', 'Filtrar por tipo de prenda')
-    const filterTitle = document.createElement('h3'); filterTitle.textContent = 'Tipo de prenda'; filters.append(filterTitle)
+
+    const categories = [...new Set(products.map((product) => String(product.category || '').trim()).filter(Boolean))]
+      .sort((first, second) => first.localeCompare(second, 'es-AR'))
     const activeProductType = selectedProductType === 'all' || productTypes.some((item) => item.id === selectedProductType) ? selectedProductType : 'all'
-    const visibleProducts = activeProductType === 'all' ? products : products.filter((product) => productTypeIdFor(product) === activeProductType)
+    const activeProductCategory = selectedProductCategory === 'all' || categories.includes(selectedProductCategory) ? selectedProductCategory : 'all'
+    const normalizedQuery = normalizeCatalogSearch(catalogSearch)
+    const matchesSearchAndCategory = (product) => {
+      if (activeProductCategory !== 'all' && product.category !== activeProductCategory) return false
+      if (!normalizedQuery) return true
+      const searchableText = normalizeCatalogSearch([
+        product.title,
+        product.description,
+        product.category,
+        productTypeNameFor(product, productTypes),
+      ].filter(Boolean).join(' '))
+      return searchableText.includes(normalizedQuery)
+    }
+    const productsMatchingSearch = products.filter(matchesSearchAndCategory)
+    const visibleProducts = activeProductType === 'all'
+      ? productsMatchingSearch
+      : productsMatchingSearch.filter((product) => productTypeIdFor(product) === activeProductType)
+    const filtersAreActive = Boolean(normalizedQuery) || activeProductType !== 'all' || activeProductCategory !== 'all'
+    const wasSearchFocused = document.activeElement?.id === 'product-catalog-search'
+    const selectionStart = wasSearchFocused ? document.activeElement.selectionStart : null
+    const selectionEnd = wasSearchFocused ? document.activeElement.selectionEnd : null
+
+    const controls = document.createElement('div'); controls.className = 'product-catalog-controls'
+    const search = document.createElement('div'); search.className = 'product-catalog-search'
+    const searchLabel = document.createElement('label'); searchLabel.htmlFor = 'product-catalog-search'; searchLabel.textContent = 'Buscar prendas'
+    const searchInput = document.createElement('input'); searchInput.id = 'product-catalog-search'; searchInput.type = 'search'; searchInput.autocomplete = 'off'; searchInput.placeholder = 'Nombre, tipo o colección'; searchInput.value = catalogSearch
+    searchInput.setAttribute('aria-describedby', 'product-catalog-count')
+    searchInput.addEventListener('input', (event) => setCatalogSearch(event.currentTarget.value))
+    search.append(searchLabel, searchInput)
+    const resultMeta = document.createElement('div'); resultMeta.className = 'product-catalog-result-meta'
+    const resultCount = document.createElement('p'); resultCount.className = 'product-catalog-count'; resultCount.id = 'product-catalog-count'
+    resultCount.textContent = `${visibleProducts.length} ${visibleProducts.length === 1 ? 'prenda encontrada' : 'prendas encontradas'}`
+    resultMeta.append(resultCount)
+    if (filtersAreActive) {
+      const clear = document.createElement('button'); clear.type = 'button'; clear.className = 'product-catalog-clear'; clear.textContent = 'Limpiar filtros'
+      clear.addEventListener('click', () => { setCatalogSearch(''); setSelectedProductType('all'); setSelectedProductCategory('all') })
+      resultMeta.append(clear)
+    }
+    controls.append(search, resultMeta)
+
+    const layout = document.createElement('div'); layout.className = 'product-catalog-layout'
+    const filters = document.createElement('aside'); filters.className = 'product-catalog-filters'; filters.setAttribute('aria-label', 'Filtros de prendas')
+    if (categories.length > 1) {
+      const collectionFilter = document.createElement('div'); collectionFilter.className = 'product-collection-filter'
+      const collectionLabel = document.createElement('label'); collectionLabel.htmlFor = 'product-catalog-collection'; collectionLabel.textContent = 'Colección'
+      const collectionSelect = document.createElement('select'); collectionSelect.id = 'product-catalog-collection'; collectionSelect.value = activeProductCategory
+      const allCollections = document.createElement('option'); allCollections.value = 'all'; allCollections.textContent = 'Todas las colecciones'; collectionSelect.append(allCollections)
+      categories.forEach((category) => { const option = document.createElement('option'); option.value = category; option.textContent = category; collectionSelect.append(option) })
+      collectionSelect.addEventListener('change', (event) => setSelectedProductCategory(event.currentTarget.value))
+      collectionFilter.append(collectionLabel, collectionSelect); filters.append(collectionFilter)
+    }
+    const typeFilters = document.createElement('nav'); typeFilters.className = 'product-type-nav'; typeFilters.setAttribute('aria-label', 'Filtrar por tipo de prenda')
+    const filterTitle = document.createElement('h3'); filterTitle.textContent = 'Tipo de prenda'; typeFilters.append(filterTitle)
     const addFilter = (id, label, count) => {
       const button = document.createElement('button')
       button.type = 'button'; button.className = activeProductType === id ? 'is-active' : ''; button.setAttribute('aria-pressed', String(activeProductType === id))
       const name = document.createElement('span'); const total = document.createElement('small')
       name.textContent = label; total.textContent = String(count)
-      button.append(name, total); button.addEventListener('click', () => setSelectedProductType(id)); filters.append(button)
+      button.append(name, total); button.addEventListener('click', () => setSelectedProductType(id)); typeFilters.append(button)
     }
-    addFilter('all', 'Todas', products.length)
-    productTypes.forEach((type) => addFilter(type.id, type.name, products.filter((product) => productTypeIdFor(product) === type.id).length))
+    addFilter('all', 'Todas', productsMatchingSearch.length)
+    productTypes.forEach((type) => addFilter(type.id, type.name, productsMatchingSearch.filter((product) => productTypeIdFor(product) === type.id).length))
+    filters.append(typeFilters)
+
     const results = document.createElement('div'); results.className = 'product-catalog-results'
     const grid = document.createElement('div'); grid.className = 'store-product-grid'
     visibleProducts.forEach((product) => {
@@ -584,12 +649,25 @@ function Storefront() {
     else {
       const empty = document.createElement('div'); empty.className = 'product-type-empty'
       const selectedType = productTypes.find((type) => type.id === activeProductType)
-      empty.textContent = selectedType ? `Todavía no hay ${selectedType.name.toLocaleLowerCase('es-AR')} disponibles.` : 'Todavía no hay prendas disponibles en esta sección.'
+      empty.textContent = normalizedQuery
+        ? `No encontramos prendas para “${catalogSearch.trim()}”. Probá con otro nombre o limpiá los filtros.`
+        : selectedType
+          ? `Todavía no hay ${selectedType.name.toLocaleLowerCase('es-AR')} disponibles con estos filtros.`
+          : 'Todavía no hay prendas disponibles con estos filtros.'
       results.append(empty)
     }
-    layout.append(filters, results); section.replaceChildren(head, layout)
+    layout.append(filters, results); section.replaceChildren(head, controls, layout)
+    if (wasSearchFocused) {
+      window.requestAnimationFrame(() => {
+        const nextInput = section.querySelector('#product-catalog-search')
+        nextInput?.focus()
+        const start = Math.min(selectionStart ?? nextInput?.value.length ?? 0, nextInput?.value.length ?? 0)
+        const end = Math.min(selectionEnd ?? start, nextInput?.value.length ?? 0)
+        nextInput?.setSelectionRange(start, end)
+      })
+    }
     return undefined
-  }, [products, productTypes, selectedProductType, isProductsPage])
+  }, [products, productTypes, selectedProductType, selectedProductCategory, catalogSearch, isProductsPage])
   useEffect(() => {
     if (isCustomizerPage || isProductsPage) return undefined
     const oldRail = document.querySelector('.home-products-rail')

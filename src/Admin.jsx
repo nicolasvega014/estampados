@@ -7,6 +7,7 @@ import { PRODUCT_COLOR_OPTIONS, PRODUCT_SIZE_OPTIONS, normalizeProductColors, no
 import { DEFAULT_PRODUCT_TYPES, catalogProductTypes, productTypeIdFor, productTypeNameFor, productTypeSlug } from './productTypes'
 import './Admin.css'
 import './AdminProducts.css'
+import './AdminProductCustomColors.css'
 import './AdminStoreSettings.css'
 import './CustomizerSettings.css'
 import './AdminOffers.css'
@@ -629,6 +630,8 @@ function Designs({ designs, upload, setUpload, categories, onAdd, onRemove }) {
 function ProductOptions({ value, onChange }) {
   const selectedSizes = normalizeProductSizes(value.sizes)
   const selectedColors = normalizeProductColors(value.colors)
+  const [customColor, setCustomColor] = useState({ name: '', value: '#1b1b1b' })
+  const [customColorError, setCustomColorError] = useState('')
 
   const toggleSize = (size) => {
     const next = selectedSizes.includes(size)
@@ -643,6 +646,22 @@ function ProductOptions({ value, onChange }) {
       ? selectedColors.filter((item) => item.name !== color.name)
       : [...selectedColors, color]
     onChange({ ...value, colors: next })
+  }
+
+  const customSelectedColors = selectedColors.filter((color) => !PRODUCT_COLOR_OPTIONS.some((item) => item.name.toLocaleLowerCase('es-AR') === color.name.toLocaleLowerCase('es-AR')))
+  const updateCustomColor = (field, next) => {
+    setCustomColor((current) => ({ ...current, [field]: next }))
+    setCustomColorError('')
+  }
+  const addCustomColor = () => {
+    const name = String(customColor.name || '').trim().replace(/\s+/g, ' ').slice(0, 30)
+    const colorValue = String(customColor.value || '').trim()
+    if (!name) { setCustomColorError('Escribí un nombre para el color.'); return }
+    if (!/^#[0-9a-f]{6}$/i.test(colorValue)) { setCustomColorError('Usá un código hexadecimal válido, por ejemplo #1B1B1B.'); return }
+    if (selectedColors.some((color) => color.name.toLocaleLowerCase('es-AR') === name.toLocaleLowerCase('es-AR'))) { setCustomColorError('Ese color ya está agregado a esta prenda.'); return }
+    onChange({ ...value, colors: [...selectedColors, { name, value: colorValue }] })
+    setCustomColor({ name: '', value: '#1b1b1b' })
+    setCustomColorError('')
   }
 
   return <section className="product-options" aria-label="Opciones disponibles del producto">
@@ -668,6 +687,20 @@ function ProductOptions({ value, onChange }) {
           </label>
         })}
       </div>
+      {customSelectedColors.length > 0 && <div className="product-custom-colors" aria-label="Colores propios agregados">
+        {customSelectedColors.map((color) => <label className="product-option-chip product-color-chip is-selected" key={color.name}>
+          <input type="checkbox" checked onChange={() => toggleColor(color)} />
+          <i aria-hidden="true" style={{ backgroundColor: color.value }} />
+          <span>{color.name}</span>
+        </label>)}
+      </div>}
+      <div className="product-custom-color-form">
+        <label>Nombre del color<input value={customColor.name} maxLength="30" onChange={(event) => updateCustomColor('name', event.target.value)} placeholder="Ej. Lila" /></label>
+        <label>Tono<input type="color" value={/^#[0-9a-f]{6}$/i.test(customColor.value) ? customColor.value : '#1b1b1b'} onChange={(event) => updateCustomColor('value', event.target.value)} aria-label="Elegir tono del color propio" /></label>
+        <label>Código<input value={customColor.value} maxLength="7" onChange={(event) => updateCustomColor('value', event.target.value)} placeholder="#6f5cb8" /></label>
+        <button type="button" onClick={addCustomColor}>Agregar color</button>
+      </div>
+      {customColorError && <p className="product-custom-color-error" role="status">{customColorError}</p>}
     </fieldset>
   </section>
 }
