@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node tools/generate-seo-pages.mjs",
     "lint": "oxlint",
     "preview": "vite preview",
     "grant-admin": "node tools/grant-firebase-admin.mjs"

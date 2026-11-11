@@ -1,3 +1,5 @@
+"$schema" = "https://open-api.netlify.com/netlify.schema.json"
+
 [build]
   command = "npm run build"
   publish = "dist"
@@ -11,8 +13,34 @@
   status = 200
   force = true
 
+# Serve each section's generated metadata before the SPA fallback.
+[[redirects]]
+  from = "/productos"
+  to = "/productos/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/personaliza"
+  to = "/personaliza/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin"
+  to = "/admin/index.html"
+  status = 200
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+[[headers]]
+  for = "/admin"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
 

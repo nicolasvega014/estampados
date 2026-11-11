@@ -1,0 +1,22 @@
+# Fenixis Store
+
+> Tienda online de prendas, remerones estampados y remeras personalizadas en Buenos Aires, Argentina. Sitio oficial: https://fenixis.com.ar/.
+
+Fenixis Store ofrece prendas del catálogo y un personalizador para crear remeras con un diseño propio. El sitio está en español de Argentina y muestra precios en pesos argentinos (ARS). Las compras se realizan desde el carrito con Mercado Pago.
+
+Los productos, precios, talles, colores y promociones pueden cambiar. Consultá el catálogo y las opciones vigentes del carrito para conocer la disponibilidad, el total y la modalidad de entrega. Este archivo no contiene un inventario actualizado.
+
+## Páginas principales
+
+- [Inicio](https://fenixis.com.ar/): presentación de la tienda, novedades y promociones publicadas.
+- [Catálogo de prendas](https://fenixis.com.ar/productos/): productos disponibles, búsqueda y filtros por tipo de prenda, talle y color.
+- [Personalizá tu remera](https://fenixis.com.ar/personaliza/): carga de imágenes y elección de las opciones disponibles para una remera personalizada.
+
+## Marca
+
+- [Instagram de Fenixis Store](https://www.instagram.com/fenixisstore/): perfil de la marca enlazado desde la tienda.
+
+## Información para rastreo
+
+- [Mapa del sitio](https://fenixis.com.ar/sitemap.xml): páginas públicas principales.
+- [Robots.txt](https://fenixis.com.ar/robots.txt): indicaciones para rastreadores.

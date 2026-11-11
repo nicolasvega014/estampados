@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /.netlify/
+
+# El panel de administración usa noindex en su propio HTML.
+# Se permite rastrearlo para que los buscadores puedan leer esa indicación.
+Sitemap: https://fenixis.com.ar/sitemap.xml
