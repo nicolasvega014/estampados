@@ -3,7 +3,7 @@ import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyDnhBOiA2daTnPlgS4CB-rCk6JxmaKL4DI',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
   authDomain: 'tinta-club-82098.firebaseapp.com',
   projectId: 'tinta-club-82098',
   storageBucket: 'tinta-club-82098.firebasestorage.app',
