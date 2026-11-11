@@ -7,6 +7,7 @@ import Admin from './Admin'
 import { db } from './firebase'
 import { DEFAULT_CUSTOMIZER_COLORS, DEFAULT_CUSTOMIZER_SIZES, normalizeCustomizerSettings } from './customizerSettings'
 import { productOptions, productOptionsSummary } from './productOptions'
+import { DEFAULT_PRODUCT_TYPES, catalogProductTypes, productTypeIdFor, productTypeNameFor } from './productTypes'
 import './App.css'
 import './ProductCatalog.css'
 import './CartCheckout.css'
@@ -349,7 +350,7 @@ function Shirt({ color, design, transform, side, onPointerDown, onDesignPointerD
 
 function ProductCatalog({ products }) {
   if (!products.length) return null
-  return <section className="product-catalog" id="productos"><div className="product-catalog-head"><div><p className="eyebrow">CATÁLOGO</p><h2>Elegí tu próxima remera.</h2></div><p>Estas prendas ya están listas para que las descubras. Podés elegir una y personalizarla a tu manera.</p></div><div className="store-product-grid">{products.map((product) => <article className="store-product" key={product.id}><div className="store-product-image">{product.imageUrl ? <img src={product.imageUrl} alt={product.title} loading="lazy" /> : <div className="store-product-placeholder"><span>TINTA<br/>CLUB</span><small>PRENDA PERSONALIZABLE</small></div>}</div><div className="store-product-info"><span>{product.category || 'Remeras'}</span><h3>{product.title}</h3>{product.description && <p>{product.description}</p>}<div><strong>$ {Number(product.price || 0).toLocaleString('es-AR')}</strong><a href="/personaliza">Personalizar <b>→</b></a></div></div></article>)}</div></section>
+  return <section className="product-catalog" id="productos"><div className="product-catalog-head"><div><p className="eyebrow">CATÁLOGO</p><h2>Elegí tu próxima prenda.</h2></div><p>Estas prendas ya están listas para que las descubras. Podés elegir una y personalizarla a tu manera.</p></div><div className="store-product-grid">{products.map((product) => <article className="store-product" key={product.id}><div className="store-product-image">{product.imageUrl ? <img src={product.imageUrl} alt={product.title} loading="lazy" /> : <div className="store-product-placeholder"><span>FENIXIS<br/>STORE</span><small>PRENDA PERSONALIZABLE</small></div>}</div><div className="store-product-info"><span>{productTypeNameFor(product)}{product.category ? ` · ${product.category}` : ''}</span><h3>{product.title}</h3>{product.description && <p>{product.description}</p>}<div><strong>$ {Number(product.price || 0).toLocaleString('es-AR')}</strong><a href="/personaliza">Personalizar <b>→</b></a></div></div></article>)}</div></section>
 }
 
 function Storefront() {
@@ -359,6 +360,8 @@ function Storefront() {
   const [catalogProduct, setCatalogProduct] = useState(null)
   const [cart, setCart] = useState(() => { try { return JSON.parse(window.localStorage.getItem('tinta-club-cart') || '[]') } catch { return [] } })
   const [products, setProducts] = useState([])
+  const [productTypes, setProductTypes] = useState(DEFAULT_PRODUCT_TYPES)
+  const [selectedProductType, setSelectedProductType] = useState('all')
   const [offers, setOffers] = useState([])
   const [whatsappNumber, setWhatsappNumber] = useState(DEFAULT_WHATSAPP)
   const colors = customizerSettings.colors
@@ -471,6 +474,13 @@ function Storefront() {
     return () => stop()
   }, [isCustomizerPage])
   useEffect(() => {
+    if (!isProductsPage) return undefined
+    const stop = onSnapshot(doc(db, 'settings', 'catalog'), (snapshot) => {
+      setProductTypes(catalogProductTypes(snapshot.data()?.productTypes))
+    }, () => setProductTypes(DEFAULT_PRODUCT_TYPES))
+    return () => stop()
+  }, [isProductsPage])
+  useEffect(() => {
     if (isCustomizerPage || isProductsPage) return undefined
     const stop = onSnapshot(collection(db, 'offers'), (snapshot) => {
       const activeOffers = snapshot.docs
@@ -534,30 +544,52 @@ function Storefront() {
     if (!section) return undefined
     section.className = 'product-catalog products-page-content'; section.id = 'productos'
     if (!products.length) {
-      section.innerHTML = '<div class="product-catalog-empty"><p class="eyebrow">CATÁLOGO</p><h1>Próximamente habrá prendas nuevas.</h1><p>Mientras tanto, podés crear una remera con tu propio diseño.</p><a href="/personaliza">Personalizá tu remera →</a></div>'
+      section.innerHTML = '<div class="product-catalog-empty"><p class="eyebrow">CATÁLOGO</p><h1>Próximamente habrá prendas nuevas.</h1><p>Mientras tanto, podés crear una prenda con tu propio diseño.</p><a href="/personaliza">Personalizá tu prenda →</a></div>'
       return undefined
     }
     const head = document.createElement('div'); head.className = 'product-catalog-head'
     const title = document.createElement('div'); const eyebrow = document.createElement('p'); const heading = document.createElement('h2'); const copy = document.createElement('p')
-    eyebrow.className = 'eyebrow'; eyebrow.textContent = 'CATÁLOGO'; heading.textContent = 'Elegí tu próxima remera.'; copy.textContent = 'Estas prendas ya están listas para que las descubras. Elegí una y personalizala a tu manera.'
+    eyebrow.className = 'eyebrow'; eyebrow.textContent = 'CATÁLOGO'; heading.textContent = 'Elegí tu próxima prenda.'; copy.textContent = 'Elegí por tipo de prenda y encontrá tu próxima favorita.'
     title.append(eyebrow, heading); head.append(title, copy)
+    const layout = document.createElement('div'); layout.className = 'product-catalog-layout'
+    const filters = document.createElement('nav'); filters.className = 'product-type-nav'; filters.setAttribute('aria-label', 'Filtrar por tipo de prenda')
+    const filterTitle = document.createElement('h3'); filterTitle.textContent = 'Tipo de prenda'; filters.append(filterTitle)
+    const activeProductType = selectedProductType === 'all' || productTypes.some((item) => item.id === selectedProductType) ? selectedProductType : 'all'
+    const visibleProducts = activeProductType === 'all' ? products : products.filter((product) => productTypeIdFor(product) === activeProductType)
+    const addFilter = (id, label, count) => {
+      const button = document.createElement('button')
+      button.type = 'button'; button.className = activeProductType === id ? 'is-active' : ''; button.setAttribute('aria-pressed', String(activeProductType === id))
+      const name = document.createElement('span'); const total = document.createElement('small')
+      name.textContent = label; total.textContent = String(count)
+      button.append(name, total); button.addEventListener('click', () => setSelectedProductType(id)); filters.append(button)
+    }
+    addFilter('all', 'Todas', products.length)
+    productTypes.forEach((type) => addFilter(type.id, type.name, products.filter((product) => productTypeIdFor(product) === type.id).length))
+    const results = document.createElement('div'); results.className = 'product-catalog-results'
     const grid = document.createElement('div'); grid.className = 'store-product-grid'
-    products.forEach((product) => {
+    visibleProducts.forEach((product) => {
       const card = document.createElement('article'); card.className = 'store-product'
       const imageBox = document.createElement('div'); imageBox.className = 'store-product-image'
       if (product.imageUrl) { const image = document.createElement('img'); image.src = product.imageUrl; image.alt = product.title; image.loading = 'lazy'; imageBox.append(image) } else { const placeholder = document.createElement('div'); const stamp = document.createElement('span'); const note = document.createElement('small'); placeholder.className = 'store-product-placeholder'; stamp.innerHTML = 'FENIXIS<br/>STORE'; note.textContent = 'PRENDA PERSONALIZABLE'; placeholder.append(stamp, note); imageBox.append(placeholder) }
       const info = document.createElement('div'); info.className = 'store-product-info'
       const category = document.createElement('span'); const name = document.createElement('h3'); const priceLine = document.createElement('div'); const price = document.createElement('strong'); const actions = document.createElement('span'); const add = document.createElement('button')
-      category.textContent = product.category || 'Remeras'; name.textContent = product.title; price.textContent = `$ ${Number(product.price || 0).toLocaleString('es-AR')}`; actions.className = 'store-product-actions'; add.type = 'button'; add.textContent = 'Agregar'; add.addEventListener('click', () => window.dispatchEvent(new CustomEvent('tinta-add-catalog-product', { detail: product }))); actions.append(add)
+      category.textContent = [productTypeNameFor(product, productTypes), product.category].filter(Boolean).join(' · '); name.textContent = product.title; price.textContent = `$ ${Number(product.price || 0).toLocaleString('es-AR')}`; actions.className = 'store-product-actions'; add.type = 'button'; add.textContent = 'Agregar'; add.addEventListener('click', () => window.dispatchEvent(new CustomEvent('tinta-add-catalog-product', { detail: product }))); actions.append(add)
       info.append(category, name)
       if (product.description) { const description = document.createElement('p'); description.textContent = product.description; info.append(description) }
       const availability = productOptionsSummary(product)
       if (availability) { const options = document.createElement('small'); options.className = 'store-product-availability'; options.textContent = availability; info.append(options) }
       priceLine.append(price, actions); info.append(priceLine); card.append(imageBox, info); grid.append(card)
     })
-    section.replaceChildren(head, grid)
+    if (visibleProducts.length) results.append(grid)
+    else {
+      const empty = document.createElement('div'); empty.className = 'product-type-empty'
+      const selectedType = productTypes.find((type) => type.id === activeProductType)
+      empty.textContent = selectedType ? `Todavía no hay ${selectedType.name.toLocaleLowerCase('es-AR')} disponibles.` : 'Todavía no hay prendas disponibles en esta sección.'
+      results.append(empty)
+    }
+    layout.append(filters, results); section.replaceChildren(head, layout)
     return undefined
-  }, [products, isProductsPage])
+  }, [products, productTypes, selectedProductType, isProductsPage])
   useEffect(() => {
     if (isCustomizerPage || isProductsPage) return undefined
     const oldRail = document.querySelector('.home-products-rail')

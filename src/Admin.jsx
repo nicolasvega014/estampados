@@ -4,6 +4,7 @@ import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, runTran
 import { auth, db } from './firebase'
 import { DEFAULT_CUSTOMIZER_COLORS, DEFAULT_CUSTOMIZER_SIZES, normalizeCustomizerSettings } from './customizerSettings'
 import { PRODUCT_COLOR_OPTIONS, PRODUCT_SIZE_OPTIONS, normalizeProductColors, normalizeProductSizes, productOptions, productOptionsSummary } from './productOptions'
+import { DEFAULT_PRODUCT_TYPES, catalogProductTypes, productTypeIdFor, productTypeNameFor, productTypeSlug } from './productTypes'
 import './Admin.css'
 import './AdminProducts.css'
 import './AdminStoreSettings.css'
@@ -14,7 +15,7 @@ import './AdminOrderStatus.css'
 import './AdminButtonPolish.css'
 
 const DEFAULT_CATEGORIES = ['Anime', 'Flores', 'Mascotas', 'Verano', 'Coquette', 'Frases', 'Moda', 'Vintage']
-const EMPTY_PRODUCT = { title: '', description: '', price: '18900', category: '', imageUrl: '', imagePublicId: '', imageFile: null, sizes: [], colors: [], id: '' }
+const EMPTY_PRODUCT = { title: '', description: '', price: '18900', category: '', productTypeId: 'remeras', imageUrl: '', imagePublicId: '', imageFile: null, sizes: [], colors: [], id: '' }
 const EMPTY_OFFER = { id: '', title: '', description: '', code: '', label: '', active: true }
 const EMPTY_COUPON = { id: '', campaignId: '', code: '', title: '', type: 'percentage', value: '', active: true, startsAt: '', expiresAt: '', maxUses: '', usageCount: 0, minPurchase: '', appliesTo: 'all', productIds: [], perCustomerLimit: '' }
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024
@@ -205,10 +206,13 @@ export default function Admin() {
   const [seedProducts, setSeedProducts] = useState([])
   const [storedProducts, setStoredProducts] = useState([])
   const [categories, setCategories] = useState([])
+  const [productTypes, setProductTypes] = useState(DEFAULT_PRODUCT_TYPES)
   const [upload, setUpload] = useState({ title: '', category: '', file: null })
   const [product, setProduct] = useState(EMPTY_PRODUCT)
   const [categoryName, setCategoryName] = useState('')
   const [editingCategoryId, setEditingCategoryId] = useState('')
+  const [productTypeName, setProductTypeName] = useState('')
+  const [editingProductTypeId, setEditingProductTypeId] = useState('')
 
   useEffect(() => onAuthStateChanged(auth, (currentUser) => { setUser(currentUser); setLoading(false) }), [])
 
@@ -231,10 +235,12 @@ export default function Admin() {
     const stopDesigns = onSnapshot(query(collection(db, 'designs'), orderBy('createdAt', 'desc')), (snapshot) => setDesigns(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))), () => setMessage('Todavía no se pudieron cargar los diseños.'))
     const stopProducts = onSnapshot(collection(db, 'products'), (snapshot) => setStoredProducts(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))), () => setMessage('Todavía no se pudieron cargar los productos.'))
     const stopCategories = onSnapshot(query(collection(db, 'categories'), orderBy('name')), (snapshot) => setCategories(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))), () => setMessage('Todavía no se pudieron cargar las categorías.'))
-    return () => { stopOrders(); stopDesigns(); stopProducts(); stopCategories() }
+    const stopProductTypes = onSnapshot(doc(db, 'settings', 'catalog'), (snapshot) => setProductTypes(catalogProductTypes(snapshot.data()?.productTypes)), () => setMessage('Todavía no se pudieron cargar los tipos de prenda.'))
+    return () => { stopOrders(); stopDesigns(); stopProducts(); stopCategories(); stopProductTypes() }
   }, [user])
 
   const categoryOptions = categories.length ? categories.map((item) => item.name) : DEFAULT_CATEGORIES
+  const productTypeOptions = productTypes.length ? productTypes : DEFAULT_PRODUCT_TYPES
 
   async function login(event) {
     event.preventDefault()
@@ -254,6 +260,48 @@ export default function Admin() {
       setEditingCategoryId('')
       setMessage(editingCategoryId ? 'Categoría actualizada.' : 'Categoría agregada.')
     } catch { setMessage('No se pudo agregar la categoría.') }
+  }
+
+  async function addProductType(event) {
+    event.preventDefault()
+    const name = productTypeName.trim().replace(/\s+/g, ' ')
+    if (!name) return
+    const normalizedName = name.toLocaleLowerCase('es-AR')
+    const hasSameName = productTypeOptions.some((item) => item.name.toLocaleLowerCase('es-AR') === normalizedName && item.id !== editingProductTypeId)
+    if (hasSameName) { setMessage('Ese tipo de prenda ya existe.'); return }
+
+    try {
+      let nextTypes
+      if (editingProductTypeId) {
+        nextTypes = productTypeOptions.map((item) => item.id === editingProductTypeId ? { ...item, name } : item)
+      } else {
+        const base = productTypeSlug(name)
+        if (!base) { setMessage('Ingresá un nombre válido para el tipo de prenda.'); return }
+        let id = base
+        let suffix = 2
+        while (productTypeOptions.some((item) => item.id === id)) { id = `${base}-${suffix}`; suffix += 1 }
+        nextTypes = [...productTypeOptions, { id, name }]
+      }
+      await setDoc(doc(db, 'settings', 'catalog'), { productTypes: nextTypes, updatedAt: serverTimestamp() }, { merge: true })
+      setProductTypeName('')
+      setEditingProductTypeId('')
+      setMessage(editingProductTypeId ? 'Tipo de prenda actualizado.' : 'Tipo de prenda agregado.')
+    } catch { setMessage('No se pudo guardar el tipo de prenda.') }
+  }
+
+  async function removeProductType(item) {
+    const usedBy = products.filter((product) => productTypeIdFor(product) === item.id)
+    if (usedBy.length) {
+      setMessage(`No podés quitar “${item.name}” porque hay ${usedBy.length} producto${usedBy.length === 1 ? '' : 's'} asignado${usedBy.length === 1 ? '' : 's'}. Reasignalos desde Productos primero.`)
+      return
+    }
+    if (productTypeOptions.length <= 1) { setMessage('Dejá al menos un tipo de prenda disponible.'); return }
+    if (!window.confirm(`¿Querés quitar “${item.name}”?`)) return
+    try {
+      await setDoc(doc(db, 'settings', 'catalog'), { productTypes: productTypeOptions.filter((type) => type.id !== item.id), updatedAt: serverTimestamp() }, { merge: true })
+      if (editingProductTypeId === item.id) { setProductTypeName(''); setEditingProductTypeId('') }
+      setMessage('Tipo de prenda eliminado.')
+    } catch { setMessage('No se pudo eliminar el tipo de prenda.') }
   }
 
   async function addDesign(event) {
@@ -295,6 +343,7 @@ export default function Admin() {
         description: product.description.trim(),
         price,
         category: product.category || 'Remeras',
+        productTypeId: productTypeOptions.some((item) => item.id === product.productTypeId) ? product.productTypeId : productTypeOptions[0].id,
         imageUrl: product.imageUrl.trim(),
         imagePublicId: product.imagePublicId || '',
         sizes: normalizeProductSizes(product.sizes),
@@ -333,7 +382,7 @@ export default function Admin() {
     }
   }
 
-  function editProduct(item) { const options = productOptions(item); setProduct({ id: item.id, title: item.title || '', description: item.description || '', price: String(item.price ?? ''), category: item.category || '', imageUrl: item.imageUrl || '', imagePublicId: item.imagePublicId || '', imageFile: null, sizes: options.sizes, colors: options.colors }); setMessage('Editando producto. Guardá los cambios cuando termines.') }
+  function editProduct(item) { const options = productOptions(item); setProduct({ id: item.id, title: item.title || '', description: item.description || '', price: String(item.price ?? ''), category: item.category || '', productTypeId: productTypeIdFor(item), imageUrl: item.imageUrl || '', imagePublicId: item.imagePublicId || '', imageFile: null, sizes: options.sizes, colors: options.colors }); setMessage('Editando producto. Guardá los cambios cuando termines.') }
   function editDesign(item) { setUpload({ id: item.id, title: item.title || '', category: item.category || '', file: null }); setMessage('Editando diseño. La imagen actual se conserva.') }
   function editCategory(item) { setCategoryName(item.name || ''); setEditingCategoryId(item.id); setMessage('Editando categoría.') }
   useEffect(() => {
@@ -351,7 +400,7 @@ export default function Admin() {
 
   if (!user) return <main className="admin-login"><a className="admin-brand" href="/" aria-label="Fenixis Store"><span className="admin-brand-wordmark" aria-hidden="true" /></a><section><p className="admin-kicker">PANEL DEL VENDEDOR</p><h1>Administrá tu tienda.</h1><p>Ingresá con tu cuenta de vendedor para manejar el catálogo y los pedidos.</p><form onSubmit={login}><label>Correo<input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" required /></label><label>Contraseña<input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" required /></label>{message && <p className="admin-message">{message}</p>}<button>Ingresar al panel <span>→</span></button></form></section></main>
 
-  return <main className="admin-page"><header className="admin-header"><a className="admin-brand" href="/" aria-label="Fenixis Store"><span className="admin-brand-wordmark" aria-hidden="true" /></a><div><span>{user.email}</span><button className="admin-logout" onClick={() => signOut(auth)}>Salir</button></div></header><div className="admin-layout"><aside><p className="admin-kicker">ADMINISTRACIÓN</p><button className={active === 'pedidos' ? 'active' : ''} onClick={() => setActive('pedidos')}>Pedidos <b>{orders.length}</b></button><button className={active === 'productos' ? 'active' : ''} onClick={() => setActive('productos')}>Productos <b>{products.length}</b></button><button className={active === 'disenos' ? 'active' : ''} onClick={() => setActive('disenos')}>Diseños <b>{designs.length}</b></button><button className={active === 'ofertas' ? 'active' : ''} onClick={() => setActive('ofertas')}>Ofertas</button><button className={active === 'cupones' ? 'active' : ''} onClick={() => setActive('cupones')}>Cupones</button><button className={active === 'personalizador' ? 'active' : ''} onClick={() => setActive('personalizador')}>Personalizador</button><button className={active === 'categorias' ? 'active' : ''} onClick={() => setActive('categorias')}>Categorías <b>{categories.length}</b></button><a href="/">Ver tienda <span>↗</span></a></aside><section className="admin-content">{message && <p className="admin-toast">{message}</p>}{active === 'pedidos' && <Orders orders={orders} user={user} onNotice={setMessage} />}{active === 'productos' && <Products items={products} value={product} setValue={setProduct} categories={categoryOptions} onAdd={addProduct} onRemove={remove} onToggleVisibility={toggleProductVisibility} />}{active === 'disenos' && <Designs designs={designs} upload={upload} setUpload={setUpload} categories={categoryOptions} onAdd={addDesign} onRemove={remove} />}{active === 'ofertas' && <Offers />}{active === 'cupones' && <Coupons products={products} />}{active === 'personalizador' && <CustomizerSettings />}{active === 'categorias' && <Categories items={categories} value={categoryName} setValue={setCategoryName} onAdd={addCategory} onRemove={remove} />}</section></div></main>
+  return <main className="admin-page"><header className="admin-header"><a className="admin-brand" href="/" aria-label="Fenixis Store"><span className="admin-brand-wordmark" aria-hidden="true" /></a><div><span>{user.email}</span><button className="admin-logout" onClick={() => signOut(auth)}>Salir</button></div></header><div className="admin-layout"><aside><p className="admin-kicker">ADMINISTRACIÓN</p><button className={active === 'pedidos' ? 'active' : ''} onClick={() => setActive('pedidos')}>Pedidos <b>{orders.length}</b></button><button className={active === 'productos' ? 'active' : ''} onClick={() => setActive('productos')}>Productos <b>{products.length}</b></button><button className={active === 'tipos-prenda' ? 'active' : ''} onClick={() => setActive('tipos-prenda')}>Tipos de prenda <b>{productTypeOptions.length}</b></button><button className={active === 'disenos' ? 'active' : ''} onClick={() => setActive('disenos')}>Diseños <b>{designs.length}</b></button><button className={active === 'ofertas' ? 'active' : ''} onClick={() => setActive('ofertas')}>Ofertas</button><button className={active === 'cupones' ? 'active' : ''} onClick={() => setActive('cupones')}>Cupones</button><button className={active === 'personalizador' ? 'active' : ''} onClick={() => setActive('personalizador')}>Personalizador</button><button className={active === 'categorias' ? 'active' : ''} onClick={() => setActive('categorias')}>Categorías <b>{categories.length}</b></button><a href="/">Ver tienda <span>↗</span></a></aside><section className="admin-content">{message && <p className="admin-toast">{message}</p>}{active === 'pedidos' && <Orders orders={orders} user={user} onNotice={setMessage} />}{active === 'productos' && <Products items={products} value={product} setValue={setProduct} categories={categoryOptions} productTypes={productTypeOptions} onAdd={addProduct} onRemove={remove} onToggleVisibility={toggleProductVisibility} />}{active === 'tipos-prenda' && <ProductTypes items={productTypeOptions} products={products} value={productTypeName} editingId={editingProductTypeId} setValue={setProductTypeName} onAdd={addProductType} onEdit={(item) => { setProductTypeName(item.name); setEditingProductTypeId(item.id); setMessage('Editando tipo de prenda.') }} onCancel={() => { setProductTypeName(''); setEditingProductTypeId('') }} onRemove={removeProductType} />}{active === 'disenos' && <Designs designs={designs} upload={upload} setUpload={setUpload} categories={categoryOptions} onAdd={addDesign} onRemove={remove} />}{active === 'ofertas' && <Offers />}{active === 'cupones' && <Coupons products={products} />}{active === 'personalizador' && <CustomizerSettings />}{active === 'categorias' && <Categories items={categories} value={categoryName} setValue={setCategoryName} onAdd={addCategory} onRemove={remove} />}</section></div></main>
 }
 
 function Orders({ orders, user, onNotice }) {
@@ -623,24 +672,25 @@ function ProductOptions({ value, onChange }) {
   </section>
 }
 
-function Products({ items, value, setValue, categories, onAdd, onRemove, onToggleVisibility }) {
+function Products({ items, value, setValue, categories, productTypes, onAdd, onRemove, onToggleVisibility }) {
   const update = (field, next) => setValue({ ...value, [field]: next })
   const [search, setSearch] = useState('')
   const normalizedSearch = search.trim().toLocaleLowerCase('es-AR')
-  const matchingItems = items.filter((product) => [product.title, product.id, product.category].filter(Boolean).join(' ').toLocaleLowerCase('es-AR').includes(normalizedSearch))
+  const matchingItems = items.filter((product) => [product.title, product.id, product.category, productTypeNameFor(product, productTypes)].filter(Boolean).join(' ').toLocaleLowerCase('es-AR').includes(normalizedSearch))
   return <>
-    <div className="admin-title"><div><p className="admin-kicker">TIENDA</p><h1>Productos</h1></div><p>Creá tus remeras, packs o servicios. Elegí una foto desde tu equipo: queda guardada con el producto.</p></div>
+    <div className="admin-title"><div><p className="admin-kicker">TIENDA</p><h1>Productos</h1></div><p>Creá prendas, packs o servicios. Elegí una foto desde tu equipo: queda guardada con el producto.</p></div>
     <form className="product-form" onSubmit={onAdd}>
-      <label>Nombre del producto<input value={value.title} onChange={(event) => update('title', event.target.value)} placeholder="Ej. Remera clásica" required /></label>
+      <label>Nombre del producto<input value={value.title} onChange={(event) => update('title', event.target.value)} placeholder="Ej. Prenda clásica" required /></label>
       <label>Precio<input value={value.price} onChange={(event) => update('price', event.target.value)} type="number" min="0" step="1" required /></label>
-      <label>Categoría<select value={value.category} onChange={(event) => update('category', event.target.value)}><option value="">Remeras</option>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
+      <label>Tipo de prenda<select value={value.productTypeId} onChange={(event) => update('productTypeId', event.target.value)} required>{productTypes.map((type) => <option value={type.id} key={type.id}>{type.name}</option>)}</select></label>
+      <label>Colección o estilo<select value={value.category} onChange={(event) => update('category', event.target.value)}><option value="">Sin categoría</option>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
       <label className="product-description">Descripción<textarea value={value.description} onChange={(event) => update('description', event.target.value)} placeholder="Ej. Algodón premium, estampado personalizado incluido." rows="3" /></label>
       <ProductOptions value={value} onChange={setValue} />
       <label className="product-image">Foto del producto <small>{value.imageFile?.name || (value.imageUrl ? 'Elegí otra foto para reemplazar la actual.' : 'Opcional · PNG, JPG o WEBP · Máx. 10 MB')}</small><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => update('imageFile', event.target.files?.[0] || null)} /></label>
       <button>{value.id ? 'Guardar cambios' : 'Guardar producto'} <span>{value.id ? '✓' : '+'}</span></button>
     </form>
     {items.length && <label className="admin-product-search"><span>Buscar producto</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nombre o código del producto" /><small>{matchingItems.length} de {items.length} productos</small></label>}
-    {items.length ? matchingItems.length ? <div className="product-grid">{matchingItems.map((product) => <article className={product.hidden ? 'is-hidden' : ''} key={product.id}><div className="product-image-preview">{product.imageUrl ? <img src={product.imageUrl} alt={product.title} /> : <span>REMERA<br/>FENIXIS</span>}{product.hidden && <b className="product-hidden-badge">Oculto · sin stock</b>}</div><div><span>{product.category}</span><h2>{product.title}</h2><code>{product.id}</code>{productOptionsSummary(product) && <p className="product-availability">{productOptionsSummary(product)}</p>}{product.description && <p>{product.description}</p>}<strong>$ {Number(product.price || 0).toLocaleString('es-AR')}</strong><div className="admin-actions"><button onClick={() => editItem('products', product.id)}>Editar</button><button type="button" onClick={() => onToggleVisibility(product)}>{product.hidden ? 'Mostrar en tienda' : 'Ocultar por stock'}</button><button onClick={() => onRemove('products', product.id)}>Quitar</button></div></div></article>)}</div> : <Empty title="No hay productos que coincidan" text="Probá buscar por otro nombre o código." /> : <Empty title="Todavía no hay productos" text="Podés empezar con la remera personalizada y agregar una foto cuando la tengas." />}
+    {items.length ? matchingItems.length ? <div className="product-grid">{matchingItems.map((product) => <article className={product.hidden ? 'is-hidden' : ''} key={product.id}><div className="product-image-preview">{product.imageUrl ? <img src={product.imageUrl} alt={product.title} /> : <span>PRENDA<br/>FENIXIS</span>}{product.hidden && <b className="product-hidden-badge">Oculto · sin stock</b>}</div><div><span>{productTypeNameFor(product, productTypes)}{product.category ? ` · ${product.category}` : ''}</span><h2>{product.title}</h2><code>{product.id}</code>{productOptionsSummary(product) && <p className="product-availability">{productOptionsSummary(product)}</p>}{product.description && <p>{product.description}</p>}<strong>$ {Number(product.price || 0).toLocaleString('es-AR')}</strong><div className="admin-actions"><button onClick={() => editItem('products', product.id)}>Editar</button><button type="button" onClick={() => onToggleVisibility(product)}>{product.hidden ? 'Mostrar en tienda' : 'Ocultar por stock'}</button><button onClick={() => onRemove('products', product.id)}>Quitar</button></div></div></article>)}</div> : <Empty title="No hay productos que coincidan" text="Probá buscar por otro nombre o código." /> : <Empty title="Todavía no hay productos" text="Podés agregar tu primera prenda y elegir el tipo que corresponde." />}
   </>
 }
 function Coupons({ products }) {
@@ -970,6 +1020,24 @@ function CustomizerSettings() {
     </form>
   </section>
 }
-function Categories({ items, value, setValue, onAdd, onRemove }) { return <><div className="admin-title"><div><p className="admin-kicker">ORGANIZACIÓN</p><h1>Categorías</h1></div><p>Creá, editá o quitá las secciones que necesites para tu catálogo.</p></div><form className="category-form" onSubmit={onAdd}><input value={value} onChange={(event) => setValue(event.target.value)} placeholder="Nueva categoría" required /><button>Guardar <span>✓</span></button></form>{items.length ? <div className="category-list">{items.map((item) => <article key={item.id}><span>{item.name}</span><div className="admin-actions"><button onClick={() => editItem('categories', item.id)}>Editar</button><button onClick={() => onRemove('categories', item.id)}>Quitar</button></div></article>)}</div> : <Empty title="Usando categorías iniciales" text="Podés crear las tuyas desde arriba. Las sugeridas siguen disponibles para las primeras cargas." />}<StoreSettings /></> }
+function ProductTypes({ items, products, value, editingId, setValue, onAdd, onEdit, onCancel, onRemove }) {
+  return <>
+    <div className="admin-title"><div><p className="admin-kicker">CATÁLOGO</p><h1>Tipos de prenda</h1></div><p>Definí las secciones que se ven al costado del catálogo: remeras, camperas, pantalones y las que quieras sumar.</p></div>
+    <form className="category-form product-type-form" onSubmit={onAdd}>
+      <input value={value} onChange={(event) => setValue(event.target.value)} placeholder="Ej. Buzos" maxLength="40" required />
+      <button>{editingId ? 'Guardar cambios' : 'Agregar tipo'} <span>{editingId ? '✓' : '+'}</span></button>
+      {editingId && <button className="product-type-cancel" type="button" onClick={onCancel}>Cancelar</button>}
+    </form>
+    <div className="category-list product-type-list">
+      {items.map((item) => {
+        const count = products.filter((product) => productTypeIdFor(product) === item.id).length
+        return <article key={item.id}><div><strong>{item.name}</strong><small>{count === 1 ? '1 producto asignado' : `${count} productos asignados`}</small></div><div className="admin-actions"><button type="button" onClick={() => onEdit(item)}>Editar</button><button type="button" onClick={() => onRemove(item)}>Quitar</button></div></article>
+      })}
+    </div>
+    <p className="product-type-help">Para quitar un tipo que ya tiene productos, primero cambialos desde la sección Productos. Así ninguna prenda deja de aparecer en el catálogo.</p>
+  </>
+}
+
+function Categories({ items, value, setValue, onAdd, onRemove }) { return <><div className="admin-title"><div><p className="admin-kicker">ORGANIZACIÓN</p><h1>Categorías</h1></div><p>Creá, editá o quitá las colecciones de diseños que necesites para el catálogo.</p></div><form className="category-form" onSubmit={onAdd}><input value={value} onChange={(event) => setValue(event.target.value)} placeholder="Nueva categoría" required /><button>Guardar <span>✓</span></button></form>{items.length ? <div className="category-list">{items.map((item) => <article key={item.id}><span>{item.name}</span><div className="admin-actions"><button onClick={() => editItem('categories', item.id)}>Editar</button><button onClick={() => onRemove('categories', item.id)}>Quitar</button></div></article>)}</div> : <Empty title="Usando categorías iniciales" text="Podés crear las tuyas desde arriba. Las sugeridas siguen disponibles para las primeras cargas." />}<StoreSettings /></> }
 function StoreSettings() { const [phone, setPhone] = useState('1165937433'); const [notice, setNotice] = useState(''); useEffect(() => onSnapshot(doc(db, 'settings', 'store'), (snapshot) => { const stored = snapshot.data()?.whatsappNumber?.replace(/\D/g, ''); if (stored) setPhone(stored.replace(/^549/, '')) }, () => {}), []); const save = async (event) => { event.preventDefault(); const digits = phone.replace(/\D/g, ''); if (digits.length < 10) { setNotice('Ingresá un número válido con característica y celular.'); return } try { await setDoc(doc(db, 'settings', 'store'), { whatsappNumber: digits.startsWith('549') ? digits : `549${digits}`, updatedAt: serverTimestamp() }, { merge: true }); setNotice('Número de WhatsApp actualizado.') } catch { setNotice('No se pudo guardar el número.') } }; return <section className="store-settings"><p className="admin-kicker">CONTACTO</p><h2>WhatsApp de la tienda</h2><p>Este es el número al que llegan los pedidos de clientes.</p><form onSubmit={save}><label>Celular argentino<input value={phone} onChange={(event) => setPhone(event.target.value)} inputMode="numeric" placeholder="11 6593 7433" /></label><button>Guardar número <span>✓</span></button></form>{notice && <small>{notice}</small>}</section> }
 function Empty({ title, text }) { return <div className="admin-empty"><span>✦</span><h2>{title}</h2><p>{text}</p></div> }
