@@ -21,8 +21,15 @@
 
 [[redirects]]
   from = "/personaliza"
-  to = "/personaliza/index.html"
-  status = 200
+  to = "/productos/"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/personaliza/*"
+  to = "/productos/"
+  status = 302
+  force = true
 
 [[redirects]]
   from = "/admin"

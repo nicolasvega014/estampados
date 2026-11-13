@@ -1,8 +1,6 @@
 import { createHash } from 'node:crypto'
 import { FieldValue } from './firebase-admin.js'
 
-export const CUSTOM_SHIRT_PRICE = 18900
-
 export const CATALOG = {
   'remeron-yorkie-bandana': { title: 'Remerón Yorkie Bandana', price: 12000 },
   'remeron-golden-girasoles': { title: 'Remerón Golden Girasoles', price: 12000 },
@@ -91,17 +89,13 @@ export async function calculateCart(cart, db = null) {
     if (!quantity) throw new CheckoutError('La cantidad elegida no es válida.')
 
     if (item?.kind === 'custom') {
-      return {
-        kind: 'custom',
-        quantity,
-        unitPrice: CUSTOM_SHIRT_PRICE,
-        title: 'Remera personalizada',
-        productId: null,
-        color: safeOptionalText(item?.color, 60),
-        size: safeOptionalText(item?.size, 20),
-        front: safeOptionalText(item?.front, 180),
-        back: safeOptionalText(item?.back, 180),
-      }
+      // Reject stale browser carts before reserving coupons or creating a payment.
+      // Historical orders remain readable and can still be settled by the webhook.
+      throw new CheckoutError(
+        'Las prendas personalizadas no están disponibles por el momento. Quitalas del carrito para continuar con tu compra.',
+        'CUSTOMIZATION_UNAVAILABLE',
+        409,
+      )
     }
 
     const productId = validProductId(item?.productId)
@@ -132,8 +126,6 @@ export async function calculateCart(cart, db = null) {
   }
 
   const items = normalized.map((item) => {
-    if (item.kind === 'custom') return { ...item, lineTotal: item.unitPrice * item.quantity }
-
     const firestoreProduct = firestoreProducts.get(item.productId)
     const catalogProduct = CATALOG[item.productId]
     if (firestoreProduct?.hidden === true) {

@@ -8,10 +8,10 @@ const origin = 'https://fenixis.com.ar'
 const pages = [
   {
     path: '/',
-    title: 'Fenixis Store | Prendas y remeras personalizadas',
-    description: 'Descubrí prendas y remerones estampados en Fenixis Store. Elegí tu próxima prenda o creá una remera con tu diseño y comprá online con Mercado Pago.',
-    heading: 'Fenixis Store: prendas y remeras personalizadas',
-    copy: 'Tu idea. Tu remera. Elegí una prenda del catálogo o creá una remera con tu propio diseño.',
+    title: 'Fenixis Store | Tienda de ropa online',
+    description: 'Descubrí prendas para todos tus días en Fenixis Store. Explorá el catálogo, elegí tu talle y color y comprá online con Mercado Pago.',
+    heading: 'Vestite como te gusta.',
+    copy: 'Encontrá tu próxima prenda en Fenixis Store. Explorá el catálogo de ropa y elegí los talles y colores disponibles.',
   },
   {
     path: '/productos/',
@@ -19,13 +19,6 @@ const pages = [
     description: 'Elegí tu próxima prenda en Fenixis Store. Explorá remerones estampados y otras prendas, filtrá por talle y color y comprá online con Mercado Pago.',
     heading: 'Elegí tu próxima prenda.',
     copy: 'Descubrí los productos disponibles y elegí tus favoritos. Buscá por nombre y filtrá por tipo de prenda, talle o color.',
-  },
-  {
-    path: '/personaliza/',
-    title: 'Personalizá tu remera con tu diseño | Fenixis Store',
-    description: 'Creá tu remera personalizada en Fenixis Store. Subí tu imagen, acomodá el diseño y elegí entre los talles y colores disponibles antes de agregarla al carrito.',
-    heading: 'Personalizá tu remera.',
-    copy: 'Subí tu imagen, acomodá el diseño y elegí entre los talles y colores disponibles para crear tu prenda.',
   },
   {
     path: '/admin/',
@@ -105,7 +98,7 @@ function metadata(page) {
 function fallbackContent(page) {
   // Visible to every visitor until React loads; no stale prices or stock are embedded.
   const navigation = pages.filter((entry) => !entry.noindex).map((entry) => {
-    const label = entry.path === '/' ? 'Inicio' : entry.path === '/productos/' ? 'Productos' : 'Personalizá'
+    const label = entry.path === '/' ? 'Inicio' : 'Productos'
     return `<a href="${entry.path}">${label}</a>`
   }).join(' · ')
   return `<main><h1>${escapeHtml(page.heading)}</h1><p>${escapeHtml(page.copy)}</p><nav aria-label="Secciones de Fenixis Store">${navigation}</nav><noscript><p>Activá JavaScript para consultar la disponibilidad y comprar en la tienda.</p></noscript></main>`

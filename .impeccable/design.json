@@ -1,0 +1,443 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-13T01:01:53.176Z",
+  "title": "Design System: Fenixis Store",
+  "extensions": {
+    "colorMeta": {
+      "wine": {
+        "role": "primary",
+        "displayName": "Wine",
+        "canonical": "#783d49",
+        "tonalRamp": [
+          "oklch(15.00% 0.0830 8.16)",
+          "oklch(26.43% 0.0830 8.16)",
+          "oklch(37.86% 0.0830 8.16)",
+          "oklch(49.29% 0.0830 8.16)",
+          "oklch(60.71% 0.0830 8.16)",
+          "oklch(72.14% 0.0830 8.16)",
+          "oklch(83.57% 0.0830 8.16)",
+          "oklch(95.00% 0.0830 8.16)"
+        ]
+      },
+      "wine-hover": {
+        "role": "primary",
+        "displayName": "Wine hover",
+        "canonical": "#60303b",
+        "tonalRamp": [
+          "oklch(15.00% 0.0705 6.44)",
+          "oklch(26.43% 0.0705 6.44)",
+          "oklch(37.86% 0.0705 6.44)",
+          "oklch(49.29% 0.0705 6.44)",
+          "oklch(60.71% 0.0705 6.44)",
+          "oklch(72.14% 0.0705 6.44)",
+          "oklch(83.57% 0.0705 6.44)",
+          "oklch(95.00% 0.0705 6.44)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#29241f",
+        "tonalRamp": [
+          "oklch(15.00% 0.0118 67.28)",
+          "oklch(26.43% 0.0118 67.28)",
+          "oklch(37.86% 0.0118 67.28)",
+          "oklch(49.29% 0.0118 67.28)",
+          "oklch(60.71% 0.0118 67.28)",
+          "oklch(72.14% 0.0118 67.28)",
+          "oklch(83.57% 0.0118 67.28)",
+          "oklch(95.00% 0.0118 67.28)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#faf7f2",
+        "tonalRamp": [
+          "oklch(15.00% 0.0074 80.72)",
+          "oklch(26.43% 0.0074 80.72)",
+          "oklch(37.86% 0.0074 80.72)",
+          "oklch(49.29% 0.0074 80.72)",
+          "oklch(60.71% 0.0074 80.72)",
+          "oklch(72.14% 0.0074 80.72)",
+          "oklch(83.57% 0.0074 80.72)",
+          "oklch(95.00% 0.0074 80.72)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "canonical": "#fffdfa",
+        "tonalRamp": [
+          "oklch(15.00% 0.0045 78.30)",
+          "oklch(26.43% 0.0045 78.30)",
+          "oklch(37.86% 0.0045 78.30)",
+          "oklch(49.29% 0.0045 78.30)",
+          "oklch(60.71% 0.0045 78.30)",
+          "oklch(72.14% 0.0045 78.30)",
+          "oklch(83.57% 0.0045 78.30)",
+          "oklch(95.00% 0.0045 78.30)"
+        ]
+      },
+      "warm-panel": {
+        "role": "neutral",
+        "displayName": "Warm panel",
+        "canonical": "#eee6df",
+        "tonalRamp": [
+          "oklch(15.00% 0.0128 63.91)",
+          "oklch(26.43% 0.0128 63.91)",
+          "oklch(37.86% 0.0128 63.91)",
+          "oklch(49.29% 0.0128 63.91)",
+          "oklch(60.71% 0.0128 63.91)",
+          "oklch(72.14% 0.0128 63.91)",
+          "oklch(83.57% 0.0128 63.91)",
+          "oklch(95.00% 0.0128 63.91)"
+        ]
+      },
+      "photo-ground": {
+        "role": "neutral",
+        "displayName": "Photo ground",
+        "canonical": "#eee8e1",
+        "tonalRamp": [
+          "oklch(15.00% 0.0114 71.89)",
+          "oklch(26.43% 0.0114 71.89)",
+          "oklch(37.86% 0.0114 71.89)",
+          "oklch(49.29% 0.0114 71.89)",
+          "oklch(60.71% 0.0114 71.89)",
+          "oklch(72.14% 0.0114 71.89)",
+          "oklch(83.57% 0.0114 71.89)",
+          "oklch(95.00% 0.0114 71.89)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted text",
+        "canonical": "#70645b",
+        "tonalRamp": [
+          "oklch(15.00% 0.0208 59.17)",
+          "oklch(26.43% 0.0208 59.17)",
+          "oklch(37.86% 0.0208 59.17)",
+          "oklch(49.29% 0.0208 59.17)",
+          "oklch(60.71% 0.0208 59.17)",
+          "oklch(72.14% 0.0208 59.17)",
+          "oklch(83.57% 0.0208 59.17)",
+          "oklch(95.00% 0.0208 59.17)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Divider",
+        "canonical": "#ddd4ca",
+        "tonalRamp": [
+          "oklch(15.00% 0.0169 70.51)",
+          "oklch(26.43% 0.0169 70.51)",
+          "oklch(37.86% 0.0169 70.51)",
+          "oklch(49.29% 0.0169 70.51)",
+          "oklch(60.71% 0.0169 70.51)",
+          "oklch(72.14% 0.0169 70.51)",
+          "oklch(83.57% 0.0169 70.51)",
+          "oklch(95.00% 0.0169 70.51)"
+        ]
+      },
+      "field-line": {
+        "role": "neutral",
+        "displayName": "Field outline",
+        "canonical": "#c9bcb1",
+        "tonalRamp": [
+          "oklch(15.00% 0.0213 62.79)",
+          "oklch(26.43% 0.0213 62.79)",
+          "oklch(37.86% 0.0213 62.79)",
+          "oklch(49.29% 0.0213 62.79)",
+          "oklch(60.71% 0.0213 62.79)",
+          "oklch(72.14% 0.0213 62.79)",
+          "oklch(83.57% 0.0213 62.79)",
+          "oklch(95.00% 0.0213 62.79)"
+        ]
+      },
+      "accent-line": {
+        "role": "primary",
+        "displayName": "Accent outline",
+        "canonical": "#b88791",
+        "tonalRamp": [
+          "oklch(15.00% 0.0614 5.32)",
+          "oklch(26.43% 0.0614 5.32)",
+          "oklch(37.86% 0.0614 5.32)",
+          "oklch(49.29% 0.0614 5.32)",
+          "oklch(60.71% 0.0614 5.32)",
+          "oklch(72.14% 0.0614 5.32)",
+          "oklch(83.57% 0.0614 5.32)",
+          "oklch(95.00% 0.0614 5.32)"
+        ]
+      },
+      "selected-surface": {
+        "role": "neutral",
+        "displayName": "Selected surface",
+        "canonical": "#eee0e0",
+        "tonalRamp": [
+          "oklch(15.00% 0.0154 17.44)",
+          "oklch(26.43% 0.0154 17.44)",
+          "oklch(37.86% 0.0154 17.44)",
+          "oklch(49.29% 0.0154 17.44)",
+          "oklch(60.71% 0.0154 17.44)",
+          "oklch(72.14% 0.0154 17.44)",
+          "oklch(83.57% 0.0154 17.44)",
+          "oklch(95.00% 0.0154 17.44)"
+        ]
+      },
+      "selected-ink": {
+        "role": "primary",
+        "displayName": "Selected text",
+        "canonical": "#65323e",
+        "tonalRamp": [
+          "oklch(15.00% 0.0743 6.18)",
+          "oklch(26.43% 0.0743 6.18)",
+          "oklch(37.86% 0.0743 6.18)",
+          "oklch(49.29% 0.0743 6.18)",
+          "oklch(60.71% 0.0743 6.18)",
+          "oklch(72.14% 0.0743 6.18)",
+          "oklch(83.57% 0.0743 6.18)",
+          "oklch(95.00% 0.0743 6.18)"
+        ]
+      },
+      "focus": {
+        "role": "primary",
+        "displayName": "Focus",
+        "canonical": "#a85f70",
+        "tonalRamp": [
+          "oklch(15.00% 0.0966 5.61)",
+          "oklch(26.43% 0.0966 5.61)",
+          "oklch(37.86% 0.0966 5.61)",
+          "oklch(49.29% 0.0966 5.61)",
+          "oklch(60.71% 0.0966 5.61)",
+          "oklch(72.14% 0.0966 5.61)",
+          "oklch(83.57% 0.0966 5.61)",
+          "oklch(95.00% 0.0966 5.61)"
+        ]
+      },
+      "white": {
+        "role": "neutral",
+        "displayName": "White",
+        "canonical": "#fff",
+        "tonalRamp": [
+          "oklch(15.00% 0.0000 0.00)",
+          "oklch(26.43% 0.0000 0.00)",
+          "oklch(37.86% 0.0000 0.00)",
+          "oklch(49.29% 0.0000 0.00)",
+          "oklch(60.71% 0.0000 0.00)",
+          "oklch(72.14% 0.0000 0.00)",
+          "oklch(83.57% 0.0000 0.00)",
+          "oklch(95.00% 0.0000 0.00)"
+        ]
+      },
+      "payment": {
+        "role": "secondary",
+        "displayName": "Payment blue",
+        "canonical": "#007caf",
+        "tonalRamp": [
+          "oklch(15.00% 0.1196 236.15)",
+          "oklch(26.43% 0.1196 236.15)",
+          "oklch(37.86% 0.1196 236.15)",
+          "oklch(49.29% 0.1196 236.15)",
+          "oklch(60.71% 0.1196 236.15)",
+          "oklch(72.14% 0.1196 236.15)",
+          "oklch(83.57% 0.1196 236.15)",
+          "oklch(95.00% 0.1196 236.15)"
+        ]
+      },
+      "payment-hover": {
+        "role": "secondary",
+        "displayName": "Payment blue hover",
+        "canonical": "#00618b",
+        "tonalRamp": [
+          "oklch(15.00% 0.1015 236.78)",
+          "oklch(26.43% 0.1015 236.78)",
+          "oklch(37.86% 0.1015 236.78)",
+          "oklch(49.29% 0.1015 236.78)",
+          "oklch(60.71% 0.1015 236.78)",
+          "oklch(72.14% 0.1015 236.78)",
+          "oklch(83.57% 0.1015 236.78)",
+          "oklch(95.00% 0.1015 236.78)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Homepage display",
+        "purpose": "Large homepage heading."
+      },
+      "headline": {
+        "displayName": "Section heading",
+        "purpose": "Storefront section titles."
+      },
+      "emphasis": {
+        "displayName": "Italic serif emphasis",
+        "purpose": "Selected words in display copy and supporting phrases; inherits surrounding size."
+      },
+      "title": {
+        "displayName": "Product title",
+        "purpose": "Garment names in cards."
+      },
+      "body": {
+        "displayName": "Supporting body",
+        "purpose": "Supporting copy and product descriptions."
+      },
+      "label": {
+        "displayName": "Field label",
+        "purpose": "Search, sort and filter labels."
+      },
+      "action": {
+        "displayName": "Primary action",
+        "purpose": "Storefront calls to action."
+      }
+    },
+    "shadows": [
+      {
+        "name": "cart-drawer",
+        "value": "-16px 0 45px rgba(0,0,0,.12)",
+        "purpose": "Separate the existing cart overlay from the page."
+      },
+      {
+        "name": "mobile-menu",
+        "value": "0 14px 22px #29241f22",
+        "purpose": "Separate expanded mobile navigation from underlying content."
+      },
+      {
+        "name": "seller-order-drawer",
+        "value": "-16px 0 40px rgba(0,0,0,.16)",
+        "purpose": "Existing seller order-detail overlay."
+      }
+    ],
+    "motion": [
+      {
+        "name": "control-state",
+        "value": "background .2s, transform .2s",
+        "purpose": "Storefront primary button hover."
+      },
+      {
+        "name": "photo-zoom",
+        "value": "transform .4s",
+        "purpose": "Subtle product and hero photo enlargement."
+      },
+      {
+        "name": "hero-reveal",
+        "value": ".75s cubic-bezier(.16,1,.3,1)",
+        "purpose": "One hero reveal when reduced motion is not requested."
+      },
+      {
+        "name": "cart-entry",
+        "value": "transform .28s ease",
+        "purpose": "Existing cart drawer entrance."
+      },
+      {
+        "name": "seller-control-state",
+        "value": "background-color .18s ease, border-color .18s ease",
+        "purpose": "Seller controls without positional movement."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "storefront-intermediate",
+        "value": "1100px"
+      },
+      {
+        "name": "seller-form-intermediate",
+        "value": "1050px"
+      },
+      {
+        "name": "mobile",
+        "value": "760px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main storefront call to action.",
+      "html": "<button class=\"ds-primary\">Explorar la tienda <svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12h15M13 5l7 7-7 7\"/></svg></button>",
+      "css": ".ds-primary { display: inline-flex; justify-content: center; align-items: center; gap: 34px; min-height: 50px; padding: 14px 24px; border: 0; border-radius: 7px; background: #783d49; color: #fff; font: 600 14px 'DM Sans', sans-serif; cursor: pointer; transition: background .2s, transform .2s; } .ds-primary:hover { background: #60303b; transform: translateY(-2px); } .ds-primary:focus-visible { outline: 3px solid #a85f70; outline-offset: 4px; } @media (prefers-reduced-motion: reduce) { .ds-primary { transition: none; } }"
+    },
+    {
+      "name": "Outlined add button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Explicit product action, visible independently of the photo overlay.",
+      "html": "<button class=\"ds-add\">Agregar <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"/></svg></button>",
+      "css": ".ds-add { display: inline-flex; gap: 9px; align-items: center; background: transparent; color: #783d49; border: 1px solid #b88791; border-radius: 6px; min-height: 40px; padding: 8px 12px; font: 600 12px 'DM Sans', sans-serif; cursor: pointer; } .ds-add:hover { background: #783d49; color: #fff; } .ds-add:focus-visible { outline: 3px solid #a85f70; outline-offset: 4px; }"
+    },
+    {
+      "name": "Checkout button",
+      "kind": "button",
+      "refersTo": "button-payment",
+      "description": "Payment-specific action retaining the existing Mercado Pago color role.",
+      "html": "<button class=\"ds-payment\">Pagar con Mercado Pago <svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12h15M13 5l7 7-7 7\"/></svg></button>",
+      "css": ".ds-payment { display: flex; justify-content: space-between; align-items: center; gap: 24px; width: 100%; border: 0; background: #007caf; color: #fff; padding: 15px 14px; font: 700 14px 'DM Sans', sans-serif; cursor: pointer; border-radius: 7px; min-height: 50px; } .ds-payment:hover { background: #00618b; } .ds-payment:focus-visible { outline: 3px solid #a85f70; outline-offset: 4px; }"
+    },
+    {
+      "name": "Search field",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "Labeled garment search with a leading icon and readable placeholder.",
+      "html": "<label class=\"ds-search\"><span>Buscar prendas</span><div><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" aria-hidden=\"true\"><circle cx=\"10.5\" cy=\"10.5\" r=\"6.5\"/><path d=\"m16 16 5 5\"/></svg><input type=\"search\" placeholder=\"Nombre, código o estilo…\" /></div></label>",
+      "css": ".ds-search { display: block; font: 500 12px 'DM Sans', sans-serif; color: #29241f; } .ds-search > div { margin-top: 9px; position: relative; } .ds-search svg { position: absolute; left: 14px; top: 14px; color: #70645b; } .ds-search input { width: 100%; height: 50px; padding: 12px 40px 12px 45px; border: 1px solid #c9bcb1; border-radius: 7px; background: #fffdfa; color: #29241f; font: 400 14px 'DM Sans', sans-serif; caret-color: #783d49; } .ds-search input::placeholder { color: #78675e; opacity: 1; } .ds-search input:focus-visible { outline: 3px solid #a85f70; outline-offset: 4px; }"
+    },
+    {
+      "name": "Store navigation",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "Dark header navigation with a clear current-page underline.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Navegación de muestra\"><a href=\"#inicio\" aria-current=\"page\">Inicio</a><a href=\"#prendas\">Todas las prendas</a><a href=\"#contacto\">Contacto</a></nav>",
+      "css": ".ds-nav { display: flex; flex-wrap: wrap; gap: 32px; align-items: center; padding: 20px; background: #29241f; } .ds-nav a { padding: 14px 0; color: #ede1d8; font: 400 14px 'DM Sans', sans-serif; text-decoration: none; transition: color .2s; } .ds-nav a[aria-current=page] { color: #fff; text-decoration: underline; text-underline-offset: 9px; text-decoration-color: #c897a0; } .ds-nav a:hover { color: #e4b0bd; } .ds-nav a:focus-visible { outline: 3px solid #a85f70; outline-offset: 4px; } @media (prefers-reduced-motion: reduce) { .ds-nav a { transition: none; } }"
+    },
+    {
+      "name": "Category pill",
+      "kind": "chip",
+      "refersTo": "category-chip",
+      "description": "Outlined category navigation derived from the garment-type links.",
+      "html": "<a class=\"ds-category\" href=\"#prendas\">Todas las prendas <svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12h15M13 5l7 7-7 7\"/></svg></a>",
+      "css": ".ds-category { display: inline-flex; align-items: center; justify-content: space-between; gap: 28px; border: 1px solid #ddd4ca; border-radius: 30px; padding: 13px 22px; background: #fffdfa; color: #29241f; font: 400 14px 'DM Sans', sans-serif; text-decoration: none; transition: background .2s, border-color .2s; } .ds-category svg { width: 18px; } .ds-category:hover { background: #eee0e0; border-color: #b88791; } .ds-category:focus-visible { outline: 3px solid #a85f70; outline-offset: 4px; } @media (prefers-reduced-motion: reduce) { .ds-category { transition: none; } }"
+    },
+    {
+      "name": "Product image fallback",
+      "kind": "card",
+      "refersTo": "product-photo",
+      "description": "The existing neutral branded state for a garment with no catalog photograph.",
+      "html": "<button class=\"ds-product-fallback\" aria-label=\"Ver prenda sin fotografía\"><span class=\"ds-no-photo\">FENIXIS<span>STORE</span></span><span class=\"ds-photo-action\">Ver prenda <svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12h15M13 5l7 7-7 7\"/></svg></span></button>",
+      "css": ".ds-product-fallback { display: block; position: relative; width: 220px; aspect-ratio: 4/5; overflow: hidden; padding: 0; border: 0; border-radius: 12px; background: #eee8e1; color: #29241f; cursor: pointer; } .ds-no-photo { height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; color: #70645b; font: 400 26px 'DM Sans', sans-serif; letter-spacing: .03em; } .ds-no-photo > span { font-size: 12px; letter-spacing: .4em; } .ds-photo-action { position: absolute; bottom: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: center; padding: 11px 14px; border-radius: 6px; background: #fffdfa; color: #3e302a; font: 400 12px 'DM Sans', sans-serif; opacity: 0; transition: opacity .2s; } .ds-product-fallback:hover .ds-photo-action, .ds-product-fallback:focus-visible .ds-photo-action { opacity: 1; } .ds-product-fallback:focus-visible { outline: 3px solid #a85f70; outline-offset: 4px; } @media (prefers-reduced-motion: reduce) { .ds-photo-action { transition: none; } }"
+    },
+    {
+      "name": "Selected size option",
+      "kind": "chip",
+      "refersTo": "option-selected",
+      "description": "Selected garment size control in product options.",
+      "html": "<button class=\"ds-option\" aria-pressed=\"true\">M</button>",
+      "css": ".ds-option { border: 1px solid #783d49; border-radius: 6px; font: 400 13px 'DM Sans', sans-serif; min-height: 44px; padding: 10px 14px; background: #783d49; color: #fff; cursor: pointer; } .ds-option:focus-visible { outline: 3px solid #a85f70; outline-offset: 4px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "A warm clothing storefront",
+    "overview": "Fenixis Store uses a warm, photo-led clothing storefront: pale ivory surfaces, brown-black typography and a restrained wine accent. Large plain-language headings pair a clean sans serif with italic serif emphasis, while real garment photographs carry the visual character.\n\nThe seller area uses the same palette in a denser working layout. This document records the implemented interface, rather than introducing a new brand promise or merchandising policy.",
+    "keyCharacteristics": [
+      "Warm ivory canvas with dark header and footer.",
+      "DM Sans hierarchy with selective Playfair Display italic emphasis.",
+      "Real garment photography in portrait frames.",
+      "Flat surfaces, fine borders and gently rounded controls.",
+      "Responsive browsing and readable mobile forms."
+    ],
+    "rules": [],
+    "dos": [
+      "**Do** reuse the supplied Fenixis wordmark and actual catalog photographs.",
+      "**Do** keep garment names, prices, sizes and colors readable outside the photograph.",
+      "**Do** use the wine accent for store actions and selected options; reserve payment blue for checkout.",
+      "**Do** keep keyboard focus visible and honor reduced-motion preferences.",
+      "**Do** use a neutral branded placeholder when a catalog photograph is missing."
+    ],
+    "donts": [
+      "**Don't** fabricate photographs, stock claims, discounts, testimonials or delivery promises.",
+      "**Don't** require hover to discover the product title, price or add action.",
+      "**Don't** replace the supplied wordmark with a text approximation.",
+      "**Don't** introduce customization controls into new clothing orders."
+    ]
+  }
+}

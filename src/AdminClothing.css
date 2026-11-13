@@ -1,0 +1,143 @@
+/* Clothing store administration. Keep all overrides inside the seller area. */
+:is(.admin-page, .admin-login, .admin-loading) {
+  --admin-paper: #faf7f2;
+  --admin-ink: #29241f;
+  --admin-muted: #6a6058;
+  --admin-line: #ddd4ca;
+  --admin-accent: #783d49;
+  background: var(--admin-paper);
+  color: var(--admin-ink);
+  caret-color: var(--admin-accent);
+  scrollbar-color: #b9a59b var(--admin-paper);
+}
+
+:is(.admin-page, .admin-login) ::selection { background: #ead2d6; color: #29241f; }
+:is(.admin-page, .admin-login) :is(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid #783d49;
+  outline-offset: 3px;
+}
+:is(.admin-page, .admin-login) :is(input, textarea)::placeholder { color: #74685f; opacity: 1; }
+.admin-page .admin-header { background: #29241f !important; border-bottom-color: #443a32 !important; }
+.admin-page .admin-header .admin-brand-wordmark { background: #e7ddd1; }
+.admin-page .admin-header .admin-logout {
+  min-height: 42px;
+  border-color: #bba99b;
+  border-radius: 8px;
+  color: #fffaf5;
+}
+.admin-page .admin-header .admin-logout:hover,
+.admin-page .admin-header .admin-logout:focus-visible {
+  background: #e7ddd1;
+  border-color: #e7ddd1;
+  color: #29241f;
+}
+.admin-login .admin-brand-wordmark { background: #29241f; }
+.admin-page .admin-layout { grid-template-columns: 228px minmax(0, 1fr); }
+.admin-page .admin-layout aside { padding: 30px 20px; border-color: var(--admin-line); }
+.admin-page .admin-layout aside :is(button, a) {
+  min-height: 44px;
+  border-radius: 9px;
+  color: var(--admin-ink);
+}
+.admin-page .admin-layout aside button.active { background: #783d49; color: #fffaf5; }
+.admin-page .admin-layout aside button:not(.active):hover,
+.admin-page .admin-layout aside a:hover { background: #eee6dc; }
+.admin-page .admin-content { min-width: 0; padding: 40px clamp(24px, 4vw, 64px); }
+.admin-page .admin-title { border-color: var(--admin-line); align-items: center; }
+.admin-page .admin-title h1,
+.admin-login h1 { letter-spacing: -.035em; line-height: 1.08; }
+.admin-page .admin-title h1 { font-size: clamp(34px, 4vw, 48px); }
+.admin-page .admin-title > p { color: var(--admin-muted); font-size: 14px; }
+
+.admin-page :is(.product-form, .offer-form, .coupon-form) { border-color: var(--admin-line); border-radius: 14px; }
+.admin-page .product-form { grid-template-columns: minmax(0, 1.3fr) repeat(3, minmax(100px, .8fr)); gap: 18px 14px; }
+.admin-page :is(input:not([type=checkbox]):not([type=radio]):not([type=color]), select, textarea),
+.admin-login input {
+  min-width: 0;
+  border-color: #c8bbb0;
+  border-radius: 7px;
+  color: #29241f;
+}
+.admin-page :is(input[type=checkbox], input[type=radio]) { accent-color: #783d49; }
+.admin-page :is(.product-form, .category-form, .offer-form, .coupon-form, .store-settings) button,
+.admin-page .order-fulfillment-actions button,
+.admin-login button {
+  min-height: 44px;
+  background: #783d49;
+  color: #fffaf5;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background-color .18s ease, border-color .18s ease;
+}
+.admin-page :is(.product-form, .category-form, .offer-form, .coupon-form, .store-settings) button:hover:not(:disabled),
+.admin-page .order-fulfillment-actions button:hover:not(:disabled),
+.admin-login button:hover:not(:disabled) {
+  background: #61313b;
+  transform: none;
+  box-shadow: none;
+}
+.admin-page :is(button:disabled) { opacity: .58; cursor: not-allowed; }
+.admin-page :is(.coupon-button-secondary, .offer-button-secondary),
+.admin-page .category-form .product-type-cancel,
+.admin-page .product-form .product-custom-color-form button {
+  background: #fff;
+  color: #783d49;
+  border-color: #c8bbb0;
+}
+.admin-page :is(.coupon-button-secondary, .offer-button-secondary):hover:not(:disabled),
+.admin-page .category-form .product-type-cancel:hover:not(:disabled),
+.admin-page .product-form .product-custom-color-form button:hover:not(:disabled) {
+  background: #f4e9e9;
+  color: #61313b;
+}
+.admin-page .product-options { border-color: var(--admin-line); background: #faf7f2; border-radius: 9px; }
+.admin-page .product-option-chip { border-radius: 6px; }
+.admin-page .product-option-chip.is-selected { background: #783d49; border-color: #783d49; color: #fffaf5; }
+.admin-page .product-option-chip input { accent-color: #783d49; }
+.admin-page :is(.product-grid article, .order-card) { border-color: var(--admin-line); border-radius: 12px; overflow: hidden; }
+.admin-page .product-grid .admin-actions { flex-wrap: wrap; gap: 6px; }
+.admin-page .admin-actions button { color: #783d49; min-height: 40px; padding: 7px 9px; }
+.admin-page .admin-actions button:hover { background: #f4e9e9; transform: none; }
+.admin-page .product-availability { background: #f0e7df; color: #5c4b3e !important; border-radius: 5px; }
+.admin-page :is(.admin-toast, .order-action-notice) { background: #f1e5e8; color: #61313b; border-radius: 8px; }
+.admin-page .admin-empty { border-color: #c8bbb0; border-radius: 12px; }
+.admin-page .admin-empty > span { display: none; }
+.admin-page .order-sections button { min-height: 42px; border-color: #c8bbb0; border-radius: 7px; }
+.admin-page .order-sections button.active,
+.admin-page .order-sections button:hover { background: #783d49; border-color: #783d49; }
+.admin-page .order-sections button.active span,
+.admin-page .order-sections button:hover span { color: #fffaf5; }
+.admin-page .order-card:hover,
+.admin-page .order-card:focus-visible { border-color: #783d49; box-shadow: none; transform: none; }
+.admin-page .order-dialog { background: #faf7f2; }
+.admin-page .order-dialog .order-dialog-header { background: #faf7f2 !important; border-color: #ddd4ca !important; }
+.admin-page .order-dialog .order-dialog-header h2 { letter-spacing: -.035em; }
+.admin-page .order-dialog .order-dialog-header > button { background: #29241f !important; border-color: #29241f !important; border-radius: 8px !important; }
+.admin-page .order-dialog .order-dialog-header > button:hover,
+.admin-page .order-dialog .order-dialog-header > button:focus-visible { background: #783d49 !important; color: #fffaf5 !important; border-color: #783d49 !important; }
+.admin-page .order-dialog .order-dialog-header > button:focus-visible { outline: 2px solid #783d49 !important; outline-offset: 3px; }
+.admin-page :is(.order-item-amount, .order-totals-detail, .product-grid strong) { font-variant-numeric: tabular-nums; }
+
+@media (max-width: 1050px) {
+  .admin-page .product-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-page .product-option-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .admin-page .product-color-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .admin-page .product-custom-color-form { grid-template-columns: minmax(0, 1fr) 70px; }
+}
+@media (max-width: 760px) {
+  .admin-page .admin-layout { display: block; }
+  .admin-page .admin-layout aside { padding: 10px 12px; }
+  .admin-page .admin-content { padding: 28px 16px; }
+  .admin-page .admin-title { padding-bottom: 22px; }
+  .admin-page .product-form { grid-template-columns: minmax(0, 1fr); padding: 17px; }
+  .admin-page .product-form .product-description { grid-column: auto; }
+  .admin-page .product-option-grid,
+  .admin-page .product-color-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-page :is(.product-form, .category-form, .offer-form, .coupon-form, .store-settings) :is(input, select, textarea),
+  .admin-login input { font-size: 16px; }
+  .admin-page .product-grid .admin-actions { display: grid; gap: 3px; }
+  .admin-page .product-grid .admin-actions button { justify-content: flex-start; text-align: left; line-height: 1.35; }
+  .admin-page .order-fulfillment-actions { grid-template-columns: minmax(0, 1fr); }
+}
