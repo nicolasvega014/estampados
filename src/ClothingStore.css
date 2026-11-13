@@ -54,6 +54,22 @@
 .fashion-section-heading p { color: #70645b; font-size: 14px; line-height: 1.6; margin-top: 16px; max-width: 470px; }
 .fashion-text-link { display: inline-flex; align-items: center; gap: 14px; color: var(--wine); font-size: 14px; font-weight: 600; padding: 10px 0; border-bottom: 1px solid #b88791; }
 .fashion-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
+.fashion-carousel { min-width: 0; }
+.fashion-carousel-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 20px; }
+.fashion-carousel-count { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.fashion-carousel-controls { display: flex; gap: 9px; }
+.fashion-carousel-controls button { display: grid; place-items: center; width: 46px; height: 46px; padding: 0; border: 1px solid #b88791; border-radius: 50%; color: var(--wine); background: #fffdfa; transition: background .2s, color .2s; }
+.fashion-carousel-controls button:hover:not(:disabled) { color: #fff; background: var(--wine); }
+.fashion-carousel-controls button:disabled { opacity: .45; border-color: var(--line); }
+.fashion-carousel-previous svg { transform: rotate(180deg); }
+.fashion-carousel-track { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 72px) / 4); gap: 24px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: #b88791 #eee6df; padding: 6px 0 20px; scroll-padding-inline: 0; }
+.fashion-carousel-track > .fashion-product { scroll-snap-align: start; display: flex; flex-direction: column; }
+.fashion-carousel-track .fashion-product-info { flex: 1; display: flex; flex-direction: column; }
+.fashion-carousel-track .fashion-product-bottom { margin-top: auto; padding-top: 16px; }
+.fashion-carousel-track :focus-visible { outline-offset: -3px; }
+.fashion-carousel-track::-webkit-scrollbar { height: 5px; }
+.fashion-carousel-track::-webkit-scrollbar-track { background: #eee6df; border-radius: 5px; }
+.fashion-carousel-track::-webkit-scrollbar-thumb { background: #b88791; border-radius: 5px; }
 .fashion-product { min-width: 0; }
 .fashion-product-photo { padding: 0; position: relative; display: block; width: 100%; aspect-ratio: 4/5; overflow: hidden; background: #eee8e1; border: 0; border-radius: 12px; color: var(--ink); }
 .fashion-product-photo > img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
@@ -193,6 +209,7 @@
   .fashion-type-section { align-items: start; }
   .fashion-type-section a { gap: 14px; padding: 11px 16px; }
   .fashion-grid { gap: 18px; }
+  .fashion-carousel-track { grid-auto-columns: calc((100% - 36px) / 3); gap: 18px; }
   .fashion-product-bottom { align-items: start; flex-direction: column; }
   .fashion-help { gap: 40px; padding: 40px; }
   .fashion-catalog-layout { grid-template-columns: 170px minmax(0, 1fr); gap: 24px; }
@@ -228,6 +245,11 @@
   .fashion-section-heading h2, .fashion-help h2 { font-size: 34px; }
   .fashion-section-heading p { font-size: 13px; }
   .fashion-grid, .fashion-results .fashion-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 13px; }
+  .fashion-carousel-toolbar { margin-bottom: 14px; }
+  .fashion-carousel-track { grid-auto-columns: 76%; gap: 16px; }
+  .fashion-carousel-track .fashion-product-info h3 { min-height: 0; font-size: 16px; }
+  .fashion-carousel-track .fashion-product-bottom { flex-direction: row; align-items: center; }
+  .fashion-carousel-track .fashion-add { width: auto; }
   .fashion-photo-action { display: none; }
   .fashion-product-info { padding-top: 12px; }
   .fashion-product-info > p { font-size: 10px; }

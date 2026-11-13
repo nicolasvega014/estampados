@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, runTransaction, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
 import { auth, db } from './firebase'
-import { PRODUCT_COLOR_OPTIONS, PRODUCT_SIZE_OPTIONS, normalizeProductColors, normalizeProductSizes, productOptions, productOptionsSummary } from './productOptions'
+import { PRODUCT_COLOR_OPTIONS, PRODUCT_SIZE_OPTIONS, PRODUCT_NUMERIC_SIZE_OPTIONS, normalizeProductColors, normalizeProductSizes, productOptions, productOptionsSummary } from './productOptions'
 import { DEFAULT_PRODUCT_TYPES, catalogProductTypes, productTypeIdFor, productTypeNameFor, productTypeSlug } from './productTypes'
 import './Admin.css'
 import './AdminProducts.css'
@@ -581,18 +581,39 @@ function OrderDetail({ order, user, onClose, onNotice }) {
   </div>
 }
 function editItem(type, id) { window.dispatchEvent(new CustomEvent('tinta-admin-edit', { detail: { type, id } })) }
-function ProductOptions({ value, onChange }) {
+export function ProductOptions({ value, onChange }) {
   const selectedSizes = normalizeProductSizes(value.sizes)
   const selectedColors = normalizeProductColors(value.colors)
+  const [customSize, setCustomSize] = useState('')
+  const [customSizeMessage, setCustomSizeMessage] = useState('')
   const [customColor, setCustomColor] = useState({ name: '', value: '#1b1b1b' })
   const [customColorError, setCustomColorError] = useState('')
+  const sizeKey = (size) => size.toLocaleLowerCase('es-AR')
+  const sizeIsSelected = (size) => selectedSizes.some((item) => sizeKey(item) === sizeKey(size))
+  const presetSizes = [...PRODUCT_SIZE_OPTIONS, ...PRODUCT_NUMERIC_SIZE_OPTIONS]
+  const customSelectedSizes = selectedSizes.filter((size) => !presetSizes.some((item) => sizeKey(item) === sizeKey(size)))
 
   const toggleSize = (size) => {
-    const next = selectedSizes.includes(size)
-      ? selectedSizes.filter((item) => item !== size)
+    const next = sizeIsSelected(size)
+      ? selectedSizes.filter((item) => sizeKey(item) !== sizeKey(size))
       : [...selectedSizes, size]
     onChange({ ...value, sizes: next })
   }
+
+  const addCustomSize = () => {
+    const [size] = normalizeProductSizes([customSize])
+    if (!size) { setCustomSizeMessage('Escribí el talle que querés agregar.'); return }
+    if (sizeIsSelected(size)) { setCustomSizeMessage('Ese talle ya está marcado como disponible.'); return }
+    const preset = presetSizes.find((item) => sizeKey(item) === sizeKey(size))
+    onChange({ ...value, sizes: [...selectedSizes, preset || size] })
+    setCustomSize('')
+    setCustomSizeMessage(`Talle ${preset || size} agregado. Guardá el producto para confirmar los cambios.`)
+  }
+
+  const sizeChoice = (size) => <label className={`product-option-chip ${sizeIsSelected(size) ? 'is-selected' : ''}`} key={size}>
+    <input type="checkbox" checked={sizeIsSelected(size)} onChange={() => toggleSize(size)} />
+    <span>{size}</span>
+  </label>
 
   const toggleColor = (color) => {
     const selected = selectedColors.some((item) => item.name === color.name)
@@ -623,11 +644,21 @@ function ProductOptions({ value, onChange }) {
     <fieldset>
       <legend>Talles disponibles</legend>
       <div className="product-option-grid">
-        {PRODUCT_SIZE_OPTIONS.map((size) => <label className={`product-option-chip ${selectedSizes.includes(size) ? 'is-selected' : ''}`} key={size}>
-          <input type="checkbox" checked={selectedSizes.includes(size)} onChange={() => toggleSize(size)} />
-          <span>{size}</span>
-        </label>)}
+        {PRODUCT_SIZE_OPTIONS.map(sizeChoice)}
       </div>
+      <p className="product-size-group-label" id="numeric-sizes-label">Talles numéricos</p>
+      <div className="product-option-grid product-numeric-sizes" role="group" aria-labelledby="numeric-sizes-label">
+        {PRODUCT_NUMERIC_SIZE_OPTIONS.map(sizeChoice)}
+      </div>
+      {customSelectedSizes.length > 0 && <div className="product-option-grid product-custom-sizes" role="group" aria-label="Otros talles disponibles">
+        {customSelectedSizes.map(sizeChoice)}
+      </div>}
+      <div className="product-custom-size-form">
+        <label>Agregar otro talle<input value={customSize} maxLength="20" placeholder="Ej. 38, 7 o Especial" aria-describedby="custom-size-help" onChange={(event) => { setCustomSize(event.target.value); setCustomSizeMessage('') }} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); addCustomSize() } }} /></label>
+        <button type="button" onClick={addCustomSize}>Agregar talle</button>
+      </div>
+      <p className="product-size-help" id="custom-size-help">Agregá un talle por vez. Desmarcá los que no tengas para esta prenda.</p>
+      <p className="product-size-message" role="status">{customSizeMessage}</p>
     </fieldset>
     <fieldset>
       <legend>Colores disponibles</legend>
@@ -672,7 +703,7 @@ function Products({ items, value, setValue, categories, productTypes, onAdd, onR
       <label>Tipo de prenda<select value={value.productTypeId} onChange={(event) => update('productTypeId', event.target.value)} required>{productTypes.map((type) => <option value={type.id} key={type.id}>{type.name}</option>)}</select></label>
       <label>Colección o estilo<select value={value.category} onChange={(event) => update('category', event.target.value)}><option value="">Sin categoría</option>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
       <label className="product-description">Descripción<textarea value={value.description} onChange={(event) => update('description', event.target.value)} placeholder="Ej. Remera de algodón, corte amplio y cuello redondo." rows="3" /></label>
-      <ProductOptions value={value} onChange={setValue} />
+      <ProductOptions key={value.id || 'new-product'} value={value} onChange={setValue} />
       <label className="product-image">Foto del producto <small>{value.imageFile?.name || (value.imageUrl ? 'Elegí otra foto para reemplazar la actual.' : 'Opcional · PNG, JPG o WEBP · Máx. 10 MB')}</small><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => update('imageFile', event.target.files?.[0] || null)} /></label>
       <button>{value.id ? 'Guardar cambios' : 'Guardar producto'} <span>{value.id ? '✓' : '+'}</span></button>
     </form>

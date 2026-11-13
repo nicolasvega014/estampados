@@ -1,4 +1,5 @@
 export const PRODUCT_SIZE_OPTIONS = ['Talle único', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL']
+export const PRODUCT_NUMERIC_SIZE_OPTIONS = ['1', '2', '3', '4', '5', '6']
 
 export const PRODUCT_COLOR_OPTIONS = [
   { name: 'Blanco', value: '#f8f7f4' },
@@ -14,7 +15,7 @@ export const PRODUCT_COLOR_OPTIONS = [
 ]
 
 function text(value, maximum = 40) {
-  return String(value || '').trim().replace(/\s+/g, ' ').slice(0, maximum)
+  return String(value ?? '').trim().replace(/\s+/g, ' ').slice(0, maximum)
 }
 
 function key(value) {

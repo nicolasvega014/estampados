@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { calculateCart, quoteCheckout, safeOrderItems, shouldRedeemCouponUse } from './checkout.js'
+import { normalizeProductSizes } from '../src/productOptions.js'
 
 const garment = { kind: 'product', productId: 'remeron-golden-girasoles', quantity: 2 }
 const customGarment = { kind: 'custom', quantity: 1, size: 'M', color: 'Blanco', front: 'diseño.png' }
@@ -52,4 +53,17 @@ test('historical custom order details and payment settlement remain supported', 
   assert.equal(item.size, 'M')
   assert.equal(item.color, 'Blanco')
   assert.equal(shouldRedeemCouponUse({ status: 'processed', status_detail: 'accredited', items: [item] }), true)
+})
+
+test('numeric and custom sizes survive product saving, checkout and order details', async () => {
+  const product = { title: 'Vestido de prueba', price: 24000, sizes: normalizeProductSizes([0, 1, '2', ' 2 ', '38', 'Especial']) }
+  assert.deepEqual(product.sizes, ['0', '1', '2', '38', 'Especial'])
+  const db = { collection() { return { doc(id) { return { get: async () => ({ id, exists: true, data: () => product }) } } } } }
+  for (const size of product.sizes) {
+    const quote = await calculateCart([{ kind: 'product', productId: 'vestido-prueba', quantity: 1, size }], db)
+    assert.equal(safeOrderItems(quote.items)[0].size, size)
+    assert.equal(quote.subtotal, 24000)
+  }
+  product.sizes = product.sizes.filter((size) => size !== '2')
+  await assert.rejects(calculateCart([{ kind: 'product', productId: 'vestido-prueba', quantity: 1, size: '2' }], db), { code: 'PRODUCT_SIZE_UNAVAILABLE' })
 })

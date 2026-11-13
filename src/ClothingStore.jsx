@@ -46,6 +46,64 @@ function ProductCard({ product, types, onChoose }) {
   </article>
 }
 
+function ProductCarousel({ products, types, onChoose }) {
+  const track = useRef(null)
+  const [position, setPosition] = useState({ start: 1, end: 0, previous: false, next: false })
+
+  useEffect(() => {
+    const element = track.current
+    if (!element) return
+    let frame
+    const measure = () => {
+      const bounds = element.getBoundingClientRect()
+      const visible = [...element.children].map((child, index) => ({ index, bounds: child.getBoundingClientRect() }))
+        .filter((child) => child.bounds.right > bounds.left + 2 && child.bounds.left < bounds.right - 2)
+      const next = {
+        start: (visible[0]?.index ?? 0) + 1,
+        end: (visible.at(-1)?.index ?? 0) + 1,
+        previous: element.scrollLeft > 2,
+        next: element.scrollLeft < element.scrollWidth - element.clientWidth - 2,
+      }
+      setPosition((current) => Object.keys(next).every((key) => current[key] === next[key]) ? current : next)
+    }
+    const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(measure) }
+    const observer = new ResizeObserver(schedule)
+    observer.observe(element)
+    element.addEventListener('scroll', schedule, { passive: true })
+    schedule()
+    return () => { observer.disconnect(); element.removeEventListener('scroll', schedule); cancelAnimationFrame(frame) }
+  }, [products])
+
+  const move = (direction) => {
+    const element = track.current
+    if (!element) return
+    const gap = parseFloat(getComputedStyle(element).columnGap) || 0
+    const cardWidth = (element.firstElementChild?.getBoundingClientRect().width || element.clientWidth) + gap
+    const pageWidth = cardWidth * Math.max(1, Math.floor((element.clientWidth + gap) / cardWidth))
+    const left = direction === 'start' ? 0 : direction === 'end' ? element.scrollWidth : element.scrollLeft + direction * pageWidth
+    element.scrollTo({ left, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
+  }
+  const onKeyDown = (event) => {
+    if (event.target !== event.currentTarget) return
+    const direction = { ArrowLeft: -1, ArrowRight: 1, Home: 'start', End: 'end' }[event.key]
+    if (direction !== undefined) { event.preventDefault(); move(direction) }
+  }
+  const range = position.start === position.end ? position.start : `${position.start}–${position.end}`
+
+  return <div className="fashion-carousel" role="region" aria-roledescription="carrusel" aria-label="Prendas de la tienda">
+    <div className="fashion-carousel-toolbar">
+      <p className="fashion-carousel-count" role="status" aria-live="polite">{position.end ? `${range} de ${products.length} ${products.length === 1 ? 'prenda' : 'prendas'}` : `${products.length} prendas`}</p>
+      <div className="fashion-carousel-controls">
+        <button type="button" className="fashion-carousel-previous" onClick={() => move(-1)} disabled={!position.previous} aria-label="Ver prendas anteriores" aria-controls="home-product-carousel"><Icon name="arrow" /></button>
+        <button type="button" onClick={() => move(1)} disabled={!position.next} aria-label="Ver más prendas" aria-controls="home-product-carousel"><Icon name="arrow" /></button>
+      </div>
+    </div>
+    <div className="fashion-carousel-track" id="home-product-carousel" ref={track} tabIndex={0} onKeyDown={onKeyDown} aria-label="Prendas. Deslizá o usá las flechas del teclado para recorrerlas.">
+      {products.map((product) => <ProductCard key={product.id} product={product} types={types} onChoose={onChoose} />)}
+    </div>
+  </div>
+}
+
 export default function ClothingStore() {
   const path = window.location.pathname.replace(/\/index\.html$/, '/').replace(/\/+$/, '') || '/'
   const isCatalog = path === '/productos'
@@ -128,7 +186,6 @@ export default function ClothingStore() {
       && normalize([product.title, product.id, product.description, product.category, productTypeNameFor(product, types)].join(' ')).includes(normalize(query))
   }).sort((a, b) => sort === 'price-up' ? Number(a.price) - Number(b.price) : sort === 'price-down' ? Number(b.price) - Number(a.price) : sort === 'name' ? a.title.localeCompare(b.title, 'es-AR') : 0)
   const filtersActive = query || activeType !== 'all' || category !== 'all' || size !== 'all' || color !== 'all'
-  const featured = products.slice(0, 4)
   const heroMain = products.find((product) => product.id === 'remeron-la-dolce-vita' && product.imageUrl) || products.find((product) => product.imageUrl)
   const heroSecond = products.find((product) => product.id === 'remeron-golden-girasoles' && product.imageUrl && product.id !== heroMain?.id) || products.find((product) => product.imageUrl && product.id !== heroMain?.id)
   const whatsappUrl = `https://wa.me/${whatsapp}`
@@ -158,7 +215,7 @@ export default function ClothingStore() {
           </section>
           <section className="fashion-type-section" aria-label="Comprar por tipo de prenda"><span>¿Qué tenés ganas de estrenar?</span><div>{types.map((entry) => <a key={entry.id} href={`/productos/?tipo=${encodeURIComponent(entry.id)}`}>{entry.name}<Icon name="arrow" /></a>)}</div></section>
           {offers.length > 0 && <section className="fashion-offers" aria-label="Ofertas disponibles">{offers.map((offer) => <article key={offer.id}><div><h2>{offer.title || 'Una oportunidad para estrenar'}</h2><p>{offer.description}</p></div><div>{offer.code && <span className="fashion-offer-code">Usá el código <strong>{offer.code}</strong></span>}<a href="/productos/" className="fashion-button">Ver prendas <Icon name="arrow" /></a></div></article>)}</section>}
-          <section className="fashion-featured" id="favoritas"><div className="fashion-section-heading"><div><h2>Un flechazo.<br /><em>Tu próxima favorita.</em></h2><p>Explorá las prendas de nuestra tienda y elegí la que va con vos.</p></div><a className="fashion-text-link" href="/productos/">Ver todas las prendas <Icon name="arrow" /></a></div>{!loaded ? loading : featured.length ? renderGrid(featured) : <p className="fashion-empty">{loadError ? 'No pudimos cargar las prendas. Volvé a intentar en unos minutos.' : 'Estamos preparando novedades. Volvé pronto para descubrirlas.'}</p>}</section>
+          <section className="fashion-featured" id="favoritas"><div className="fashion-section-heading"><div><h2>Un flechazo.<br /><em>Tu próxima favorita.</em></h2><p>Explorá las prendas de nuestra tienda y elegí la que va con vos.</p></div><a className="fashion-text-link" href="/productos/">Ver todas las prendas <Icon name="arrow" /></a></div>{!loaded ? loading : products.length ? <ProductCarousel products={products} types={types} onChoose={setChosen} /> : <p className="fashion-empty">{loadError ? 'No pudimos cargar las prendas. Volvé a intentar en unos minutos.' : 'Estamos preparando novedades. Volvé pronto para descubrirlas.'}</p>}</section>
           <section className="fashion-help"><div><h2>Elegí. Combiná.<br /><em>Hacelo tuyo.</em></h2><p>Un color que te encanta. Una prenda que te representa. Encontrá ese detalle que hace tu look.</p><a href="/productos/" className="fashion-text-link">Encontrar mi prenda <Icon name="arrow" /></a></div><div className="fashion-shopping-notes"><div><span>Elegí tu talle</span><p>Cada prenda muestra sus talles y colores disponibles.</p></div><div><span>Pagá con Mercado Pago</span><p>Completá tu compra de forma segura desde el carrito.</p></div><div><span>Retiro o envío</span><p>Elegí cómo recibir tu pedido al realizar la compra. Si tenés dudas, escribinos.</p></div></div></section>
         </> : <>
           <section className="fashion-catalog-intro"><h1>Elegí tu<br /><em>próxima prenda.</em></h1><p>Buscá ese color, ese estilo, eso que va con vos.</p></section>

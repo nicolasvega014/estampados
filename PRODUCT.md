@@ -17,6 +17,8 @@ Sell the available clothing catalog at fenixis.com.ar. The owner explicitly requ
 ## Capabilities and Constraints
 
 - Categories, garment types, sizes, colors, custom colors, prices, photographs and product visibility are managed from the seller panel.
+- Each garment can have letter sizes, numerical sizes or seller-defined size labels. Only marked sizes are offered to buyers.
+- The homepage product carousel displays the visible catalog with manual arrows, touch scrolling and keyboard navigation.
 - Search and filters help buyers find garments. The cart supports selected sizes/colors, quantities and promotional codes.
 - Payments use the existing Mercado Pago integration. Customers provide email and phone and choose pickup or delivery.
 - Coupons, order details, fulfillment states and confirmation notifications are existing capabilities to preserve.

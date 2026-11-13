@@ -81,14 +81,14 @@
 .admin-page :is(button:disabled) { opacity: .58; cursor: not-allowed; }
 .admin-page :is(.coupon-button-secondary, .offer-button-secondary),
 .admin-page .category-form .product-type-cancel,
-.admin-page .product-form .product-custom-color-form button {
+.admin-page .product-form :is(.product-custom-color-form, .product-custom-size-form) button {
   background: #fff;
   color: #783d49;
   border-color: #c8bbb0;
 }
 .admin-page :is(.coupon-button-secondary, .offer-button-secondary):hover:not(:disabled),
 .admin-page .category-form .product-type-cancel:hover:not(:disabled),
-.admin-page .product-form .product-custom-color-form button:hover:not(:disabled) {
+.admin-page .product-form :is(.product-custom-color-form, .product-custom-size-form) button:hover:not(:disabled) {
   background: #f4e9e9;
   color: #61313b;
 }
@@ -96,6 +96,17 @@
 .admin-page .product-option-chip { border-radius: 6px; }
 .admin-page .product-option-chip.is-selected { background: #783d49; border-color: #783d49; color: #fffaf5; }
 .admin-page .product-option-chip input { accent-color: #783d49; }
+.admin-page .product-size-group-label { margin: 18px 0 10px; font-size: 12px; font-weight: 600; color: #29241f; }
+.admin-page .product-numeric-sizes { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.admin-page .product-custom-sizes { margin-top: 12px; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+.admin-page .product-custom-sizes .product-option-chip { overflow-wrap: anywhere; min-width: 0; }
+.admin-page .product-custom-size-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--admin-line); }
+.admin-page .product-custom-size-form label { min-width: 0; }
+.admin-page .product-custom-size-form input { min-width: 0; width: 100%; box-sizing: border-box; }
+.admin-page .product-custom-size-form button { min-height: 48px; }
+.admin-page .product-size-help, .admin-page .product-size-message { margin: 9px 0 0; font-size: 12px; line-height: 1.5; color: #70645b; }
+.admin-page .product-size-message:not(:empty) { color: #783d49; font-weight: 500; }
+.admin-page .product-size-message:empty { display: none; }
 .admin-page :is(.product-grid article, .order-card) { border-color: var(--admin-line); border-radius: 12px; overflow: hidden; }
 .admin-page .product-grid .admin-actions { flex-wrap: wrap; gap: 6px; }
 .admin-page .admin-actions button { color: #783d49; min-height: 40px; padding: 7px 9px; }
@@ -135,6 +146,8 @@
   .admin-page .product-form .product-description { grid-column: auto; }
   .admin-page .product-option-grid,
   .admin-page .product-color-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-page .product-numeric-sizes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .admin-page .product-custom-size-form { grid-template-columns: minmax(0, 1fr); }
   .admin-page :is(.product-form, .category-form, .offer-form, .coupon-form, .store-settings) :is(input, select, textarea),
   .admin-login input { font-size: 16px; }
   .admin-page .product-grid .admin-actions { display: grid; gap: 3px; }
