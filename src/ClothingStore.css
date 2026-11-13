@@ -181,6 +181,7 @@
 .fashion-shell .checkout-button { background: #007caf; box-shadow: none; border-radius: 7px; font-size: 14px; min-height: 50px; }
 .fashion-shell .checkout-button:hover { background: #00618b; }
 .fashion-shell .cart-footer > p { color: #70645b; font-size: 11px; }
+.fashion-shell .catalog-options-layer { place-items: center; height: 100dvh; padding: 20px 0; }
 .fashion-shell .catalog-options-dialog { background: #faf7f2; border-radius: 16px; padding: 28px; max-width: 540px; width: calc(100% - 32px); max-height: calc(100dvh - 40px); overflow: auto; overscroll-behavior: contain; }
 .fashion-shell .catalog-options-dialog > header { background: transparent; color: #29241f; height: auto; min-height: 60px; margin: 0; padding: 0 0 18px; gap: 20px; align-items: start; }
 .fashion-shell .catalog-options-dialog h2 { color: #29241f; font-size: 27px; font-weight: 500; line-height: 1.25; letter-spacing: -.03em; }
