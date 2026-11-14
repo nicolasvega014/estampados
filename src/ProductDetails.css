@@ -1,0 +1,31 @@
+.fashion-shell .catalog-options-dialog.product-details-dialog{width:calc(100% - 40px);max-width:1000px;padding:28px;scrollbar-color:#b88791 #eee6df}
+.fashion-shell .catalog-options-dialog.product-details-dialog>header{position:sticky;top:-28px;background:#faf7f2;z-index:2;padding-top:8px;margin-top:-8px;align-items:center}
+.fashion-shell .catalog-options-dialog.product-details-dialog>header button{display:grid;place-items:center;flex-shrink:0}
+.product-detail-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:32px;margin-top:24px}
+.product-gallery{min-width:0}
+.fashion-shell .product-gallery-main{display:block;position:relative;width:100%;padding:0;background:#eee8e1;border:0;border-radius:12px;overflow:hidden;color:#29241f;cursor:zoom-in}
+.product-gallery-main img{display:block;width:100%;height:min(55dvh,520px);object-fit:contain}
+.product-gallery-main>span{position:absolute;bottom:12px;right:12px;background:#faf7f2;color:#29241f;border-radius:6px;padding:7px 10px;font-size:12px}
+.product-gallery-controls{display:flex;align-items:center;justify-content:space-between;margin:12px 0;gap:12px;font-size:13px;color:#70645b;font-variant-numeric:tabular-nums}
+.fashion-shell .product-gallery-controls button{display:grid;place-items:center;min-height:44px;min-width:44px;border:1px solid #c9bcb1;border-radius:50%;background:#faf7f2;color:#783d49}
+.product-gallery-thumbnails{display:flex;gap:10px;overflow-x:auto;padding:4px 4px 10px;scrollbar-color:#b88791 #eee6df}
+.fashion-shell .product-gallery-thumbnails button{flex:0 0 64px;height:80px;padding:3px;border:1px solid transparent;border-radius:7px;background:#eee8e1;overflow:hidden}
+.fashion-shell .product-gallery-thumbnails button[aria-pressed=true]{border:2px solid #783d49}
+.product-gallery-thumbnails img{display:block;object-fit:contain;width:100%;height:100%}
+.product-gallery-empty{display:grid;place-items:center;min-height:280px;background:#eee8e1;border-radius:12px;color:#70645b}
+.product-detail-info{min-width:0;padding-top:4px}
+.product-detail-price{font-size:28px;font-weight:600;font-variant-numeric:tabular-nums;color:#29241f}
+.fashion-shell .product-detail-info .catalog-detail-description{margin-top:16px;white-space:pre-line}
+.fashion-shell .product-detail-info .catalog-options-add{display:flex;justify-content:space-between;align-items:center;width:100%;gap:16px;margin-top:20px}
+.fashion-shell .product-detail-info button:disabled{opacity:.45;cursor:not-allowed}
+.fashion-shell .product-detail-info .catalog-option-buttons button:disabled,.fashion-shell .product-detail-info .catalog-color-buttons button:disabled{text-decoration:line-through;background:#eee6df;color:#70645b;border-color:#ddd4ca}
+.product-stock-note{font-size:14px;line-height:1.6;color:#70645b;margin:20px 0 0}
+.fashion-shell .catalog-options-dialog.product-details-dialog.is-zoomed{max-width:1100px}
+.product-details-dialog.is-zoomed .product-detail-layout{grid-template-columns:minmax(0,1fr)}
+.product-details-dialog.is-zoomed .product-gallery-main{cursor:zoom-out}
+.product-details-dialog.is-zoomed .product-gallery-main img{height:70dvh}
+@media(max-width:700px){.fashion-shell .catalog-options-dialog.product-details-dialog{padding:20px;width:calc(100% - 24px)}.fashion-shell .catalog-options-dialog.product-details-dialog>header{top:-20px;padding-top:6px;margin-top:-6px}.fashion-shell .catalog-options-dialog.product-details-dialog h2{font-size:23px}.product-detail-layout{grid-template-columns:minmax(0,1fr);gap:24px;margin-top:20px}.product-gallery-main img{height:min(42dvh,400px)}.product-detail-price{font-size:25px}.product-gallery-thumbnails button{flex-basis:54px;height:68px}.product-details-dialog.is-zoomed .product-gallery-main img{height:60dvh}}
+
+.fashion-shell .cart-stock-error{display:block;color:#9c302a;font-size:12px;margin-bottom:8px}.fashion-shell .quantity button:disabled{opacity:.4;cursor:not-allowed}
+
+.product-photo-caption{font-size:12px;color:#70645b;margin:12px 0 0}.product-selection-summary{font-size:14px;line-height:1.6;color:#29241f;margin:12px 0 0;font-weight:600}

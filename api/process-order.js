@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { getAdminFirestore, FieldValue } from '../server/firebase-admin.js'
 import { notifyPaidOrder } from '../server/order-email.js'
+import { reserveInventory, settleInventory, claimPaymentSubmission } from '../server/inventory.js'
 import {
   CheckoutError,
   checkoutErrorPayload,
@@ -226,6 +227,9 @@ export default async function handler(req, res) {
       reservationCreated = true
     }
 
+    const inventoryReserved = await reserveInventory({ db, items: quote.items, reference: externalReference, attemptId })
+    if (inventoryReserved && !process.env.MERCADOPAGO_WEBHOOK_SECRET) throw new CheckoutError('No pudimos confirmar la reserva de las prendas. Intentá nuevamente más tarde.', 'STOCK_NOT_CONFIGURED', 503)
+
     // This order summary deliberately excludes the card token and card data.
     await saveOrder(db, externalReference, {
       reference: externalReference,
@@ -240,10 +244,11 @@ export default async function handler(req, res) {
       discount: quote.totals.discount,
       total: quote.totals.total,
       coupon: couponSnapshot(quote.coupon),
+      inventoryReserved,
       createdAt: FieldValue.serverTimestamp(),
     })
 
-    if (db) await saveCheckoutAttempt(db, attemptId, { state: 'submitting' })
+    if (db) await claimPaymentSubmission(db, attemptId)
 
     const payer = { email: payerEmail }
     if (payment?.payer?.identification?.type && payment?.payer?.identification?.number) {
@@ -299,6 +304,7 @@ export default async function handler(req, res) {
           couponSettlement = 'pending_settlement'
         }
       }
+      if (settleNow) await settleInventory({ db, reference: externalReference, paid: couponRedeemed }).catch(() => {})
 
       const message = settleNow
         ? mercadoPagoFailureMessage(order, 'Mercado Pago no pudo procesar el pago.')
@@ -336,6 +342,7 @@ export default async function handler(req, res) {
     }
 
     const attemptState = paid || couponRedeemed ? 'completed' : final ? 'failed' : 'pending'
+    if (final) await settleInventory({ db, reference: externalReference, paid: couponRedeemed }).catch(() => {})
     if (db) {
       await Promise.all([
         saveOrder(db, externalReference, {
@@ -385,6 +392,7 @@ export default async function handler(req, res) {
       statusDetail: order.status_detail || paymentState.statusDetail,
     })
   } catch (error) {
+    if (!paymentRequestStarted && db && externalReference) await settleInventory({ db, reference: externalReference, paid: false }).catch(() => {})
     // If the request never reached Mercado Pago, release the temporary use.
     // Once it was sent, the signed webhook owns the final settlement.
     if (reservationCreated && !paymentRequestStarted && db && externalReference) {
@@ -410,6 +418,7 @@ export default async function handler(req, res) {
     const payload = error instanceof CheckoutError
       ? checkoutErrorPayload(error)
       : { message: 'No pudimos procesar la compra. Probá nuevamente en unos minutos.' }
+    if (error?.code === 'CHECKOUT_CAN_RETRY') payload.retryable = true
     return send(res, status, payload)
   }
 }

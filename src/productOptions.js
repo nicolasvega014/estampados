@@ -63,3 +63,15 @@ export function productOptionsSummary(product) {
     colors.length ? `Colores: ${colors.map((color) => color.name).join(', ')}` : '',
   ].filter(Boolean).join(' · ')
 }
+
+export const MAX_PRODUCT_IMAGES = 12
+
+export function productImages(product) {
+  const images = Array.isArray(product?.images) ? product.images : product?.imageUrl ? [{ imageUrl: product.imageUrl, imagePublicId: product.imagePublicId || '', color: '' }] : []
+  const seen = new Set()
+  return images.filter((image) => {
+    if (!image?.imageUrl || seen.has(image.imageUrl) || !/^(https:\/\/|\/(?!\/))/.test(image.imageUrl)) return false
+    seen.add(image.imageUrl)
+    return true
+  }).slice(0, MAX_PRODUCT_IMAGES).map((image) => ({ imageUrl: image.imageUrl, imagePublicId: image.imagePublicId || '', color: text(image.color, 30) }))
+}

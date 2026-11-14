@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { getAdminFirestore, FieldValue } from '../server/firebase-admin.js'
 import { notifyPaidOrder } from '../server/order-email.js'
+import { settleInventory } from '../server/inventory.js'
 import { isFinalMercadoPagoOrder, isPaidMercadoPagoOrder, settleCouponUse, shouldRedeemCouponUse } from '../server/checkout.js'
 
 function send(res, status, body) {
@@ -94,6 +95,7 @@ export default async function handler(req, res) {
     const final = isFinalMercadoPagoOrder(order)
     let couponSettlement = savedOrder.data()?.couponSettlement || 'not_applicable'
     if (final) {
+      await settleInventory({ db, reference, paid: couponRedeemed })
       await settleCouponUse({ db, externalReference: reference, paid: couponRedeemed })
       couponSettlement = savedOrder.data()?.coupon ? (couponRedeemed ? 'redeemed' : 'released') : 'not_applicable'
     }

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { collection, doc, onSnapshot } from 'firebase/firestore'
 import { db } from './firebase'
-import { productOptions } from './productOptions'
+import { productOptions, productImages } from './productOptions'
+import { availableStock, hasProductStock, inventoryRows } from './productInventory'
 import { DEFAULT_PRODUCT_TYPES, catalogProductTypes, productTypeIdFor, productTypeNameFor } from './productTypes'
 import { CartDrawer, CatalogProductOptions } from './StoreCheckout'
 import './ClothingStore.css'
@@ -41,7 +42,7 @@ function ProductCard({ product, types, onChoose }) {
     <div className="fashion-product-info"><p>{productTypeNameFor(product, types)}{product.category ? ` / ${product.category}` : ''}</p>
       <h3><button onClick={() => onChoose(product)}>{product.title}</button></h3>
       {(sizes.length > 0 || colors.length > 0) && <div className="fashion-variants"><span>{sizes.join(' · ')}</span><span className="fashion-swatches">{colors.slice(0, 6).map((color) => <i key={color.name} style={{ background: color.value }} title={color.name} aria-label={color.name} />)}{colors.length > 6 && <small>+{colors.length - 6}</small>}</span></div>}
-      <div className="fashion-product-bottom"><strong>{money(product.price)}</strong><button className="fashion-add" onClick={() => onChoose(product)} aria-label={`Agregar ${product.title} al carrito`}>Agregar <Icon name="plus" /></button></div>
+      <div className="fashion-product-bottom"><strong>{money(product.price)}</strong><button className="fashion-add" onClick={() => onChoose(product)} aria-label={`Agregar ${product.title} al carrito`}>{hasProductStock(product) ? 'Agregar' : 'Sin stock'} <Icon name="plus" /></button></div>
     </div>
   </article>
 }
@@ -168,10 +169,15 @@ export default function ClothingStore() {
   const addProduct = (selection) => {
     if (!chosen || !products.some((product) => product.id === chosen.id)) return
     const id = `product:${chosen.id}:${selection.size || ''}:${selection.color?.name || ''}`
+    const limit = Math.min(10, availableStock(chosen, selection.size, selection.color?.name || ''))
+    if ((cart.find((item) => item.id === id)?.quantity || 0) >= limit) return 'Ya agregaste al carrito todas las unidades disponibles de esta combinación.'
     const item = { id, productId: chosen.id, kind: 'product', title: chosen.title, price: Number(chosen.price), imageUrl: chosen.imageUrl || '', category: chosen.category || '', description: chosen.description || '', size: selection.size || '', color: selection.color?.name || '', colorValue: selection.color?.value || '', quantity: 1 }
+    item.imageUrl = productImages(chosen).find((image) => image.color === item.color)?.imageUrl || item.imageUrl
     setCart((current) => current.some((entry) => entry.id === id) ? current.map((entry) => entry.id === id ? { ...entry, quantity: Math.min(10, entry.quantity + 1) } : entry) : [...current, item])
     setChosen(null); setCartOpen(true)
   }
+  const stockLimits = Object.fromEntries(cart.map((item) => [item.id, loaded ? Math.min(10, availableStock(products.find((product) => product.id === item.productId), item.size, item.color)) : 10]))
+  const changeQuantity = (id, quantity) => setCart((items) => quantity <= 0 ? items.filter((item) => item.id !== id) : items.map((item) => item.id === id ? { ...item, quantity: Math.max(1, Math.min(stockLimits[id] ?? 10, quantity)) } : item))
   const clearFilters = () => { setQuery(''); setType('all'); setCategory('all'); setSize('all'); setColor('all') }
   const activeType = types.some((entry) => entry.id === type) ? type : 'all'
   const categories = [...new Set(products.map((product) => product.category).filter(Boolean))].sort()
@@ -183,6 +189,7 @@ export default function ClothingStore() {
       && (category === 'all' || category === product.category)
       && (size === 'all' || options.sizes.includes(size))
       && (color === 'all' || options.colors.some((entry) => entry.name === color))
+      && (!product.trackStock || (size === 'all' && color === 'all') || inventoryRows(product).some((row) => row.stock > row.reserved && (size === 'all' || row.size === size) && (color === 'all' || row.color === color)))
       && normalize([product.title, product.id, product.description, product.category, productTypeNameFor(product, types)].join(' ')).includes(normalize(query))
   }).sort((a, b) => sort === 'price-up' ? Number(a.price) - Number(b.price) : sort === 'price-down' ? Number(b.price) - Number(a.price) : sort === 'name' ? a.title.localeCompare(b.title, 'es-AR') : 0)
   const filtersActive = query || activeType !== 'all' || category !== 'all' || size !== 'all' || color !== 'all'
@@ -227,7 +234,7 @@ export default function ClothingStore() {
       </main>
       <footer className="fashion-footer" id="contacto"><div className="fashion-footer-top"><div><a href="/" aria-label="Fenixis Store, inicio"><span className="brand-wordmark" /></a><p>Para todos tus días.<br />Para ser vos.</p></div><div><h2>La tienda</h2><a href="/">Inicio</a><a href="/productos/">Todas las prendas</a><button onClick={() => setCartOpen(true)}>Mi carrito</button></div><div><h2>Estamos para ayudarte</h2><a href={whatsappUrl} target="_blank" rel="noreferrer">Escribinos por WhatsApp <Icon name="arrow" /></a><a href="mailto:fenixisstore@gmail.com">fenixisstore@gmail.com</a><span>Buenos Aires, Argentina</span></div><div><h2>Seguí a Fenixis</h2><a href="https://www.instagram.com/fenixisstore/" target="_blank" rel="noreferrer">Instagram <Icon name="arrow" /></a><a href="https://www.tiktok.com/@fenixisstore" target="_blank" rel="noreferrer">TikTok <Icon name="arrow" /></a></div></div><div className="fashion-footer-bottom"><span>© {new Date().getFullYear()} Fenixis Store</span><span>Pagos seguros con Mercado Pago</span></div></footer>
     </div>
-    <CartDrawer open={cartOpen} items={cart} onClose={() => setCartOpen(false)} onRemove={(id) => setCart((items) => items.filter((item) => item.id !== id))} onQuantity={(id, quantity) => setCart((items) => quantity <= 0 ? items.filter((item) => item.id !== id) : items.map((item) => item.id === id ? { ...item, quantity: Math.min(10, quantity) } : item))} onClear={() => setCart([])} />
+    <CartDrawer open={cartOpen} items={cart} stockLimits={stockLimits} onClose={() => setCartOpen(false)} onRemove={(id) => setCart((items) => items.filter((item) => item.id !== id))} onQuantity={changeQuantity} onClear={() => setCart([])} />
     {chosen && <CatalogProductOptions key={chosen.id} product={chosen} onClose={() => setChosen(null)} onAdd={addProduct} />}
   </div>
 }

@@ -1,0 +1,24 @@
+.product-inventory-editor,.product-photo-editor{grid-column:1/-1;min-width:0;border-top:1px solid #ddd4ca;padding-top:24px;margin-top:8px;color:#29241f}
+.admin-page .inventory-toggle{display:flex;align-items:center;gap:12px;font-size:16px;font-weight:600}
+.admin-page .inventory-toggle input{width:20px;height:20px;min-height:0;margin:0;accent-color:#783d49}
+.product-inventory-editor p,.product-photo-editor p{color:#70645b;font-size:14px;line-height:1.6;margin:12px 0 20px}
+.product-photo-editor h2{font-size:20px;margin:0}
+.inventory-table-wrap{overflow-x:auto}
+.inventory-table{width:100%;border-collapse:collapse;font-size:14px;text-align:left;font-variant-numeric:tabular-nums}
+.inventory-table caption{text-align:left;font-weight:600;padding:0 0 12px}
+.inventory-table th,.inventory-table td{padding:12px 10px;border-bottom:1px solid #ddd4ca;vertical-align:middle}
+.inventory-table thead{background:#eee6df}
+.admin-page .inventory-table input{width:100%;min-width:64px;max-width:110px;min-height:44px;padding:8px}
+.admin-page .product-photo-upload{max-width:480px;gap:8px;display:grid;margin-bottom:20px}
+.product-photo-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px 16px}
+.product-photo-entry{min-width:0;display:flex;flex-direction:column;gap:10px}
+.product-photo-entry img{width:100%;aspect-ratio:4/5;object-fit:contain;background:#eee8e1;border-radius:12px}
+.product-photo-entry label{font-size:12px}
+.admin-page .product-photo-entry select{min-width:0;padding:8px;min-height:44px;width:100%}
+.photo-actions{display:flex;gap:6px;flex-wrap:wrap}
+.admin-page .photo-actions button{min-height:44px;padding:8px 10px;font-size:12px;background:#faf7f2;border:1px solid #c9bcb1;color:#783d49}
+.admin-page .photo-actions button:disabled{opacity:.4;cursor:default}
+.photo-editor-error{color:#9c302a!important}
+.admin-page .product-editor-fields{border:0;margin:0;padding:0;min-width:0;grid-column:1/-1;display:contents}
+.admin-page .product-editor-fields:disabled{opacity:.6}
+@media(max-width:760px){.product-photo-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 12px}.inventory-table{font-size:12px}.inventory-table th,.inventory-table td{padding:10px 6px}.admin-page .inventory-table input{font-size:16px}.product-photo-entry label{font-size:13px}.admin-page .product-photo-entry select{font-size:16px}.photo-actions button:first-child{width:100%}}

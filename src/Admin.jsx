@@ -3,6 +3,9 @@ import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebas
 import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, runTransaction, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
 import { auth, db } from './firebase'
 import { PRODUCT_COLOR_OPTIONS, PRODUCT_SIZE_OPTIONS, PRODUCT_NUMERIC_SIZE_OPTIONS, normalizeProductColors, normalizeProductSizes, productOptions, productOptionsSummary } from './productOptions'
+import { productImages } from './productOptions'
+import { ProductInventoryEditor, ProductPhotoEditor } from './ProductEditorExtras'
+import { inventoryRows, mergeInventoryEdit } from './productInventory'
 import { DEFAULT_PRODUCT_TYPES, catalogProductTypes, productTypeIdFor, productTypeNameFor, productTypeSlug } from './productTypes'
 import './Admin.css'
 import './AdminProducts.css'
@@ -15,7 +18,7 @@ import './AdminButtonPolish.css'
 import './AdminClothing.css'
 
 const DEFAULT_CATEGORIES = ['Anime', 'Flores', 'Mascotas', 'Verano', 'Coquette', 'Frases', 'Moda', 'Vintage']
-const EMPTY_PRODUCT = { title: '', description: '', price: '18900', category: '', productTypeId: 'remeras', imageUrl: '', imagePublicId: '', imageFile: null, sizes: [], colors: [], id: '' }
+const EMPTY_PRODUCT = { title: '', description: '', price: '18900', category: '', productTypeId: 'remeras', imageUrl: '', imagePublicId: '', photos: [], sizes: [], colors: [], trackStock: true, variants: [], originalInventory: {}, id: '' }
 const EMPTY_OFFER = { id: '', title: '', description: '', code: '', label: '', active: true }
 const EMPTY_COUPON = { id: '', campaignId: '', code: '', title: '', type: 'percentage', value: '', active: true, startsAt: '', expiresAt: '', maxUses: '', usageCount: 0, minPurchase: '', appliesTo: 'all', productIds: [], perCustomerLimit: '' }
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024
@@ -207,6 +210,7 @@ export default function Admin() {
   const [categories, setCategories] = useState([])
   const [productTypes, setProductTypes] = useState(DEFAULT_PRODUCT_TYPES)
   const [product, setProduct] = useState(EMPTY_PRODUCT)
+  const [savingProduct, setSavingProduct] = useState(false)
   const [categoryName, setCategoryName] = useState('')
   const [editingCategoryId, setEditingCategoryId] = useState('')
   const [productTypeName, setProductTypeName] = useState('')
@@ -303,40 +307,65 @@ export default function Admin() {
 
   async function addProduct(event) {
     event.preventDefault()
+    if (savingProduct) return
     const title = product.title.trim()
     const price = Number(product.price)
     if (!title || !Number.isFinite(price) || price < 0) { setMessage('Completá el nombre y un precio válido.'); return }
+    setSavingProduct(true)
     try {
-      setMessage(product.imageFile ? 'Subiendo imagen…' : 'Guardando producto…')
+      setMessage('Guardando producto…')
+      const photos = [...(product.photos || [])]
+      for (let index = 0; index < photos.length; index += 1) {
+        if (!photos[index].file) continue
+        setMessage(`Subiendo foto ${index + 1} de ${photos.length}…`)
+        photos[index] = { ...await uploadImage(photos[index].file, 'products'), color: photos[index].color || '' }
+        // Keep completed uploads when a later photo fails, so retrying does
+        // not upload the same photographs again.
+        setProduct((current) => ({ ...current, photos: [...photos] }))
+      }
+      const images = productImages({ images: photos }).map((image) => ({ ...image, color: product.colors.some((color) => color.name === image.color) ? image.color : '' }))
       const data = {
         title,
         description: product.description.trim(),
         price,
         category: product.category || 'Remeras',
         productTypeId: productTypeOptions.some((item) => item.id === product.productTypeId) ? product.productTypeId : productTypeOptions[0].id,
-        imageUrl: product.imageUrl.trim(),
-        imagePublicId: product.imagePublicId || '',
+        images,
+        imageUrl: images[0]?.imageUrl || '',
+        imagePublicId: images[0]?.imagePublicId || '',
         sizes: normalizeProductSizes(product.sizes),
         colors: normalizeProductColors(product.colors),
+        trackStock: Boolean(product.trackStock),
+        updatedAt: serverTimestamp(),
       }
-      if (product.imageFile) Object.assign(data, await uploadImage(product.imageFile, 'products'))
-      // Editing the availability must not publish a product that was hidden for stock.
-      if (product.id) await setDoc(doc(db, 'products', product.id), data, { merge: true })
-      else await addDoc(collection(db, 'products'), { ...data, hidden: false, createdAt: serverTimestamp() })
+      const productRef = product.id ? doc(db, 'products', product.id) : doc(collection(db, 'products'))
+      await runTransaction(db, async (transaction) => {
+        const current = await transaction.get(productRef)
+        const variants = mergeInventoryEdit(product, product.originalInventory || {}, current.data() || {})
+        transaction.set(productRef, { ...data, variants, ...(!current.exists() ? { hidden: false, createdAt: serverTimestamp() } : {}) }, { merge: true })
+      })
       setProduct(EMPTY_PRODUCT)
       setMessage(product.id ? 'Producto actualizado.' : 'Producto guardado en el catálogo.')
     } catch (error) { setMessage(error.message || 'No se pudo guardar el producto.') }
+    finally { setSavingProduct(false) }
   }
 
   async function remove(collectionName, id) {
     if (!window.confirm('¿Querés quitar este elemento?')) return
     try {
       const item = collectionName === 'products' ? products.find((product) => product.id === id) : null
-      if (item?.isSeed) await setDoc(doc(db, 'products', id), { hidden: true }, { merge: true })
-      else await deleteDoc(doc(db, collectionName, id))
+      if (collectionName === 'products') {
+        const ref = doc(db, 'products', id)
+        await runTransaction(db, async (transaction) => {
+          const snapshot = await transaction.get(ref)
+          if (inventoryRows(snapshot.data()).some((row) => row.reserved > 0)) throw new Error('Esta prenda tiene un pago pendiente. Podés ocultarla mientras se confirma.')
+          if (item?.isSeed) transaction.set(ref, { hidden: true }, { merge: true })
+          else transaction.delete(ref)
+        })
+      } else await deleteDoc(doc(db, collectionName, id))
       setMessage('Elemento eliminado.')
     }
-    catch { setMessage('No se pudo eliminar el elemento.') }
+    catch (error) { setMessage(error.message || 'No se pudo eliminar el elemento.') }
   }
 
   async function toggleProductVisibility(item) {
@@ -352,7 +381,7 @@ export default function Admin() {
     }
   }
 
-  function editProduct(item) { const options = productOptions(item); setProduct({ id: item.id, title: item.title || '', description: item.description || '', price: String(item.price ?? ''), category: item.category || '', productTypeId: productTypeIdFor(item), imageUrl: item.imageUrl || '', imagePublicId: item.imagePublicId || '', imageFile: null, sizes: options.sizes, colors: options.colors }); setMessage('Editando producto. Guardá los cambios cuando termines.') }
+  function editProduct(item) { if (savingProduct) return; const options = productOptions(item); setProduct({ id: item.id, title: item.title || '', description: item.description || '', price: String(item.price ?? ''), category: item.category || '', productTypeId: productTypeIdFor(item), photos: productImages(item), sizes: options.sizes, colors: options.colors, trackStock: Boolean(item.trackStock), variants: item.variants || [], originalInventory: { ...options, trackStock: Boolean(item.trackStock), variants: item.variants || [] } }); setMessage('Editando producto. Guardá los cambios cuando termines.') }
   function editCategory(item) { setCategoryName(item.name || ''); setEditingCategoryId(item.id); setMessage('Editando categoría.') }
   useEffect(() => {
     const handleEdit = (event) => {
@@ -362,13 +391,13 @@ export default function Admin() {
     }
     window.addEventListener('tinta-admin-edit', handleEdit)
     return () => window.removeEventListener('tinta-admin-edit', handleEdit)
-  }, [products, categories])
+  }, [products, categories, savingProduct])
 
   if (loading) return <main className="admin-loading">Cargando panel…</main>
 
   if (!user) return <main className="admin-login"><a className="admin-brand" href="/" aria-label="Fenixis Store"><span className="admin-brand-wordmark" aria-hidden="true" /></a><section><h1>Administrá tu tienda.</h1><p>Ingresá con tu cuenta de vendedor para manejar el catálogo y los pedidos.</p><form onSubmit={login}><label>Correo<input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" required /></label><label>Contraseña<input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" required /></label>{message && <p className="admin-message">{message}</p>}<button>Ingresar al panel <span>→</span></button></form></section></main>
 
-  return <main className="admin-page"><header className="admin-header"><a className="admin-brand" href="/" aria-label="Fenixis Store"><span className="admin-brand-wordmark" aria-hidden="true" /></a><div><span>{user.email}</span><button className="admin-logout" onClick={() => signOut(auth)}>Salir</button></div></header><div className="admin-layout"><aside><button className={active === 'pedidos' ? 'active' : ''} onClick={() => setActive('pedidos')}>Pedidos <b>{orders.length}</b></button><button className={active === 'productos' ? 'active' : ''} onClick={() => setActive('productos')}>Productos <b>{products.length}</b></button><button className={active === 'tipos-prenda' ? 'active' : ''} onClick={() => setActive('tipos-prenda')}>Tipos de prenda <b>{productTypeOptions.length}</b></button><button className={active === 'ofertas' ? 'active' : ''} onClick={() => setActive('ofertas')}>Ofertas</button><button className={active === 'cupones' ? 'active' : ''} onClick={() => setActive('cupones')}>Cupones</button><button className={active === 'categorias' ? 'active' : ''} onClick={() => setActive('categorias')}>Categorías <b>{categories.length}</b></button><a href="/">Ver tienda <span>↗</span></a></aside><section className="admin-content">{message && <p className="admin-toast">{message}</p>}{active === 'pedidos' && <Orders orders={orders} user={user} onNotice={setMessage} />}{active === 'productos' && <Products items={products} value={product} setValue={setProduct} categories={categoryOptions} productTypes={productTypeOptions} onAdd={addProduct} onRemove={remove} onToggleVisibility={toggleProductVisibility} />}{active === 'tipos-prenda' && <ProductTypes items={productTypeOptions} products={products} value={productTypeName} editingId={editingProductTypeId} setValue={setProductTypeName} onAdd={addProductType} onEdit={(item) => { setProductTypeName(item.name); setEditingProductTypeId(item.id); setMessage('Editando tipo de prenda.') }} onCancel={() => { setProductTypeName(''); setEditingProductTypeId('') }} onRemove={removeProductType} />}{active === 'ofertas' && <Offers />}{active === 'cupones' && <Coupons products={products} />}{active === 'categorias' && <Categories items={categories} value={categoryName} setValue={setCategoryName} onAdd={addCategory} onRemove={remove} />}</section></div></main>
+  return <main className="admin-page"><header className="admin-header"><a className="admin-brand" href="/" aria-label="Fenixis Store"><span className="admin-brand-wordmark" aria-hidden="true" /></a><div><span>{user.email}</span><button className="admin-logout" onClick={() => signOut(auth)}>Salir</button></div></header><div className="admin-layout"><aside><button className={active === 'pedidos' ? 'active' : ''} onClick={() => setActive('pedidos')}>Pedidos <b>{orders.length}</b></button><button className={active === 'productos' ? 'active' : ''} onClick={() => setActive('productos')}>Productos <b>{products.length}</b></button><button className={active === 'tipos-prenda' ? 'active' : ''} onClick={() => setActive('tipos-prenda')}>Tipos de prenda <b>{productTypeOptions.length}</b></button><button className={active === 'ofertas' ? 'active' : ''} onClick={() => setActive('ofertas')}>Ofertas</button><button className={active === 'cupones' ? 'active' : ''} onClick={() => setActive('cupones')}>Cupones</button><button className={active === 'categorias' ? 'active' : ''} onClick={() => setActive('categorias')}>Categorías <b>{categories.length}</b></button><a href="/">Ver tienda <span>↗</span></a></aside><section className="admin-content">{message && <p className="admin-toast">{message}</p>}{active === 'pedidos' && <Orders orders={orders} user={user} onNotice={setMessage} />}{active === 'productos' && <Products saving={savingProduct} items={products} value={product} setValue={setProduct} categories={categoryOptions} productTypes={productTypeOptions} onAdd={addProduct} onRemove={remove} onToggleVisibility={toggleProductVisibility} />}{active === 'tipos-prenda' && <ProductTypes items={productTypeOptions} products={products} value={productTypeName} editingId={editingProductTypeId} setValue={setProductTypeName} onAdd={addProductType} onEdit={(item) => { setProductTypeName(item.name); setEditingProductTypeId(item.id); setMessage('Editando tipo de prenda.') }} onCancel={() => { setProductTypeName(''); setEditingProductTypeId('') }} onRemove={removeProductType} />}{active === 'ofertas' && <Offers />}{active === 'cupones' && <Coupons products={products} />}{active === 'categorias' && <Categories items={categories} value={categoryName} setValue={setCategoryName} onAdd={addCategory} onRemove={remove} />}</section></div></main>
 }
 
 function Orders({ orders, user, onNotice }) {
@@ -690,7 +719,7 @@ export function ProductOptions({ value, onChange }) {
   </section>
 }
 
-function Products({ items, value, setValue, categories, productTypes, onAdd, onRemove, onToggleVisibility }) {
+function Products({ items, value, setValue, categories, productTypes, onAdd, onRemove, onToggleVisibility, saving }) {
   const update = (field, next) => setValue({ ...value, [field]: next })
   const [search, setSearch] = useState('')
   const normalizedSearch = search.trim().toLocaleLowerCase('es-AR')
@@ -698,14 +727,17 @@ function Products({ items, value, setValue, categories, productTypes, onAdd, onR
   return <>
     <div className="admin-title"><div><h1>Productos</h1></div><p>Cargá tus prendas con sus fotos, talles y colores disponibles. Podés ocultarlas cuando no tengas stock.</p></div>
     <form className="product-form" onSubmit={onAdd}>
+      <fieldset disabled={saving} className="product-editor-fields">
       <label>Nombre del producto<input value={value.title} onChange={(event) => update('title', event.target.value)} placeholder="Ej. Prenda clásica" required /></label>
       <label>Precio<input value={value.price} onChange={(event) => update('price', event.target.value)} type="number" min="0" step="1" required /></label>
       <label>Tipo de prenda<select value={value.productTypeId} onChange={(event) => update('productTypeId', event.target.value)} required>{productTypes.map((type) => <option value={type.id} key={type.id}>{type.name}</option>)}</select></label>
       <label>Colección o estilo<select value={value.category} onChange={(event) => update('category', event.target.value)}><option value="">Sin categoría</option>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
       <label className="product-description">Descripción<textarea value={value.description} onChange={(event) => update('description', event.target.value)} placeholder="Ej. Remera de algodón, corte amplio y cuello redondo." rows="3" /></label>
       <ProductOptions key={value.id || 'new-product'} value={value} onChange={setValue} />
-      <label className="product-image">Foto del producto <small>{value.imageFile?.name || (value.imageUrl ? 'Elegí otra foto para reemplazar la actual.' : 'Opcional · PNG, JPG o WEBP · Máx. 10 MB')}</small><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => update('imageFile', event.target.files?.[0] || null)} /></label>
-      <button>{value.id ? 'Guardar cambios' : 'Guardar producto'} <span>{value.id ? '✓' : '+'}</span></button>
+      <ProductInventoryEditor value={value} onChange={setValue} />
+      <ProductPhotoEditor key={value.id || 'new-product'} value={value} onChange={setValue} />
+      <button>{saving ? 'Guardando…' : value.id ? 'Guardar cambios' : 'Guardar producto'} <span>{value.id ? '✓' : '+'}</span></button>
+      </fieldset>
     </form>
     {items.length && <label className="admin-product-search"><span>Buscar producto</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nombre o código del producto" /><small>{matchingItems.length} de {items.length} productos</small></label>}
     {items.length ? matchingItems.length ? <div className="product-grid">{matchingItems.map((product) => <article className={product.hidden ? 'is-hidden' : ''} key={product.id}><div className="product-image-preview">{product.imageUrl ? <img src={product.imageUrl} alt={product.title} /> : <span>PRENDA<br/>FENIXIS</span>}{product.hidden && <b className="product-hidden-badge">Oculto · sin stock</b>}</div><div><span>{productTypeNameFor(product, productTypes)}{product.category ? ` · ${product.category}` : ''}</span><h2>{product.title}</h2><code>{product.id}</code>{productOptionsSummary(product) && <p className="product-availability">{productOptionsSummary(product)}</p>}{product.description && <p>{product.description}</p>}<strong>$ {Number(product.price || 0).toLocaleString('es-AR')}</strong><div className="admin-actions"><button onClick={() => editItem('products', product.id)}>Editar</button><button type="button" onClick={() => onToggleVisibility(product)}>{product.hidden ? 'Mostrar en tienda' : 'Ocultar por stock'}</button><button onClick={() => onRemove('products', product.id)}>Quitar</button></div></div></article>)}</div> : <Empty title="No hay productos que coincidan" text="Probá buscar por otro nombre o código." /> : <Empty title="Todavía no hay productos" text="Podés agregar tu primera prenda y elegir el tipo que corresponde." />}

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { productOptions } from './productOptions'
+import { productOptions, productImages } from './productOptions'
+import { availableStock } from './productInventory'
+import './ProductDetails.css'
 
 const SHIRT_PRICE = 18900
 const MERCADO_PAGO_PUBLIC_KEY = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY || ''
@@ -170,7 +172,7 @@ function MercadoPagoCheckout({ items, customer, couponCode = '', couponTotals, o
   return <section className="mercado-pago-checkout"><div className="checkout-title"><div><p className="eyebrow">PAGO SEGURO</p><h3>Pagá con Mercado Pago</h3></div><button type="button" onClick={onCancel} aria-label="Volver a la bolsa">×</button></div><div className={`checkout-total ${hasVerifiedCoupon ? 'has-discount' : ''}`}>{hasVerifiedCoupon ? <><div><span>Subtotal</span><strong>$ {Number(couponTotals.subtotal).toLocaleString('es-AR')}</strong></div><div className="checkout-discount"><span>Descuento</span><strong>− $ {Number(couponTotals.discount).toLocaleString('es-AR')}</strong></div><div className="checkout-payable"><span>Total a pagar</span><strong>$ {total.toLocaleString('es-AR')}</strong></div></> : <div><span>Total a pagar</span><strong>$ {total.toLocaleString('es-AR')}</strong></div>}</div>{state.kind !== 'ready' && <p className={`payment-message ${state.kind}`}>{state.message}</p>}<div id={containerId}/><small>Los datos de tu tarjeta son procesados de forma segura por Mercado Pago.</small></section>
 }
 
-export function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear }) {
+export function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear, stockLimits = {} }) {
   const dialogRef = useDialogFocus(open, onClose)
   const [customer, setCustomer] = useState({ name: '', email: '', phone: '', delivery: 'Retiro por el local', address: '', notes: '' })
   const [checkoutOpen, setCheckoutOpen] = useState(false)
@@ -192,6 +194,7 @@ export function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear
   }
 
   const beginCheckout = () => {
+    if (items.some((item) => item.quantity > (stockLimits[item.id] ?? 10))) { setCheckoutValidationError('Cambió la disponibilidad de una prenda. Ajustá las cantidades o quitá las que estén sin stock para continuar.'); return }
     const email = String(customer.email || '').trim().toLowerCase()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setCheckoutValidationError('Ingresá un correo electrónico válido para enviarte la confirmación de compra.')
@@ -290,8 +293,8 @@ export function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear
           const isCatalogProduct = item.kind === 'product'
           return <article className="cart-item" key={item.id}>
             <div className="cart-item-art">{isCatalogProduct && item.imageUrl ? <img src={item.imageUrl} alt="" /> : <span style={{ background: item.colorValue || '#e6e4de' }}/>}</div>
-            <div><h3>{item.title || 'Prenda'}</h3><p>{isCatalogProduct ? item.category || 'Producto del catálogo' : `${item.color} · Talle ${item.size}`}</p><small>{isCatalogProduct ? [[item.color && `Color: ${item.color}`, item.size && `Talle ${item.size}`].filter(Boolean).join(' · '), item.description || 'Producto de Fenixis'].filter(Boolean).join(' · ') : `${item.front ? `Frente: ${item.front}` : ''}${item.back ? ` · Espalda: ${item.back}` : ''}`}</small><div className="quantity"><button onClick={() => onQuantity(item.id, item.quantity - 1)} aria-label="Restar una unidad">−</button><b>{item.quantity}</b><button onClick={() => onQuantity(item.id, item.quantity + 1)} aria-label="Sumar una unidad">+</button><button className="remove-cart-item" onClick={() => onRemove(item.id)}>Quitar</button></div></div>
-            <strong>$ {(price * item.quantity).toLocaleString('es-AR')}</strong>
+            <div><h3>{item.title || 'Prenda'}</h3><p>{isCatalogProduct ? item.category || 'Producto del catálogo' : `${item.color} · Talle ${item.size}`}</p><small>{isCatalogProduct ? [[item.color && `Color: ${item.color}`, item.size && `Talle ${item.size}`].filter(Boolean).join(' · '), item.description || 'Producto de Fenixis'].filter(Boolean).join(' · ') : `${item.front ? `Frente: ${item.front}` : ''}${item.back ? ` · Espalda: ${item.back}` : ''}`}</small><div className="quantity"><button onClick={() => onQuantity(item.id, item.quantity - 1)} aria-label="Restar una unidad">−</button><b>{item.quantity}</b><button disabled={item.quantity >= (stockLimits[item.id] ?? 10)} onClick={() => onQuantity(item.id, item.quantity + 1)} aria-label="Sumar una unidad">+</button><button className="remove-cart-item" onClick={() => onRemove(item.id)}>Quitar</button></div></div>
+            <strong>{item.quantity > (stockLimits[item.id] ?? 10) && <small className="cart-stock-error">{stockLimits[item.id] === 0 ? 'Sin stock' : `Disponibles: ${stockLimits[item.id]}`}</small>}$ {(price * item.quantity).toLocaleString('es-AR')}</strong>
           </article>
         })}</div>
         <footer className="cart-footer">
@@ -317,26 +320,67 @@ export function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear
 }
 
 export function CatalogProductOptions({ product, onClose, onAdd }) {
-  const dialogRef = useDialogFocus(Boolean(product), onClose)
   const { sizes, colors } = productOptions(product)
-  const [size, setSize] = useState(() => sizes[0] || '')
-  const [color, setColor] = useState(() => colors[0] || null)
+  const images = productImages(product)
+  const initialColor = colors.find((entry) => (sizes.length ? sizes : ['']).some((item) => availableStock(product, item, entry.name) > 0)) || colors[0] || null
+  const [size, setSize] = useState(() => sizes.length === 1 && availableStock(product, sizes[0], initialColor?.name || '') > 0 ? sizes[0] : '')
+  const [color, setColor] = useState(() => initialColor)
+  const [photo, setPhoto] = useState(() => Math.max(0, images.findIndex((image) => image.color === initialColor?.name)))
+  const [zoom, setZoom] = useState(false)
+  const [feedback, setFeedback] = useState('')
+  const dialogRef = useDialogFocus(Boolean(product), () => zoom ? setZoom(false) : onClose())
+  const imageButton = useRef(null)
+  const zoomButton = useRef(null)
+  useEffect(() => { if (zoom) zoomButton.current?.focus() }, [zoom])
 
   if (!product) return null
 
-  const selectedSize = sizes.includes(size) ? size : sizes[0] || ''
+  const selectedSize = sizes.includes(size) ? size : ''
   const selectedColor = colors.find((entry) => entry.name === color?.name) || colors[0] || null
+  const hasSelection = (!sizes.length || Boolean(selectedSize)) && (!colors.length || Boolean(selectedColor))
+  const remaining = availableStock(product, selectedSize, selectedColor?.name || '')
+  const selectedPhoto = images[Math.min(photo, Math.max(0, images.length - 1))]
+  const colorAvailable = (name) => (sizes.length ? sizes : ['']).some((entry) => availableStock(product, entry, name) > 0)
+  const chooseColor = (entry) => {
+    setColor(entry); setFeedback('')
+    if (availableStock(product, selectedSize, entry.name) < 1) setSize('')
+    const index = images.findIndex((image) => image.color === entry.name)
+    if (index >= 0) setPhoto(index)
+  }
+  const showPhoto = (index) => {
+    const photoColor = colors.find((entry) => entry.name === images[index]?.color)
+    if (photoColor) chooseColor(photoColor)
+    setPhoto(index)
+  }
+  const movePhoto = (direction) => showPhoto((photo + direction + images.length) % images.length)
+  const closeZoom = () => { setZoom(false); requestAnimationFrame(() => imageButton.current?.focus()) }
+  const arrow = (direction) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d={direction < 0 ? 'M20 12H4m7-7-7 7 7 7' : 'M4 12h16m-7-7 7 7-7 7'} /></svg>
+  const closeIcon = <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6" /></svg>
 
   return <div className="catalog-options-layer" role="presentation">
     <button className="catalog-options-backdrop" type="button" aria-label="Cerrar opciones del producto" onClick={onClose} />
-    <section ref={dialogRef} tabIndex={-1} className="catalog-options-dialog" role="dialog" aria-modal="true" aria-labelledby="catalog-options-title">
-      <header><div><p className="eyebrow">ELEGÍ TU PRENDA</p><h2 id="catalog-options-title">{product.title}</h2></div><button type="button" aria-label="Cerrar" onClick={onClose}>×</button></header>
-      {product.imageUrl && <img className="catalog-detail-photo" src={product.imageUrl} alt={product.title} />}
-      {product.description && <p className="catalog-detail-description">{product.description}</p>}
-      <p className="catalog-options-copy">{sizes.length || colors.length ? "Elegí tu talle y color entre las opciones disponibles." : "Esta prenda se vende tal como se muestra."}</p>
-      {sizes.length > 0 && <fieldset><legend>Talle</legend><div className="catalog-option-buttons">{sizes.map((item) => <button type="button" key={item} className={selectedSize === item ? 'is-selected' : ''} aria-pressed={selectedSize === item} onClick={() => setSize(item)}>{item}</button>)}</div></fieldset>}
-      {colors.length > 0 && <fieldset><legend>Color</legend><div className="catalog-color-buttons">{colors.map((item) => <button type="button" key={item.name} className={selectedColor?.name === item.name ? 'is-selected' : ''} aria-pressed={selectedColor?.name === item.name} onClick={() => setColor(item)}><i aria-hidden="true" style={{ backgroundColor: item.value }} />{item.name}</button>)}</div></fieldset>}
-      <footer><strong>$ {Number(product.price || 0).toLocaleString('es-AR')}</strong><button className="catalog-options-add" type="button" onClick={() => onAdd({ size: selectedSize, color: selectedColor })}>Agregar al carrito <span>+</span></button></footer>
+    <section ref={dialogRef} tabIndex={-1} className={`catalog-options-dialog product-details-dialog ${zoom ? 'is-zoomed' : ''}`} role="dialog" aria-modal="true" aria-labelledby="catalog-options-title">
+      <header><h2 id="catalog-options-title">{product.title}</h2><button ref={zoomButton} type="button" aria-label={zoom ? 'Volver al producto' : 'Cerrar'} onClick={zoom ? closeZoom : onClose}>{closeIcon}</button></header>
+      <div className="product-detail-layout">
+        <div className="product-gallery" onKeyDown={(event) => { if (['ArrowLeft', 'ArrowRight'].includes(event.key) && images.length > 1) { event.preventDefault(); movePhoto(event.key === 'ArrowLeft' ? -1 : 1) } }}>
+          {selectedPhoto ? <button ref={imageButton} type="button" className="product-gallery-main" aria-label={zoom ? 'Reducir foto' : 'Ampliar foto de la prenda'} onClick={() => zoom ? closeZoom() : setZoom(true)}><img src={selectedPhoto.imageUrl} alt={`${product.title}${selectedPhoto.color ? `, ${selectedPhoto.color}` : ''}, foto ${photo + 1}`} /><span>{zoom ? 'Reducir foto' : 'Ampliar foto'}</span></button> : <div className="product-gallery-empty">Foto próximamente</div>}
+          {selectedPhoto?.color && <p className="product-photo-caption">Color de la foto: {selectedPhoto.color}</p>}
+          {images.length > 1 && <>
+            <div className="product-gallery-controls"><button type="button" aria-label="Foto anterior" onClick={() => movePhoto(-1)}>{arrow(-1)}</button><span role="status">Foto {photo + 1} de {images.length}</span><button type="button" aria-label="Foto siguiente" onClick={() => movePhoto(1)}>{arrow(1)}</button></div>
+            <div className="product-gallery-thumbnails" aria-label="Fotos de la prenda">{images.map((image, index) => <button type="button" key={image.imageUrl} aria-label={`Ver foto ${index + 1}${image.color ? `, ${image.color}` : ''}`} aria-pressed={photo === index} onClick={() => showPhoto(index)}><img src={image.imageUrl} alt="" loading="lazy" /></button>)}</div>
+          </>}
+        </div>
+        {!zoom && <div className="product-detail-info">
+          <strong className="product-detail-price">$ {Number(product.price || 0).toLocaleString('es-AR')}</strong>
+          {product.description && <p className="catalog-detail-description">{product.description}</p>}
+          {colors.length > 0 && <fieldset><legend>Color: {selectedColor?.name}</legend><div className="catalog-color-buttons">{colors.map((item) => <button type="button" key={item.name} className={selectedColor?.name === item.name ? 'is-selected' : ''} aria-pressed={selectedColor?.name === item.name} disabled={!colorAvailable(item.name)} title={colorAvailable(item.name) ? item.name : `${item.name}: sin stock`} onClick={() => chooseColor(item)}><i aria-hidden="true" style={{ backgroundColor: item.value }} />{item.name}</button>)}</div></fieldset>}
+          {sizes.length > 0 && <fieldset><legend>Talle</legend><div className="catalog-option-buttons">{sizes.map((item) => <button type="button" key={item} className={selectedSize === item ? 'is-selected' : ''} aria-pressed={selectedSize === item} disabled={availableStock(product, item, selectedColor?.name || '') < 1} title={availableStock(product, item, selectedColor?.name || '') < 1 ? `Talle ${item}: sin stock en este color` : `Talle ${item}`} onClick={() => { setSize(item); setFeedback('') }}>{item}</button>)}</div></fieldset>}
+          <p className="product-stock-note" role="status">{!hasSelection ? 'Elegí un talle disponible para este color.' : remaining < 1 ? 'Sin stock en esta combinación. Elegí otro talle o color.' : product.trackStock ? `${remaining} ${remaining === 1 ? 'unidad disponible' : 'unidades disponibles'}` : 'Prenda disponible para agregar al carrito.'}</p>
+          {hasSelection && (selectedColor || selectedSize) && <p className="product-selection-summary">Tu elección: {[selectedColor?.name, selectedSize && `Talle ${selectedSize}`].filter(Boolean).join(' · ')}</p>}
+          <button className="catalog-options-add" type="button" disabled={!hasSelection || remaining < 1} onClick={() => { const error = onAdd({ size: selectedSize, color: selectedColor }); if (error) setFeedback(error) }}>Agregar al carrito {arrow(1)}</button>
+          {feedback && <p className="product-stock-note" role="alert">{feedback}</p>}
+        </div>}
+      </div>
     </section>
   </div>
 }

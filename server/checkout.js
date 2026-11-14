@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { FieldValue } from './firebase-admin.js'
+import { availableStock, variantKey } from '../src/productInventory.js'
 
 export const CATALOG = {
   'remeron-yorkie-bandana': { title: 'Remerón Yorkie Bandana', price: 12000 },
@@ -160,6 +161,15 @@ export async function calculateCart(cart, db = null) {
     }
   })
 
+  const quantities = new Map()
+  for (const item of items) {
+    const product = firestoreProducts.get(item.productId)
+    if (!product?.trackStock) continue
+    const key = JSON.stringify([item.productId, variantKey(item.size, item.color)])
+    const quantity = (quantities.get(key) || 0) + item.quantity
+    quantities.set(key, quantity)
+    if (quantity > availableStock(product, item.size, item.color)) throw new CheckoutError(`No hay suficientes unidades de ${item.title}${item.size ? `, talle ${item.size}` : ''}${item.color ? `, ${item.color}` : ''}. Revisá tu carrito.`, 'STOCK_UNAVAILABLE', 409)
+  }
   const subtotal = items.reduce((total, item) => total + item.lineTotal, 0)
   return { items, subtotal }
 }
