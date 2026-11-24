@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { getAdminFirestore, FieldValue } from '../server/firebase-admin.js'
 import { notifyPaidOrder } from '../server/order-email.js'
+import { quoteDelivery } from '../server/delivery.js'
 import { reserveInventory, settleInventory, claimPaymentSubmission } from '../server/inventory.js'
 import {
   CheckoutError,
@@ -188,7 +189,8 @@ export default async function handler(req, res) {
       if (previousAttempt) return sendExistingAttempt(res, previousAttempt)
     }
 
-    const quote = await quoteCheckout({ db, cart, couponCode, reconcileReservations: true })
+    const garmentsQuote = await quoteCheckout({ db, cart, couponCode, reconcileReservations: true })
+    const quote = await quoteDelivery({ db, quote: garmentsQuote, customer, expectedDelivery: req.body?.deliveryQuote, expectedTotal: req.body?.expectedTotal })
     if (quote.coupon && !process.env.MERCADOPAGO_WEBHOOK_SECRET) {
       throw new CheckoutError('Los códigos promocionales todavía no están configurados para confirmar pagos pendientes.', 'COUPON_WEBHOOK_NOT_CONFIGURED', 503)
     }
@@ -200,9 +202,7 @@ export default async function handler(req, res) {
     if (phoneDigits.length < 8 || phoneDigits.length > 16) {
       return send(res, 400, { message: 'Ingresá un número de teléfono válido para poder contactarte si hace falta.' })
     }
-    if (safeBuyer.delivery === 'Envío a domicilio' && !safeBuyer.address) {
-      return send(res, 400, { message: 'Ingresá la dirección para poder preparar el envío.' })
-    }
+    if (quote.delivery.mode === 'pickup') safeBuyer.address = quote.delivery.pickupAddress
     const attemptResult = db
       ? await beginCheckoutAttempt(db, attemptId, quote)
       : {
@@ -237,6 +237,8 @@ export default async function handler(req, res) {
       customer: safeBuyer,
       customerName: safeBuyer.name,
       delivery: safeBuyer.delivery,
+      deliveryDetails: quote.delivery,
+      shippingTotal: quote.totals.shipping,
       status: 'processing',
       statusDetail: 'waiting_for_mercado_pago',
       items: safeOrderItems(quote.items),
@@ -365,6 +367,8 @@ export default async function handler(req, res) {
         const notificationOrder = {
           reference: externalReference,
           customer: safeBuyer,
+          deliveryDetails: quote.delivery,
+          shippingTotal: quote.totals.shipping,
           items: safeOrderItems(quote.items),
           subtotal: quote.totals.subtotal,
           discount: quote.totals.discount,

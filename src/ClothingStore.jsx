@@ -120,6 +120,8 @@ export default function ClothingStore() {
   const [types, setTypes] = useState(DEFAULT_PRODUCT_TYPES)
   const [offers, setOffers] = useState([])
   const [whatsapp, setWhatsapp] = useState('5491165937433')
+  const [deliverySettings, setDeliverySettings] = useState(null)
+  const [deliveryState, setDeliveryState] = useState('loading')
   const [query, setQuery] = useState(() => new URLSearchParams(location.search).get('q') || '')
   const [type, setType] = useState(() => new URLSearchParams(location.search).get('tipo') || 'all')
   const [category, setCategory] = useState('all')
@@ -144,7 +146,12 @@ export default function ClothingStore() {
     fetch('/products/catalog.json').then((response) => { if (!response.ok) throw new Error(); return response.json() }).then((data) => { seed = Array.isArray(data) ? data : [] }).catch(() => { seedFailed = true }).finally(() => { seedDone = true; update() })
     const stop = onSnapshot(collection(db, 'products'), (snapshot) => { stored = snapshot.docs.map((item) => ({ ...item.data(), id: item.id })); liveDone = true; update() }, () => { liveFailed = true; liveDone = true; update() })
     const stopTypes = onSnapshot(doc(db, 'settings', 'catalog'), (snapshot) => setTypes(catalogProductTypes(snapshot.data()?.productTypes)), () => {})
-    const stopStore = onSnapshot(doc(db, 'settings', 'store'), (snapshot) => { const number = String(snapshot.data()?.whatsappNumber || '').replace(/\D/g, ''); if (number) setWhatsapp(number) }, () => {})
+    const stopStore = onSnapshot(doc(db, 'settings', 'store'), (snapshot) => {
+      const number = String(snapshot.data()?.whatsappNumber || '').replace(/\D/g, '')
+      if (number) setWhatsapp(number)
+      setDeliverySettings(snapshot.data()?.delivery)
+      setDeliveryState('ready')
+    }, () => setDeliveryState('error'))
     return () => { alive = false; stop(); stopTypes(); stopStore() }
   }, [])
   useEffect(() => {
@@ -234,7 +241,7 @@ export default function ClothingStore() {
       </main>
       <footer className="fashion-footer" id="contacto"><div className="fashion-footer-top"><div><a href="/" aria-label="Fenixis Store, inicio"><span className="brand-wordmark" /></a><p>Para todos tus días.<br />Para ser vos.</p></div><div><h2>La tienda</h2><a href="/">Inicio</a><a href="/productos/">Todas las prendas</a><button onClick={() => setCartOpen(true)}>Mi carrito</button></div><div><h2>Estamos para ayudarte</h2><a href={whatsappUrl} target="_blank" rel="noreferrer">Escribinos por WhatsApp <Icon name="arrow" /></a><a href="mailto:fenixisstore@gmail.com">fenixisstore@gmail.com</a><span>Buenos Aires, Argentina</span></div><div><h2>Seguí a Fenixis</h2><a href="https://www.instagram.com/fenixisstore/" target="_blank" rel="noreferrer">Instagram <Icon name="arrow" /></a><a href="https://www.tiktok.com/@fenixisstore" target="_blank" rel="noreferrer">TikTok <Icon name="arrow" /></a></div></div><div className="fashion-footer-bottom"><span>© {new Date().getFullYear()} Fenixis Store</span><span>Pagos seguros con Mercado Pago</span></div></footer>
     </div>
-    <CartDrawer open={cartOpen} items={cart} stockLimits={stockLimits} onClose={() => setCartOpen(false)} onRemove={(id) => setCart((items) => items.filter((item) => item.id !== id))} onQuantity={changeQuantity} onClear={() => setCart([])} />
+    <CartDrawer open={cartOpen} items={cart} stockLimits={stockLimits} deliverySettings={deliverySettings} deliveryState={deliveryState} onClose={() => setCartOpen(false)} onRemove={(id) => setCart((items) => items.filter((item) => item.id !== id))} onQuantity={changeQuantity} onClear={() => setCart([])} />
     {chosen && <CatalogProductOptions key={chosen.id} product={chosen} onClose={() => setChosen(null)} onAdd={addProduct} />}
   </div>
 }

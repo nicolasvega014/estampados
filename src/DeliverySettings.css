@@ -1,0 +1,17 @@
+.delivery-settings-form { max-width: 820px; }
+.delivery-settings-form fieldset { margin: 0 0 32px; padding: 0; border: 0; min-width: 0; }
+.delivery-settings-form legend { font-size: 21px; font-weight: 600; margin-bottom: 8px; }
+.delivery-settings-form fieldset > p { margin: 0 0 20px; color: #6a6058; font-size: 14px; line-height: 1.6; max-width: 65ch; }
+.delivery-settings-form label { display: grid; gap: 8px; margin-bottom: 18px; font-size: 14px; font-weight: 500; }
+.delivery-settings-form label > span { display: contents; color: #6a6058; font-weight: 400; }
+.delivery-settings-form :is(input, textarea) { width: 100%; box-sizing: border-box; padding: 12px 14px; min-height: 48px; border: 1px solid #c8bbb0; background: #fffdfa; font: inherit; color: #29241f; border-radius: 7px; }
+.delivery-settings-form textarea { resize: vertical; line-height: 1.6; }
+.delivery-settings-prices { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.delivery-settings-save { border-top: 1px solid #ddd4ca; padding-top: 24px; }
+.delivery-settings-save button { min-height: 48px; padding: 12px 22px; background: #783d49; color: #fff; border: 0; border-radius: 7px; font: inherit; font-weight: 600; cursor: pointer; }
+.delivery-settings-save button:hover { background: #60303b; }
+.delivery-settings-save button:disabled { opacity: .65; cursor: wait; }
+.delivery-settings-save p { color: #6a6058; font-size: 13px; line-height: 1.6; }
+.delivery-settings-notice { color: #245936; font-size: 14px; line-height: 1.6; }
+.delivery-settings-notice.is-error { color: #96302a; }
+@media(max-width:760px) { .delivery-settings-prices { grid-template-columns: 1fr; gap: 0; } .delivery-settings-form :is(input, textarea) { font-size: 16px; } .delivery-settings-save button { width: 100%; } }

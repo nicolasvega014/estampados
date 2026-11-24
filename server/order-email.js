@@ -71,6 +71,8 @@ function orderSummary(order) {
     subtotal: money(order?.subtotal),
     discount: Number(order?.discount) > 0 ? money(order.discount) : '',
     total: money(order?.total ?? order?.subtotal),
+    shipping: Number(order?.shippingTotal) > 0 ? money(order.shippingTotal) : '',
+    deliveryDetails: order?.deliveryDetails || null,
     coupon,
   }
 }
@@ -86,10 +88,13 @@ function plainOrderLines(summary, includeCustomerContact) {
     '',
     `Subtotal: ${summary.subtotal}`,
     ...(summary.discount ? [`Descuento${summary.coupon ? ` (${summary.coupon})` : ''}: - ${summary.discount}`] : []),
+    ...(summary.shipping ? [`Envío (incluido en el total): ${summary.shipping}`] : []),
     `Total: ${summary.total}`,
     '',
     `Entrega: ${summary.customer.delivery || 'No indicada'}`,
-    `Dirección: ${summary.customer.address || (summary.customer.delivery === 'Retiro por el local' ? 'Retira por el local' : 'No indicada')}`,
+    `${summary.deliveryDetails?.mode === 'branch' ? 'Sucursal o localidad' : 'Dirección'}: ${summary.deliveryDetails?.pickupAddress || summary.customer.address || (summary.deliveryDetails ? 'A coordinar después de la compra' : summary.customer.delivery === 'Retiro por el local' ? 'Retira por el local' : 'No indicada')}`,
+    ...(summary.deliveryDetails?.pickupHours ? [`Horarios de retiro: ${summary.deliveryDetails.pickupHours}`] : []),
+    ...(summary.deliveryDetails?.instructions ? [summary.deliveryDetails.instructions] : []),
   ]
   if (summary.customer.notes) lines.push(`Notas: ${summary.customer.notes}`)
   if (includeCustomerContact) {

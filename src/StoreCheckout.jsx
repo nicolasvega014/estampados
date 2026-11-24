@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { productOptions, productImages } from './productOptions'
 import { availableStock } from './productInventory'
+import { DELIVERY_OPTIONS, deliveryDetails } from './deliverySettings.js'
 import './ProductDetails.css'
+import './DeliveryCheckout.css'
 
 const SHIRT_PRICE = 18900
 const MERCADO_PAGO_PUBLIC_KEY = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY || ''
@@ -85,11 +87,27 @@ function newCheckoutAttemptId() {
   return `checkout-${Date.now()}-${Math.random().toString(36).slice(2, 14)}`
 }
 
-function MercadoPagoCheckout({ items, customer, couponCode = '', couponTotals, onCancel, onComplete }) {
+function OrderTotals({ subtotal, discount = 0, shipping = 0, total, couponCode = '', pickup = false }) {
+  return <div className="delivery-order-totals" aria-live="polite">
+    <div><span>Prendas</span><strong>$ {subtotal.toLocaleString('es-AR')}</strong></div>
+    {discount > 0 && <div><span>Descuento {couponCode}</span><strong>− $ {discount.toLocaleString('es-AR')}</strong></div>}
+    <div><span>{pickup ? 'Retiro por el local' : 'Envío'}</span><strong>{shipping ? `$ ${shipping.toLocaleString('es-AR')}` : 'Sin cargo'}</strong></div>
+    <div className="delivery-order-total"><span>Total a pagar</span><strong>$ {total.toLocaleString('es-AR')}</strong></div>
+  </div>
+}
+
+function DeliverySummary({ delivery }) {
+  return <div className="checkout-delivery-summary">
+    <strong>{delivery.label}</strong>
+    {delivery.mode === 'pickup' ? <><p>{delivery.pickupAddress}</p>{delivery.pickupHours && <p>{delivery.pickupHours}</p>}</> : <p>{delivery.instructions}</p>}
+  </div>
+}
+
+function MercadoPagoCheckout({ items, customer, delivery, couponCode = '', couponTotals, onCancel, onComplete }) {
   const containerId = 'fenixis-card-payment'
   const subtotal = cartSubtotal(items)
   const hasVerifiedCoupon = Boolean(couponCode && couponTotals && readMoney(couponTotals.total) !== null)
-  const total = hasVerifiedCoupon ? Number(couponTotals.total) : subtotal
+  const total = (hasVerifiedCoupon ? Number(couponTotals.total) : subtotal) + delivery.cost
   const [state, setState] = useState({ kind: 'loading', message: 'Estamos preparando el pago seguro…' })
   const checkoutAttempt = useRef(newCheckoutAttemptId())
 
@@ -122,6 +140,8 @@ function MercadoPagoCheckout({ items, customer, couponCode = '', couponTotals, o
                   body: JSON.stringify({
                     cart: checkoutCart(items),
                     customer,
+                    deliveryQuote: delivery,
+                    expectedTotal: total,
                     couponCode: couponCode || undefined,
                     checkoutAttemptId: checkoutAttempt.current,
                     payment: {
@@ -167,15 +187,16 @@ function MercadoPagoCheckout({ items, customer, couponCode = '', couponTotals, o
     }
   }, [total, couponCode])
 
-  if (state.kind === 'success' || state.kind === 'pending') return <section className={`payment-result ${state.kind}`}><span>{state.kind === 'success' ? '✓' : '◌'}</span><h3>{state.kind === 'success' ? 'Compra realizada' : 'Pago en revisión'}</h3><p>{state.message}</p><button type="button" onClick={onComplete}>Volver a la tienda</button></section>
+  if (state.kind === 'success' || state.kind === 'pending') return <section className={`payment-result ${state.kind}`}><span>{state.kind === 'success' ? '✓' : '◌'}</span><h3>{state.kind === 'success' ? 'Compra realizada' : 'Pago en revisión'}</h3><p>{state.message}</p><DeliverySummary delivery={delivery} /><button type="button" onClick={onComplete}>Volver a la tienda</button></section>
 
-  return <section className="mercado-pago-checkout"><div className="checkout-title"><div><p className="eyebrow">PAGO SEGURO</p><h3>Pagá con Mercado Pago</h3></div><button type="button" onClick={onCancel} aria-label="Volver a la bolsa">×</button></div><div className={`checkout-total ${hasVerifiedCoupon ? 'has-discount' : ''}`}>{hasVerifiedCoupon ? <><div><span>Subtotal</span><strong>$ {Number(couponTotals.subtotal).toLocaleString('es-AR')}</strong></div><div className="checkout-discount"><span>Descuento</span><strong>− $ {Number(couponTotals.discount).toLocaleString('es-AR')}</strong></div><div className="checkout-payable"><span>Total a pagar</span><strong>$ {total.toLocaleString('es-AR')}</strong></div></> : <div><span>Total a pagar</span><strong>$ {total.toLocaleString('es-AR')}</strong></div>}</div>{state.kind !== 'ready' && <p className={`payment-message ${state.kind}`}>{state.message}</p>}<div id={containerId}/><small>Los datos de tu tarjeta son procesados de forma segura por Mercado Pago.</small></section>
+  return <section className="mercado-pago-checkout"><div className="checkout-title"><div><h3>Pagá con Mercado Pago</h3></div><button type="button" onClick={onCancel} aria-label="Volver al carrito">×</button></div><DeliverySummary delivery={delivery} /><OrderTotals subtotal={hasVerifiedCoupon ? Number(couponTotals.subtotal) : subtotal} discount={hasVerifiedCoupon ? Number(couponTotals.discount) : 0} shipping={delivery.cost} pickup={delivery.mode === 'pickup'} total={total} couponCode={couponCode} />{state.kind !== 'ready' && <p className={`payment-message ${state.kind}`}>{state.message}</p>}<div id={containerId}/><small>Los datos de tu tarjeta son procesados de forma segura por Mercado Pago.</small></section>
 }
 
-export function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear, stockLimits = {} }) {
+export function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear, stockLimits = {}, deliverySettings, deliveryState = 'ready' }) {
   const dialogRef = useDialogFocus(open, onClose)
   const [customer, setCustomer] = useState({ name: '', email: '', phone: '', delivery: 'Retiro por el local', address: '', notes: '' })
   const [checkoutOpen, setCheckoutOpen] = useState(false)
+  const [checkoutDelivery, setCheckoutDelivery] = useState(null)
   const [checkoutValidationError, setCheckoutValidationError] = useState('')
   const [couponCode, setCouponCode] = useState('')
   const [couponState, setCouponState] = useState('idle')
@@ -186,7 +207,8 @@ export function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear
   const cartFingerprint = items.map((item) => `${item.id}:${item.productId || ''}:${item.kind}:${item.size || ''}:${item.color || ''}:${item.quantity}`).join('|')
   const couponIsApplied = couponState === 'success' && couponCartFingerprint === cartFingerprint && Boolean(couponResult?.totals)
   const couponTotals = couponIsApplied ? couponResult.totals : null
-  const total = couponTotals ? couponTotals.total : subtotal
+  const delivery = deliveryDetails(customer.delivery, deliverySettings)
+  const total = (couponTotals ? couponTotals.total : subtotal) + delivery.cost
   const appliedCouponCode = couponIsApplied ? String(couponResult?.coupon?.code || couponCode).trim().toUpperCase() : ''
   const updateCustomer = (key, value) => {
     setCustomer((current) => ({ ...current, [key]: value }))
@@ -194,6 +216,7 @@ export function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear
   }
 
   const beginCheckout = () => {
+    if (deliveryState !== 'ready') { setCheckoutValidationError('Esperá a que se carguen las opciones de entrega antes de pagar.'); return }
     if (items.some((item) => item.quantity > (stockLimits[item.id] ?? 10))) { setCheckoutValidationError('Cambió la disponibilidad de una prenda. Ajustá las cantidades o quitá las que estén sin stock para continuar.'); return }
     const email = String(customer.email || '').trim().toLowerCase()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -205,11 +228,8 @@ export function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear
       setCheckoutValidationError('Ingresá un número de teléfono válido para poder contactarte si hace falta.')
       return
     }
-    if (customer.delivery === 'Envío a domicilio' && !String(customer.address || '').trim()) {
-      setCheckoutValidationError('Ingresá la dirección para poder preparar el envío.')
-      return
-    }
     setCustomer((current) => ({ ...current, email }))
+    setCheckoutDelivery(delivery)
     setCheckoutOpen(true)
   }
 
@@ -287,7 +307,7 @@ export function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear
     <button className="cart-backdrop" aria-label="Cerrar carrito" onClick={onClose}/>
     <aside ref={dialogRef} className="cart-drawer" role="dialog" aria-modal="true" aria-label="Tu carrito" tabIndex={-1}>
       <header><div><p className="eyebrow">TU COMPRA</p><h2>{checkoutOpen ? 'Pago' : 'Carrito'}</h2></div><button onClick={onClose} aria-label="Cerrar carrito">×</button></header>
-      {items.length ? checkoutOpen ? <MercadoPagoCheckout items={items} customer={customer} couponCode={appliedCouponCode} couponTotals={couponTotals} onCancel={() => setCheckoutOpen(false)} onComplete={finish}/> : <>
+      {items.length ? checkoutOpen ? <MercadoPagoCheckout items={items} customer={customer} delivery={checkoutDelivery} couponCode={appliedCouponCode} couponTotals={couponTotals} onCancel={() => setCheckoutOpen(false)} onComplete={finish}/> : <>
         <div className="cart-items">{items.map((item) => {
           const price = Number(item.price || SHIRT_PRICE)
           const isCatalogProduct = item.kind === 'product'
@@ -298,9 +318,6 @@ export function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear
           </article>
         })}</div>
         <footer className="cart-footer">
-          <div className={`cart-totals ${couponIsApplied ? 'has-discount' : ''}`}>
-            {couponIsApplied ? <><div><span>Subtotal</span><strong>$ {couponTotals.subtotal.toLocaleString('es-AR')}</strong></div><div className="cart-discount"><span>Descuento {appliedCouponCode}</span><strong>− $ {couponTotals.discount.toLocaleString('es-AR')}</strong></div><div className="cart-payable"><span>Total</span><strong>$ {total.toLocaleString('es-AR')}</strong></div></> : <div><span>Total</span><strong>$ {total.toLocaleString('es-AR')}</strong></div>}
-          </div>
           <section className={`cart-coupon ${couponState}`} aria-label="Código de descuento">
             <div className="cart-coupon-heading"><label htmlFor="cart-coupon-code">Código promocional</label>{couponIsApplied && <button type="button" onClick={clearCoupon}>Quitar</button>}</div>
             <form className="cart-coupon-form" onSubmit={applyCoupon}>
@@ -309,9 +326,26 @@ export function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear
             </form>
             {couponMessage && <p className={`coupon-message ${couponState}`} role="status">{couponState === 'success' ? '✓ ' : ''}{couponMessage}</p>}
           </section>
-          <div className="cart-customer"><label>Tu nombre<input value={customer.name} onChange={(event) => updateCustomer('name', event.target.value)} placeholder="Opcional" autoComplete="name" /></label><label>Correo electrónico<input value={customer.email} onChange={(event) => updateCustomer('email', event.target.value)} placeholder="nombre@email.com" type="email" autoComplete="email" required /></label><label>Teléfono<input value={customer.phone} onChange={(event) => updateCustomer('phone', event.target.value)} placeholder="Ej. 11 1234 5678" type="tel" inputMode="tel" autoComplete="tel" required /></label><label>Entrega<select value={customer.delivery} onChange={(event) => updateCustomer('delivery', event.target.value)}><option>Retiro por el local</option><option>Envío a domicilio</option></select></label>{customer.delivery === 'Envío a domicilio' && <label className="cart-wide">Dirección<input value={customer.address} onChange={(event) => updateCustomer('address', event.target.value)} placeholder="Calle, altura y localidad" autoComplete="street-address" required /></label>}<label className="cart-wide">Notas para el pedido<textarea value={customer.notes} onChange={(event) => updateCustomer('notes', event.target.value)} placeholder="Ej. Necesito recibirlo antes del viernes" rows="2" /></label></div>
+          <div className="cart-customer"><label>Tu nombre<input value={customer.name} onChange={(event) => updateCustomer('name', event.target.value)} placeholder="Opcional" autoComplete="name" /></label><label>Correo electrónico<input value={customer.email} onChange={(event) => updateCustomer('email', event.target.value)} placeholder="nombre@email.com" type="email" autoComplete="email" required /></label><label className="cart-wide">Teléfono<input value={customer.phone} onChange={(event) => updateCustomer('phone', event.target.value)} placeholder="Ej. 11 1234 5678" type="tel" inputMode="tel" autoComplete="tel" required /></label></div>
+          <fieldset className="delivery-choices">
+            <legend>¿Cómo querés recibir tu compra?</legend>
+            {DELIVERY_OPTIONS.map((option) => {
+              const details = deliveryDetails(option.label, deliverySettings)
+              return <label key={option.mode} className={customer.delivery === option.label ? 'is-selected' : ''}>
+                <input type="radio" name="cart-delivery" value={option.label} checked={customer.delivery === option.label} onChange={() => { updateCustomer('delivery', option.label); setCustomer((current) => ({ ...current, address: '' })) }} />
+                <span className="delivery-choice-content"><span className="delivery-choice-title">{option.label}</span><span className="delivery-choice-price">{details.cost ? `$ ${details.cost.toLocaleString('es-AR')}` : 'Sin cargo'}</span>{option.mode === 'pickup' && <span className="delivery-choice-description">{details.pickupAddress}{details.pickupHours && <><br />{details.pickupHours}</>}</span>}</span>
+              </label>
+            })}
+          </fieldset>
+          {deliveryState !== 'ready' && <p className="delivery-help" role="status">{deliveryState === 'loading' ? 'Cargando opciones de entrega…' : 'No pudimos verificar las opciones de entrega. Actualizá la página para intentar nuevamente.'}</p>}
+          {delivery.mode !== 'pickup' && <p className="delivery-help">El envío se paga junto con las prendas. {delivery.instructions}</p>}
+          <div className="cart-customer">
+            {delivery.mode !== 'pickup' && <label className="cart-wide">{delivery.mode === 'branch' ? 'Sucursal o localidad (opcional)' : 'Dirección de envío (opcional)'}<input value={customer.address} onChange={(event) => updateCustomer('address', event.target.value)} maxLength={300} placeholder={delivery.mode === 'branch' ? 'Podés indicarla ahora o coordinarla después' : 'Calle, altura y localidad'} autoComplete={delivery.mode === 'home' ? 'street-address' : 'off'} /></label>}
+            <label className="cart-wide">Notas para el pedido<textarea value={customer.notes} onChange={(event) => updateCustomer('notes', event.target.value)} maxLength={1000} placeholder="Opcional" rows="2" /></label>
+          </div>
+          <OrderTotals subtotal={couponTotals ? couponTotals.subtotal : subtotal} discount={couponTotals?.discount || 0} shipping={delivery.cost} pickup={delivery.mode === 'pickup'} total={total} couponCode={appliedCouponCode} />
           {checkoutValidationError && <p className="cart-customer-error" role="alert">{checkoutValidationError}</p>}
-          <button className="checkout-button" type="button" onClick={beginCheckout}>Pagar con Mercado Pago <span>→</span></button>
+          <button className="checkout-button" type="button" onClick={beginCheckout} disabled={deliveryState !== 'ready'}>Pagar con Mercado Pago <span>→</span></button>
           <p>Pago seguro procesado por Mercado Pago.</p>
         </footer>
       </> : <div className="empty-cart"><span>◌</span><h3>Tu carrito está vacía.</h3><p>Encontrá tu próxima favorita en nuestro catálogo.</p><button onClick={onClose}>Seguir viendo la tienda</button></div>}

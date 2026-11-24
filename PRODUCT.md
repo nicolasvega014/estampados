@@ -21,6 +21,8 @@ Sell the available clothing catalog at fenixis.com.ar. The owner explicitly requ
 - The homepage product carousel displays the visible catalog with manual arrows, touch scrolling and keyboard navigation.
 - Search and filters help buyers find garments. The cart supports selected sizes/colors, quantities and promotional codes.
 - Payments use the existing Mercado Pago integration. Customers provide email and phone and choose pickup or delivery.
+- Pickup is at Bogotá 5191, Ezpeleta, without a surcharge. Shipping defaults to ARS 7,500 for Correo Argentino branch collection or ARS 11,500 for home delivery; it is paid with the garments and coordinated after purchase.
+- The seller's Entrega y envíos section edits the pickup address/optional hours, shipping rates and coordination instructions. New orders and confirmation emails retain the accepted delivery details. Coupons discount garments, not shipping.
 - Coupons, order details, fulfillment states and confirmation notifications are existing capabilities to preserve.
 - New customization orders are unavailable. Hide the editor and design management; redirect its old URL to the catalog. Preserve historical orders and their design details, as well as stored design/settings data.
 - Use real available product data. Do not invent discounts, shipping promises, stock, customer counts or testimonials.
