@@ -1,6 +1,8 @@
 import { getAuth } from 'firebase-admin/auth'
 import { FieldValue, getAdminApp, getAdminFirestore } from '../server/firebase-admin.js'
 import { notifyOrderCancellation } from '../server/order-email.js'
+import { confirmTransferOrder, cancelTransferOrder } from '../server/transfer.js'
+import { CheckoutError } from '../server/checkout.js'
 
 const FULFILLMENT_STATUSES = new Set(['en_preparacion', 'a_retirar', 'a_enviar', 'enviado', 'retirado'])
 const STORE_OWNER_EMAIL = String(process.env.FENIXIS_STORE_OWNER_EMAIL || 'nicolasvega014@gmail.com').trim().toLowerCase()
@@ -21,7 +23,7 @@ async function requireStoreAdmin(request) {
   if (!app) return { allowed: false, refreshAuth: false }
   const auth = getAuth(app)
   const decoded = await auth.verifyIdToken(idToken)
-  if (decoded.admin === true) return { allowed: true, refreshAuth: false }
+  if (decoded.admin === true) return { allowed: true, refreshAuth: false, uid: decoded.uid }
 
   // La cuenta del dueño existía antes de que se agregaran los permisos por
   // custom claim. Solo la identidad exacta que Firebase reconoce como dueña
@@ -32,7 +34,7 @@ async function requireStoreAdmin(request) {
   if (String(owner.email || '').trim().toLowerCase() !== STORE_OWNER_EMAIL || owner.disabled) return { allowed: false, refreshAuth: false }
 
   await auth.setCustomUserClaims(owner.uid, { ...(owner.customClaims || {}), admin: true })
-  return { allowed: true, refreshAuth: true }
+  return { allowed: true, refreshAuth: true, uid: owner.uid }
 }
 
 export default async function handler(req, res) {
@@ -52,10 +54,17 @@ export default async function handler(req, res) {
     const snapshot = await orderRef.get()
     if (!snapshot.exists) return send(res, 404, { message: 'No encontramos ese pedido.' })
 
+    if (action === 'confirm_transfer') {
+      if (req.body?.confirmed !== true) return send(res, 400, { message: 'Confirmá que verificaste la acreditación en tu cuenta.' })
+      await confirmTransferOrder({ db, reference: orderId, confirmedBy: access.uid })
+      return send(res, 200, { ok: true, status: 'approved', refreshAuth: access.refreshAuth })
+    }
+
     if (action === 'fulfillment') {
       const fulfillmentStatus = String(req.body?.fulfillmentStatus || '').trim()
       if (!FULFILLMENT_STATUSES.has(fulfillmentStatus)) return send(res, 400, { message: 'El estado de preparación no es válido.' })
       if (snapshot.data()?.fulfillmentStatus === 'cancelado') return send(res, 409, { message: 'Un pedido cancelado no se puede volver a preparar.' })
+      if (snapshot.data()?.paymentMethod === 'transfer' && snapshot.data()?.status !== 'approved') return send(res, 409, { message: 'Primero verificá y confirmá la transferencia recibida.' })
 
       await orderRef.set({
         fulfillmentStatus,
@@ -69,7 +78,8 @@ export default async function handler(req, res) {
       const reason = cleanReason(req.body?.reason)
       if (reason.length < 8) return send(res, 400, { message: 'Escribí un motivo breve para la cancelación.' })
 
-      await orderRef.set({
+      if (snapshot.data()?.paymentMethod === 'transfer') await cancelTransferOrder({ db, reference: orderId, reason })
+      else await orderRef.set({
         fulfillmentStatus: 'cancelado',
         cancellationReason: reason,
         cancelledAt: FieldValue.serverTimestamp(),
@@ -95,6 +105,7 @@ export default async function handler(req, res) {
 
     return send(res, 400, { message: 'La acción solicitada no es válida.' })
   } catch (error) {
+    if (error instanceof CheckoutError) return send(res, error.status, { message: error.message })
     console.error('[admin-order] No se pudo actualizar el pedido.', { name: error?.name, message: error?.message })
     return send(res, 500, { message: 'No se pudo actualizar el pedido. Probá nuevamente.' })
   }

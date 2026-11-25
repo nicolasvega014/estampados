@@ -1,0 +1,49 @@
+.product-pricing { min-width: 0; color: #29241f; font-variant-numeric: tabular-nums; }
+.product-price-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px 10px; }
+.product-price-line del { color: #70645b; font-size: 14px; }
+.product-price-line strong { font-size: 19px; font-weight: 700; }
+.product-price-line .product-discount-badge { background: #783d49; color: #fff; border-radius: 4px; padding: 3px 6px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.product-pricing .product-transfer-price, .product-pricing .product-installments { margin: 9px 0 0; color: #65323e; font-size: 14px; line-height: 1.5; text-transform: none; letter-spacing: 0; }
+.product-pricing .product-installments { color: #29241f; }
+.product-installments small { display: block; margin-top: 3px; font-size: 12px; color: #70645b; }
+.fashion-product-bottom:has(.product-pricing) { flex-wrap: wrap; align-items: flex-start; gap: 14px; }
+.fashion-product-bottom .product-pricing { flex: 1 1 150px; }
+@media (max-width: 1100px) { .fashion-product-bottom .product-pricing { flex-basis: auto; } }
+.product-detail-info > .product-pricing { margin-bottom: 22px; }
+.product-detail-info > .product-pricing strong { font-size: 28px; }
+.product-sale-editor { grid-column: 1 / -1; border-top: 1px solid #ddd4ca; padding-top: 20px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+.product-sale-editor label { flex: 0 1 230px; }
+.product-sale-editor p { font-size: 13px; color: #70645b; margin: 8px 0 0; }
+.payment-settings-form .payment-settings-check { display: flex; flex-direction: row; align-items: flex-start; gap: 12px; line-height: 1.6; }
+.payment-settings-form .payment-settings-check input { width: 20px; height: 20px; flex: 0 0 20px; margin-top: 3px; accent-color: #783d49; }
+.payment-settings-form select { width: 100%; box-sizing: border-box; min-height: 48px; padding: 12px 14px; border: 1px solid #c8bbb0; border-radius: 7px; background: #fffdfa; color: #29241f; font: inherit; }
+.payment-choices { display: grid; gap: 12px; margin: 24px 0; padding: 0; border: 0; }
+.payment-choices legend { margin-bottom: 12px; font-size: 16px; font-weight: 600; }
+.payment-choices label { display: flex; align-items: flex-start; gap: 12px; border: 1px solid #c9bcb1; border-radius: 8px; padding: 16px; cursor: pointer; font-size: 15px; line-height: 1.5; }
+.payment-choices label.is-selected { background: #eee0e0; border-color: #783d49; }
+.payment-choices input { margin: 4px 0 0; accent-color: #783d49; width: 18px; height: 18px; flex-shrink: 0; }
+.payment-choices small { display: block; font-size: 13px; color: #70645b; margin-top: 4px; }
+.transfer-checkout { padding: 28px; color: #29241f; }
+.transfer-checkout h3 { font-size: 27px; letter-spacing: -.03em; line-height: 1.15; margin: 0 0 18px; }
+.transfer-checkout p { line-height: 1.6; font-size: 15px; overflow-wrap: anywhere; }
+.transfer-checkout .transfer-instructions { margin: 24px 0; padding: 20px 0; border-top: 1px solid #ddd4ca; border-bottom: 1px solid #ddd4ca; }
+.transfer-instructions dl { display: grid; gap: 18px; margin: 0; }
+.transfer-instructions dt { color: #70645b; font-size: 14px; margin-bottom: 5px; }
+.transfer-instructions dd { margin: 0; font-size: 19px; font-weight: 600; overflow-wrap: anywhere; }
+.transfer-checkout button, .transfer-receipt-link, .order-transfer-panel button { min-height: 46px; padding: 12px 18px; border: 1px solid #783d49; border-radius: 7px; background: #783d49; color: #fff; font: inherit; cursor: pointer; }
+.transfer-checkout button:disabled { opacity: .6; cursor: wait; }
+.transfer-checkout .transfer-copy { margin-top: 10px; font-size: 14px; background: transparent; color: #65323e; }
+.transfer-checkout .transfer-back { background: transparent; color: #65323e; margin: 14px 0; }
+.transfer-receipt-link { display: block; text-align: center; text-decoration: none; line-height: 1.5; }
+.transfer-checkout .transfer-error { color: #8e2535; }
+.transfer-order-lines { padding-left: 20px; font-size: 14px; line-height: 1.6; }
+.order-transfer-panel { margin: 24px 0; padding: 22px 0; border-block: 1px solid #ddd4ca; }
+.order-transfer-panel h3 { margin: 0 0 10px; }
+.order-transfer-panel p { font-size: 14px; line-height: 1.6; }
+.order-status-awaiting_transfer, .order-status-creating_transfer { color: #80591a; }
+.product-grid .product-pricing strong { margin-top: 0; }
+.product-grid .product-pricing { margin-top: 14px; }
+.cart-drawer .checkout-button.is-transfer { background: #783d49; }
+.cart-drawer .checkout-button.is-transfer:hover { background: #60303b; }
+.payment-settings-form :is(input,select,button):focus-visible, .transfer-checkout :is(button,a):focus-visible { outline: 2px solid #a85f70; outline-offset: 3px; }
+@media (max-width: 760px) { .transfer-checkout { padding: 24px 20px; } .product-price-line strong { font-size: 17px; } .product-pricing .product-transfer-price, .product-pricing .product-installments { font-size: 13px; } }

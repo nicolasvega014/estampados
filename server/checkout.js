@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { FieldValue } from './firebase-admin.js'
 import { availableStock, variantKey } from '../src/productInventory.js'
+import { productPricing } from '../src/paymentSettings.js'
 
 export const CATALOG = {
   'remeron-yorkie-bandana': { title: 'Remerón Yorkie Bandana', price: 12000 },
@@ -133,7 +134,7 @@ export async function calculateCart(cart, db = null) {
       throw new CheckoutError('Uno de los productos ya no está disponible. Quitalo de la bolsa y volvé a agregarlo para pagar.', 'PRODUCT_UNAVAILABLE')
     }
 
-    const unitPrice = money(firestoreProduct?.price) ?? catalogProduct?.price
+    const unitPrice = productPricing({ ...catalogProduct, ...firestoreProduct }).price
     if (!unitPrice) {
       throw new CheckoutError('Uno de los productos cambió. Quitalo de la bolsa y volvé a agregarlo para pagar.', 'PRODUCT_CHANGED')
     }
@@ -379,11 +380,12 @@ export async function reconcileCouponReservations({ db, campaignId, limit = 25 }
  * Holds one allowed use while Mercado Pago processes a limited coupon. The
  * hold prevents two simultaneous checkouts from spending its last use.
  */
-export async function reserveCouponUse({ db, quote, externalReference, customerKey = '' }) {
+export async function reserveCouponUse({ db, quote, externalReference, customerKey = '', transferOrderRef = null }) {
   if (!quote.coupon) return null
 
   const reservationRef = db.collection('couponReservations').doc(externalReference)
   await db.runTransaction(async (transaction) => {
+    if (transferOrderRef && (await transaction.get(transferOrderRef)).data()?.status !== 'creating_transfer') throw new CheckoutError('El pedido no se puede reservar. Volvé a intentarlo.', 'TRANSFER_CLOSED', 409)
     const [couponSnapshot, reservation] = await Promise.all([
       transaction.get(quote.couponRef),
       transaction.get(reservationRef),

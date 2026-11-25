@@ -1,6 +1,7 @@
 import { FieldValue } from './firebase-admin.js'
 import { CATALOG, CheckoutError, isFinalMercadoPagoOrder, shouldRedeemCouponUse, settleCouponUse } from './checkout.js'
 import { availableStock, variantKey } from '../src/productInventory.js'
+import { productPricing } from '../src/paymentSettings.js'
 
 function groups(items) {
   const result = new Map()
@@ -13,11 +14,12 @@ function groups(items) {
   return [...result.values()]
 }
 
-export async function reserveInventory({ db, items, reference, attemptId = '' }) {
+export async function reserveInventory({ db, items, reference, attemptId = '', transferOrderRef = null }) {
   if (!db) return false
   const requested = groups(items)
   const reservationRef = db.collection('inventoryReservations').doc(reference)
   return db.runTransaction(async (transaction) => {
+    if (transferOrderRef && (await transaction.get(transferOrderRef)).data()?.status !== 'creating_transfer') throw new CheckoutError('El pedido no se puede reservar. Volvé a intentarlo.', 'TRANSFER_CLOSED', 409)
     const previous = await transaction.get(reservationRef)
     if (previous.exists) return previous.data().state === 'reserved'
     const productIds = [...new Set(requested.map((item) => item.productId))]
@@ -29,7 +31,7 @@ export async function reserveInventory({ db, items, reference, attemptId = '' })
       const product = products.get(item.productId)
       const data = product.data
       if (data?.hidden || (!data && !CATALOG[item.productId])) throw new CheckoutError('Una prenda ya no está disponible. Revisá tu carrito.', 'PRODUCT_UNAVAILABLE', 409)
-      if (Number(data?.price ?? CATALOG[item.productId]?.price) !== item.unitPrice) throw new CheckoutError('El precio de una prenda cambió. Volvé a agregarla al carrito.', 'PRODUCT_CHANGED', 409)
+      if (productPricing({ ...CATALOG[item.productId], ...data }).price !== item.unitPrice) throw new CheckoutError('El precio de una prenda cambió. Volvé a agregarla al carrito.', 'PRODUCT_CHANGED', 409)
       if (!data?.trackStock) continue
       if (availableStock(data, item.size, item.color) < item.quantity) throw new CheckoutError(`No hay suficientes unidades de ${data.title || 'esta prenda'}${item.size ? `, talle ${item.size}` : ''}${item.color ? `, ${item.color}` : ''}. Revisá tu carrito.`, 'STOCK_UNAVAILABLE', 409)
       const variants = updates.get(item.productId) || structuredClone(data.variants || [])
@@ -68,6 +70,9 @@ export async function reconcileInventoryReservation({ db, reservation, accessTok
     attemptId ? db.collection('checkoutAttempts').doc(attemptId).get() : Promise.resolve(null),
   ])
   const order = orderSnapshot.data() || {}
+  // Manual transfers are reconciled through their own state machine. A
+  // receipt or elapsed time can never confirm or release a pending transfer.
+  if (order.paymentMethod === 'transfer') return
   const state = { status: order.status, status_detail: order.statusDetail }
   if (isFinalMercadoPagoOrder(state)) {
     await settle(shouldRedeemCouponUse(state))

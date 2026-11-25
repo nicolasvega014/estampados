@@ -6,10 +6,12 @@ import { availableStock, hasProductStock, inventoryRows } from './productInvento
 import { DEFAULT_PRODUCT_TYPES, catalogProductTypes, productTypeIdFor, productTypeNameFor } from './productTypes'
 import { CartDrawer, CatalogProductOptions } from './StoreCheckout'
 import './ClothingStore.css'
+import { productPricing } from './paymentSettings.js'
+import ProductPrice from './ProductPrice'
 
 const CART_KEY = 'tinta-club-cart'
 const normalize = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-AR').trim()
-const money = (value) => `$ ${Number(value || 0).toLocaleString('es-AR')}`
+
 
 function readSavedCart() {
   try {
@@ -32,7 +34,7 @@ export function Icon({ name, ...props }) {
   return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{paths[name] || paths.arrow}</svg>
 }
 
-function ProductCard({ product, types, onChoose }) {
+function ProductCard({ product, types, onChoose, paymentSettings }) {
   const { sizes, colors } = productOptions(product)
   return <article className="fashion-product">
     <button className="fashion-product-photo" onClick={() => onChoose(product)} aria-label={`Ver ${product.title}`}>
@@ -42,12 +44,12 @@ function ProductCard({ product, types, onChoose }) {
     <div className="fashion-product-info"><p>{productTypeNameFor(product, types)}{product.category ? ` / ${product.category}` : ''}</p>
       <h3><button onClick={() => onChoose(product)}>{product.title}</button></h3>
       {(sizes.length > 0 || colors.length > 0) && <div className="fashion-variants"><span>{sizes.join(' · ')}</span><span className="fashion-swatches">{colors.slice(0, 6).map((color) => <i key={color.name} style={{ background: color.value }} title={color.name} aria-label={color.name} />)}{colors.length > 6 && <small>+{colors.length - 6}</small>}</span></div>}
-      <div className="fashion-product-bottom"><strong>{money(product.price)}</strong><button className="fashion-add" onClick={() => onChoose(product)} aria-label={`Agregar ${product.title} al carrito`}>{hasProductStock(product) ? 'Agregar' : 'Sin stock'} <Icon name="plus" /></button></div>
+      <div className="fashion-product-bottom"><ProductPrice product={product} paymentSettings={paymentSettings} /><button className="fashion-add" onClick={() => onChoose(product)} aria-label={`Agregar ${product.title} al carrito`}>{hasProductStock(product) ? 'Agregar' : 'Sin stock'} <Icon name="plus" /></button></div>
     </div>
   </article>
 }
 
-function ProductCarousel({ products, types, onChoose }) {
+function ProductCarousel({ products, types, onChoose, paymentSettings }) {
   const track = useRef(null)
   const [position, setPosition] = useState({ start: 1, end: 0, previous: false, next: false })
 
@@ -100,7 +102,7 @@ function ProductCarousel({ products, types, onChoose }) {
       </div>
     </div>
     <div className="fashion-carousel-track" id="home-product-carousel" ref={track} tabIndex={0} onKeyDown={onKeyDown} aria-label="Prendas. Deslizá o usá las flechas del teclado para recorrerlas.">
-      {products.map((product) => <ProductCard key={product.id} product={product} types={types} onChoose={onChoose} />)}
+      {products.map((product) => <ProductCard key={product.id} product={product} types={types} onChoose={onChoose} paymentSettings={paymentSettings} />)}
     </div>
   </div>
 }
@@ -121,6 +123,7 @@ export default function ClothingStore() {
   const [offers, setOffers] = useState([])
   const [whatsapp, setWhatsapp] = useState('5491165937433')
   const [deliverySettings, setDeliverySettings] = useState(null)
+  const [paymentSettings, setPaymentSettings] = useState({ transferEnabled: false, installmentsConfirmed: false })
   const [deliveryState, setDeliveryState] = useState('loading')
   const [query, setQuery] = useState(() => new URLSearchParams(location.search).get('q') || '')
   const [type, setType] = useState(() => new URLSearchParams(location.search).get('tipo') || 'all')
@@ -150,6 +153,7 @@ export default function ClothingStore() {
       const number = String(snapshot.data()?.whatsappNumber || '').replace(/\D/g, '')
       if (number) setWhatsapp(number)
       setDeliverySettings(snapshot.data()?.delivery)
+      setPaymentSettings(snapshot.data()?.payments)
       setDeliveryState('ready')
     }, () => setDeliveryState('error'))
     return () => { alive = false; stop(); stopTypes(); stopStore() }
@@ -178,7 +182,7 @@ export default function ClothingStore() {
     const id = `product:${chosen.id}:${selection.size || ''}:${selection.color?.name || ''}`
     const limit = Math.min(10, availableStock(chosen, selection.size, selection.color?.name || ''))
     if ((cart.find((item) => item.id === id)?.quantity || 0) >= limit) return 'Ya agregaste al carrito todas las unidades disponibles de esta combinación.'
-    const item = { id, productId: chosen.id, kind: 'product', title: chosen.title, price: Number(chosen.price), imageUrl: chosen.imageUrl || '', category: chosen.category || '', description: chosen.description || '', size: selection.size || '', color: selection.color?.name || '', colorValue: selection.color?.value || '', quantity: 1 }
+    const item = { id, productId: chosen.id, kind: 'product', title: chosen.title, price: productPricing(chosen).price, imageUrl: chosen.imageUrl || '', category: chosen.category || '', description: chosen.description || '', size: selection.size || '', color: selection.color?.name || '', colorValue: selection.color?.value || '', quantity: 1 }
     item.imageUrl = productImages(chosen).find((image) => image.color === item.color)?.imageUrl || item.imageUrl
     setCart((current) => current.some((entry) => entry.id === id) ? current.map((entry) => entry.id === id ? { ...entry, quantity: Math.min(10, entry.quantity + 1) } : entry) : [...current, item])
     setChosen(null); setCartOpen(true)
@@ -198,12 +202,12 @@ export default function ClothingStore() {
       && (color === 'all' || options.colors.some((entry) => entry.name === color))
       && (!product.trackStock || (size === 'all' && color === 'all') || inventoryRows(product).some((row) => row.stock > row.reserved && (size === 'all' || row.size === size) && (color === 'all' || row.color === color)))
       && normalize([product.title, product.id, product.description, product.category, productTypeNameFor(product, types)].join(' ')).includes(normalize(query))
-  }).sort((a, b) => sort === 'price-up' ? Number(a.price) - Number(b.price) : sort === 'price-down' ? Number(b.price) - Number(a.price) : sort === 'name' ? a.title.localeCompare(b.title, 'es-AR') : 0)
+  }).sort((a, b) => sort === 'price-up' ? productPricing(a).price - productPricing(b).price : sort === 'price-down' ? productPricing(b).price - productPricing(a).price : sort === 'name' ? a.title.localeCompare(b.title, 'es-AR') : 0)
   const filtersActive = query || activeType !== 'all' || category !== 'all' || size !== 'all' || color !== 'all'
   const heroMain = products.find((product) => product.id === 'remeron-la-dolce-vita' && product.imageUrl) || products.find((product) => product.imageUrl)
   const heroSecond = products.find((product) => product.id === 'remeron-golden-girasoles' && product.imageUrl && product.id !== heroMain?.id) || products.find((product) => product.imageUrl && product.id !== heroMain?.id)
   const whatsappUrl = `https://wa.me/${whatsapp}`
-  const renderGrid = (items) => <div className="fashion-grid">{items.map((product) => <ProductCard key={product.id} product={product} types={types} onChoose={setChosen} />)}</div>
+  const renderGrid = (items) => <div className="fashion-grid">{items.map((product) => <ProductCard key={product.id} product={product} types={types} onChoose={setChosen} paymentSettings={paymentSettings} />)}</div>
   const loading = <div className="fashion-loading" role="status">Cargando prendas…</div>
 
   return <div className="fashion-shell">
@@ -229,8 +233,8 @@ export default function ClothingStore() {
           </section>
           <section className="fashion-type-section" aria-label="Comprar por tipo de prenda"><span>¿Qué tenés ganas de estrenar?</span><div>{types.map((entry) => <a key={entry.id} href={`/productos/?tipo=${encodeURIComponent(entry.id)}`}>{entry.name}<Icon name="arrow" /></a>)}</div></section>
           {offers.length > 0 && <section className="fashion-offers" aria-label="Ofertas disponibles">{offers.map((offer) => <article key={offer.id}><div><h2>{offer.title || 'Una oportunidad para estrenar'}</h2><p>{offer.description}</p></div><div>{offer.code && <span className="fashion-offer-code">Usá el código <strong>{offer.code}</strong></span>}<a href="/productos/" className="fashion-button">Ver prendas <Icon name="arrow" /></a></div></article>)}</section>}
-          <section className="fashion-featured" id="favoritas"><div className="fashion-section-heading"><div><h2>Un flechazo.<br /><em>Tu próxima favorita.</em></h2><p>Explorá las prendas de nuestra tienda y elegí la que va con vos.</p></div><a className="fashion-text-link" href="/productos/">Ver todas las prendas <Icon name="arrow" /></a></div>{!loaded ? loading : products.length ? <ProductCarousel products={products} types={types} onChoose={setChosen} /> : <p className="fashion-empty">{loadError ? 'No pudimos cargar las prendas. Volvé a intentar en unos minutos.' : 'Estamos preparando novedades. Volvé pronto para descubrirlas.'}</p>}</section>
-          <section className="fashion-help"><div><h2>Elegí. Combiná.<br /><em>Hacelo tuyo.</em></h2><p>Un color que te encanta. Una prenda que te representa. Encontrá ese detalle que hace tu look.</p><a href="/productos/" className="fashion-text-link">Encontrar mi prenda <Icon name="arrow" /></a></div><div className="fashion-shopping-notes"><div><span>Elegí tu talle</span><p>Cada prenda muestra sus talles y colores disponibles.</p></div><div><span>Pagá con Mercado Pago</span><p>Completá tu compra de forma segura desde el carrito.</p></div><div><span>Retiro o envío</span><p>Elegí cómo recibir tu pedido al realizar la compra. Si tenés dudas, escribinos.</p></div></div></section>
+          <section className="fashion-featured" id="favoritas"><div className="fashion-section-heading"><div><h2>Un flechazo.<br /><em>Tu próxima favorita.</em></h2><p>Explorá las prendas de nuestra tienda y elegí la que va con vos.</p></div><a className="fashion-text-link" href="/productos/">Ver todas las prendas <Icon name="arrow" /></a></div>{!loaded ? loading : products.length ? <ProductCarousel products={products} types={types} onChoose={setChosen} paymentSettings={paymentSettings} /> : <p className="fashion-empty">{loadError ? 'No pudimos cargar las prendas. Volvé a intentar en unos minutos.' : 'Estamos preparando novedades. Volvé pronto para descubrirlas.'}</p>}</section>
+          <section className="fashion-help"><div><h2>Elegí. Combiná.<br /><em>Hacelo tuyo.</em></h2><p>Un color que te encanta. Una prenda que te representa. Encontrá ese detalle que hace tu look.</p><a href="/productos/" className="fashion-text-link">Encontrar mi prenda <Icon name="arrow" /></a></div><div className="fashion-shopping-notes"><div><span>Elegí tu talle</span><p>Cada prenda muestra sus talles y colores disponibles.</p></div><div><span>Elegí cómo pagar</span><p>Mercado Pago o transferencia: elegí tu medio de pago desde el carrito.</p></div><div><span>Retiro o envío</span><p>Elegí cómo recibir tu pedido al realizar la compra. Si tenés dudas, escribinos.</p></div></div></section>
         </> : <>
           <section className="fashion-catalog-intro"><h1>Elegí tu<br /><em>próxima prenda.</em></h1><p>Buscá ese color, ese estilo, eso que va con vos.</p></section>
           <section className="fashion-catalog" aria-label="Catálogo de prendas"><div className="fashion-catalog-toolbar" id="buscar"><label className="fashion-search"><span>Buscar prendas</span><div><Icon name="search" /><input type="search" placeholder="Nombre, código o estilo…" value={query} onChange={(event) => setQuery(event.target.value)} /></div></label><label className="fashion-sort">Ordenar por<select value={sort} onChange={(event) => setSort(event.target.value)}><option value="featured">Selección de la tienda</option><option value="price-up">Menor precio</option><option value="price-down">Mayor precio</option><option value="name">Nombre: A a Z</option></select></label></div>
@@ -241,7 +245,7 @@ export default function ClothingStore() {
       </main>
       <footer className="fashion-footer" id="contacto"><div className="fashion-footer-top"><div><a href="/" aria-label="Fenixis Store, inicio"><span className="brand-wordmark" /></a><p>Para todos tus días.<br />Para ser vos.</p></div><div><h2>La tienda</h2><a href="/">Inicio</a><a href="/productos/">Todas las prendas</a><button onClick={() => setCartOpen(true)}>Mi carrito</button></div><div><h2>Estamos para ayudarte</h2><a href={whatsappUrl} target="_blank" rel="noreferrer">Escribinos por WhatsApp <Icon name="arrow" /></a><a href="mailto:fenixisstore@gmail.com">fenixisstore@gmail.com</a><span>Buenos Aires, Argentina</span></div><div><h2>Seguí a Fenixis</h2><a href="https://www.instagram.com/fenixisstore/" target="_blank" rel="noreferrer">Instagram <Icon name="arrow" /></a><a href="https://www.tiktok.com/@fenixisstore" target="_blank" rel="noreferrer">TikTok <Icon name="arrow" /></a></div></div><div className="fashion-footer-bottom"><span>© {new Date().getFullYear()} Fenixis Store</span><span>Pagos seguros con Mercado Pago</span></div></footer>
     </div>
-    <CartDrawer open={cartOpen} items={cart} stockLimits={stockLimits} deliverySettings={deliverySettings} deliveryState={deliveryState} onClose={() => setCartOpen(false)} onRemove={(id) => setCart((items) => items.filter((item) => item.id !== id))} onQuantity={changeQuantity} onClear={() => setCart([])} />
-    {chosen && <CatalogProductOptions key={chosen.id} product={chosen} onClose={() => setChosen(null)} onAdd={addProduct} />}
+    <CartDrawer open={cartOpen} items={cart.map((item) => { const current = products.find((product) => product.id === item.productId); return current ? { ...item, price: productPricing(current).price } : item })} stockLimits={stockLimits} paymentSettings={paymentSettings} deliverySettings={deliverySettings} deliveryState={deliveryState} onClose={() => setCartOpen(false)} onRemove={(id) => setCart((items) => items.filter((item) => item.id !== id))} onQuantity={changeQuantity} onClear={() => setCart([])} />
+    {chosen && <CatalogProductOptions key={chosen.id} product={chosen} paymentSettings={paymentSettings} onClose={() => setChosen(null)} onAdd={addProduct} />}
   </div>
 }

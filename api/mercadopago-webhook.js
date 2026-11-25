@@ -88,6 +88,7 @@ export default async function handler(req, res) {
     const orderRef = db.collection('orders').doc(reference)
     const savedOrder = await orderRef.get()
     if (!savedOrder.exists) return send(res, 200, { received: true, ignored: true })
+    if (savedOrder.data()?.paymentMethod === 'transfer') return send(res, 200, { received: true, ignored: true })
 
     const state = orderState(order)
     const paid = isPaidMercadoPagoOrder(order)

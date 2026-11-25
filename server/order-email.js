@@ -1,4 +1,5 @@
 import { FieldValue } from './firebase-admin.js'
+import { transferWhatsappUrl } from '../src/paymentSettings.js'
 
 const MERCHANT_EMAIL = 'Fenixisstore@gmail.com'
 const SENDING_TIMEOUT_MS = 15 * 60 * 1000
@@ -70,6 +71,8 @@ function orderSummary(order) {
     items,
     subtotal: money(order?.subtotal),
     discount: Number(order?.discount) > 0 ? money(order.discount) : '',
+    transferDiscount: Number(order?.transferDiscount) > 0 ? money(order.transferDiscount) : '',
+    paymentMethod: order?.paymentMethod === 'transfer' ? 'Transferencia bancaria' : 'Mercado Pago',
     total: money(order?.total ?? order?.subtotal),
     shipping: Number(order?.shippingTotal) > 0 ? money(order.shippingTotal) : '',
     deliveryDetails: order?.deliveryDetails || null,
@@ -88,8 +91,10 @@ function plainOrderLines(summary, includeCustomerContact) {
     '',
     `Subtotal: ${summary.subtotal}`,
     ...(summary.discount ? [`Descuento${summary.coupon ? ` (${summary.coupon})` : ''}: - ${summary.discount}`] : []),
+    ...(summary.transferDiscount ? [`Descuento por transferencia: - ${summary.transferDiscount}`] : []),
     ...(summary.shipping ? [`Envío (incluido en el total): ${summary.shipping}`] : []),
     `Total: ${summary.total}`,
+    `Medio de pago: ${summary.paymentMethod}`,
     '',
     `Entrega: ${summary.customer.delivery || 'No indicada'}`,
     `${summary.deliveryDetails?.mode === 'branch' ? 'Sucursal o localidad' : 'Dirección'}: ${summary.deliveryDetails?.pickupAddress || summary.customer.address || (summary.deliveryDetails ? 'A coordinar después de la compra' : summary.customer.delivery === 'Retiro por el local' ? 'Retira por el local' : 'No indicada')}`,
@@ -212,6 +217,35 @@ export async function notifyPaidOrder({ db, reference, order }) {
     }),
   ])
   return { merchant: merchantResult, customer: customerResult }
+}
+
+export async function notifyTransferOrder({ db, reference, order }) {
+  if (!db || !reference || order?.status !== 'awaiting_transfer') return
+  const orderRef = db.collection('orders').doc(reference)
+  const summary = orderSummary(order)
+  const details = order.transferDetails || {}
+  const instructions = [
+    'Pedido recibido. Pago pendiente de transferencia.',
+    `Importe a transferir: ${summary.total}`,
+    `Alias: ${details.alias}`,
+    `Titular: ${details.accountHolder}`,
+    'Verificá que el titular coincida antes de transferir.',
+    'Enviá el comprobante por WhatsApp indicando el pedido:',
+    transferWhatsappUrl(order),
+    'Confirmaremos el pago después de verificar la acreditación en la cuenta.',
+  ]
+  return Promise.all([
+    deliver(orderRef, 'transferCustomer', summary.customer.email, {
+      subject: `Datos para transferir · ${reference}`,
+      text: [...instructions, '', ...plainOrderLines(summary, false)].join('\n'),
+      html: emailHtml('Tu pedido está reservado', 'Falta realizar y verificar la transferencia para confirmar tu compra.', [...instructions, '', ...plainOrderLines(summary, false)]),
+    }),
+    deliver(orderRef, 'transferMerchant', validEmail(process.env.ORDER_NOTIFICATION_EMAIL) || MERCHANT_EMAIL, {
+      subject: `Pedido pendiente de transferencia · ${reference}`,
+      text: ['Verificá la acreditación en la cuenta antes de confirmar el pago desde el panel.', '', ...plainOrderLines(summary, true)].join('\n'),
+      html: emailHtml('Transferencia pendiente', 'Este pedido todavía no está pagado. Revisá la cuenta antes de confirmarlo.', plainOrderLines(summary, true)),
+    }),
+  ])
 }
 
 /**

@@ -4,6 +4,9 @@ import { availableStock } from './productInventory'
 import { DELIVERY_OPTIONS, deliveryDetails } from './deliverySettings.js'
 import './ProductDetails.css'
 import './DeliveryCheckout.css'
+import { normalizePaymentSettings, transferAvailable, transferDiscount } from './paymentSettings.js'
+import ProductPrice from './ProductPrice'
+import TransferCheckout, { TransferReceipt } from './TransferCheckout'
 
 const SHIRT_PRICE = 18900
 const MERCADO_PAGO_PUBLIC_KEY = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY || ''
@@ -87,10 +90,11 @@ function newCheckoutAttemptId() {
   return `checkout-${Date.now()}-${Math.random().toString(36).slice(2, 14)}`
 }
 
-function OrderTotals({ subtotal, discount = 0, shipping = 0, total, couponCode = '', pickup = false }) {
+function OrderTotals({ subtotal, discount = 0, transferSaving = 0, shipping = 0, total, couponCode = '', pickup = false }) {
   return <div className="delivery-order-totals" aria-live="polite">
     <div><span>Prendas</span><strong>$ {subtotal.toLocaleString('es-AR')}</strong></div>
     {discount > 0 && <div><span>Descuento {couponCode}</span><strong>− $ {discount.toLocaleString('es-AR')}</strong></div>}
+    {transferSaving > 0 && <div><span>Descuento por transferencia</span><strong>− $ {transferSaving.toLocaleString('es-AR')}</strong></div>}
     <div><span>{pickup ? 'Retiro por el local' : 'Envío'}</span><strong>{shipping ? `$ ${shipping.toLocaleString('es-AR')}` : 'Sin cargo'}</strong></div>
     <div className="delivery-order-total"><span>Total a pagar</span><strong>$ {total.toLocaleString('es-AR')}</strong></div>
   </div>
@@ -192,11 +196,18 @@ function MercadoPagoCheckout({ items, customer, delivery, couponCode = '', coupo
   return <section className="mercado-pago-checkout"><div className="checkout-title"><div><h3>Pagá con Mercado Pago</h3></div><button type="button" onClick={onCancel} aria-label="Volver al carrito">×</button></div><DeliverySummary delivery={delivery} /><OrderTotals subtotal={hasVerifiedCoupon ? Number(couponTotals.subtotal) : subtotal} discount={hasVerifiedCoupon ? Number(couponTotals.discount) : 0} shipping={delivery.cost} pickup={delivery.mode === 'pickup'} total={total} couponCode={couponCode} />{state.kind !== 'ready' && <p className={`payment-message ${state.kind}`}>{state.message}</p>}<div id={containerId}/><small>Los datos de tu tarjeta son procesados de forma segura por Mercado Pago.</small></section>
 }
 
-export function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear, stockLimits = {}, deliverySettings, deliveryState = 'ready' }) {
+export function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear, stockLimits = {}, deliverySettings, paymentSettings, deliveryState = 'ready' }) {
   const dialogRef = useDialogFocus(open, onClose)
   const [customer, setCustomer] = useState({ name: '', email: '', phone: '', delivery: 'Retiro por el local', address: '', notes: '' })
   const [checkoutOpen, setCheckoutOpen] = useState(false)
-  const [checkoutDelivery, setCheckoutDelivery] = useState(null)
+  const [checkoutSnapshot, setCheckoutSnapshot] = useState(null)
+  const [paymentMethod, setPaymentMethod] = useState('mercadopago')
+  const [transferReceipt, setTransferReceipt] = useState(() => {
+    try { const saved = JSON.parse(sessionStorage.getItem('fenixis-transfer-receipt') || 'null'); return saved?.reference && saved?.transferDetails && saved?.deliveryDetails && Array.isArray(saved.items) ? saved : null } catch { return null }
+  })
+  const payments = normalizePaymentSettings(paymentSettings)
+  const transferEnabled = transferAvailable(payments)
+  const selectedPayment = transferEnabled && paymentMethod === 'transfer' ? 'transfer' : 'mercadopago'
   const [checkoutValidationError, setCheckoutValidationError] = useState('')
   const [couponCode, setCouponCode] = useState('')
   const [couponState, setCouponState] = useState('idle')
@@ -204,11 +215,13 @@ export function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear
   const [couponResult, setCouponResult] = useState(null)
   const [couponCartFingerprint, setCouponCartFingerprint] = useState('')
   const subtotal = cartSubtotal(items)
-  const cartFingerprint = items.map((item) => `${item.id}:${item.productId || ''}:${item.kind}:${item.size || ''}:${item.color || ''}:${item.quantity}`).join('|')
+  const cartFingerprint = items.map((item) => `${item.id}:${item.productId || ''}:${item.kind}:${item.size || ''}:${item.color || ''}:${item.quantity}:${item.price}`).join('|')
   const couponIsApplied = couponState === 'success' && couponCartFingerprint === cartFingerprint && Boolean(couponResult?.totals)
   const couponTotals = couponIsApplied ? couponResult.totals : null
   const delivery = deliveryDetails(customer.delivery, deliverySettings)
-  const total = (couponTotals ? couponTotals.total : subtotal) + delivery.cost
+  const paymentConflict = selectedPayment === 'transfer' && couponIsApplied && payments.transferDiscountPercent > 0
+  const transferSaving = selectedPayment === 'transfer' && !paymentConflict ? transferDiscount(couponTotals ? couponTotals.total : subtotal, payments) : 0
+  const total = (couponTotals ? couponTotals.total : subtotal) - transferSaving + delivery.cost
   const appliedCouponCode = couponIsApplied ? String(couponResult?.coupon?.code || couponCode).trim().toUpperCase() : ''
   const updateCustomer = (key, value) => {
     setCustomer((current) => ({ ...current, [key]: value }))
@@ -229,7 +242,8 @@ export function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear
       return
     }
     setCustomer((current) => ({ ...current, email }))
-    setCheckoutDelivery(delivery)
+    if (selectedPayment === 'transfer' && couponIsApplied && payments.transferDiscountPercent > 0) { setCheckoutValidationError('El descuento por transferencia no se acumula con cupones. Quitá el código o elegí Mercado Pago.'); return }
+    setCheckoutSnapshot({ items: structuredClone(items), customer: { ...customer, email }, delivery, couponCode: appliedCouponCode, couponTotals, paymentSettings: payments, method: selectedPayment })
     setCheckoutOpen(true)
   }
 
@@ -298,16 +312,24 @@ export function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear
 
   const finish = () => {
     onClear()
+    setTransferReceipt(null)
+    try { sessionStorage.removeItem('fenixis-transfer-receipt') } catch { /* optional session storage */ }
     clearCoupon()
     setCheckoutOpen(false)
     onClose()
   }
 
+  const receivedTransfer = (order) => {
+    setTransferReceipt(order)
+    try { sessionStorage.setItem('fenixis-transfer-receipt', JSON.stringify(order)) } catch { /* receipt remains visible for this visit */ }
+    onClear()
+  }
+
   return <div className={`cart-layer ${open ? 'is-open' : ''}`} aria-hidden={!open} inert={!open ? true : undefined}>
     <button className="cart-backdrop" aria-label="Cerrar carrito" onClick={onClose}/>
     <aside ref={dialogRef} className="cart-drawer" role="dialog" aria-modal="true" aria-label="Tu carrito" tabIndex={-1}>
-      <header><div><p className="eyebrow">TU COMPRA</p><h2>{checkoutOpen ? 'Pago' : 'Carrito'}</h2></div><button onClick={onClose} aria-label="Cerrar carrito">×</button></header>
-      {items.length ? checkoutOpen ? <MercadoPagoCheckout items={items} customer={customer} delivery={checkoutDelivery} couponCode={appliedCouponCode} couponTotals={couponTotals} onCancel={() => setCheckoutOpen(false)} onComplete={finish}/> : <>
+      <header><div><p className="eyebrow">TU COMPRA</p><h2>{transferReceipt ? 'Pedido' : checkoutOpen ? 'Pago' : 'Carrito'}</h2></div><button onClick={onClose} aria-label="Cerrar carrito">×</button></header>
+      {transferReceipt ? <TransferReceipt order={transferReceipt} onComplete={finish} /> : checkoutOpen ? checkoutSnapshot.method === 'transfer' ? <TransferCheckout {...checkoutSnapshot} onCancel={() => setCheckoutOpen(false)} onCreated={receivedTransfer} /> : <MercadoPagoCheckout {...checkoutSnapshot} onCancel={() => setCheckoutOpen(false)} onComplete={finish}/> : items.length ? <>
         <div className="cart-items">{items.map((item) => {
           const price = Number(item.price || SHIRT_PRICE)
           const isCatalogProduct = item.kind === 'product'
@@ -343,17 +365,19 @@ export function CartDrawer({ open, items, onClose, onRemove, onQuantity, onClear
             {delivery.mode !== 'pickup' && <label className="cart-wide">{delivery.mode === 'branch' ? 'Sucursal o localidad (opcional)' : 'Dirección de envío (opcional)'}<input value={customer.address} onChange={(event) => updateCustomer('address', event.target.value)} maxLength={300} placeholder={delivery.mode === 'branch' ? 'Podés indicarla ahora o coordinarla después' : 'Calle, altura y localidad'} autoComplete={delivery.mode === 'home' ? 'street-address' : 'off'} /></label>}
             <label className="cart-wide">Notas para el pedido<textarea value={customer.notes} onChange={(event) => updateCustomer('notes', event.target.value)} maxLength={1000} placeholder="Opcional" rows="2" /></label>
           </div>
-          <OrderTotals subtotal={couponTotals ? couponTotals.subtotal : subtotal} discount={couponTotals?.discount || 0} shipping={delivery.cost} pickup={delivery.mode === 'pickup'} total={total} couponCode={appliedCouponCode} />
+          <fieldset className="payment-choices"><legend>¿Cómo querés pagar?</legend><label className={selectedPayment === 'mercadopago' ? 'is-selected' : ''}><input type="radio" name="payment-method" checked={selectedPayment === 'mercadopago'} onChange={() => setPaymentMethod('mercadopago')} /><span>Mercado Pago<small>Tarjeta de crédito o débito. Las cuotas disponibles se muestran al pagar.</small></span></label>{transferEnabled && <label className={selectedPayment === 'transfer' ? 'is-selected' : ''}><input type="radio" name="payment-method" checked={selectedPayment === 'transfer'} onChange={() => setPaymentMethod('transfer')} /><span>Transferencia bancaria<small>{payments.transferDiscountPercent > 0 ? payments.transferDiscountPercent + '% de descuento en las prendas. No acumulable con cupones.' : 'El alias y el titular aparecen al confirmar el pedido.'}</small></span></label>}</fieldset>
+          <OrderTotals transferSaving={transferSaving} subtotal={couponTotals ? couponTotals.subtotal : subtotal} discount={couponTotals?.discount || 0} shipping={delivery.cost} pickup={delivery.mode === 'pickup'} total={total} couponCode={appliedCouponCode} />
+          {paymentConflict && <p className="cart-customer-error" role="alert">El descuento por transferencia no se acumula con cupones. Quitá el código o elegí Mercado Pago.</p>}
           {checkoutValidationError && <p className="cart-customer-error" role="alert">{checkoutValidationError}</p>}
-          <button className="checkout-button" type="button" onClick={beginCheckout} disabled={deliveryState !== 'ready'}>Pagar con Mercado Pago <span>→</span></button>
-          <p>Pago seguro procesado por Mercado Pago.</p>
+          <button className={`checkout-button ${selectedPayment === 'transfer' ? 'is-transfer' : ''}`} type="button" onClick={beginCheckout} disabled={deliveryState !== 'ready' || paymentConflict}>{selectedPayment === 'transfer' ? 'Continuar con transferencia' : 'Pagar con Mercado Pago'} <span>→</span></button>
+          <p>{selectedPayment === 'transfer' ? 'El pedido se confirma después de verificar la acreditación.' : 'Pago seguro procesado por Mercado Pago.'}</p>
         </footer>
       </> : <div className="empty-cart"><span>◌</span><h3>Tu carrito está vacía.</h3><p>Encontrá tu próxima favorita en nuestro catálogo.</p><button onClick={onClose}>Seguir viendo la tienda</button></div>}
     </aside>
   </div>
 }
 
-export function CatalogProductOptions({ product, onClose, onAdd }) {
+export function CatalogProductOptions({ product, onClose, onAdd, paymentSettings }) {
   const { sizes, colors } = productOptions(product)
   const images = productImages(product)
   const initialColor = colors.find((entry) => (sizes.length ? sizes : ['']).some((item) => availableStock(product, item, entry.name) > 0)) || colors[0] || null
@@ -405,7 +429,7 @@ export function CatalogProductOptions({ product, onClose, onAdd }) {
           </>}
         </div>
         {!zoom && <div className="product-detail-info">
-          <strong className="product-detail-price">$ {Number(product.price || 0).toLocaleString('es-AR')}</strong>
+          <ProductPrice product={product} paymentSettings={paymentSettings} />
           {product.description && <p className="catalog-detail-description">{product.description}</p>}
           {colors.length > 0 && <fieldset><legend>Color: {selectedColor?.name}</legend><div className="catalog-color-buttons">{colors.map((item) => <button type="button" key={item.name} className={selectedColor?.name === item.name ? 'is-selected' : ''} aria-pressed={selectedColor?.name === item.name} disabled={!colorAvailable(item.name)} title={colorAvailable(item.name) ? item.name : `${item.name}: sin stock`} onClick={() => chooseColor(item)}><i aria-hidden="true" style={{ backgroundColor: item.value }} />{item.name}</button>)}</div></fieldset>}
           {sizes.length > 0 && <fieldset><legend>Talle</legend><div className="catalog-option-buttons">{sizes.map((item) => <button type="button" key={item} className={selectedSize === item ? 'is-selected' : ''} aria-pressed={selectedSize === item} disabled={availableStock(product, item, selectedColor?.name || '') < 1} title={availableStock(product, item, selectedColor?.name || '') < 1 ? `Talle ${item}: sin stock en este color` : `Talle ${item}`} onClick={() => { setSize(item); setFeedback('') }}>{item}</button>)}</div></fieldset>}
