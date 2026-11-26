@@ -455,8 +455,13 @@
       },
       {
         "name": "home-carousel-scroll",
-        "value": "smooth",
-        "purpose": "Manual page-wise arrow and keyboard navigation only; instant when reduced motion is requested, with no autoplay."
+        "value": "Motion: .85s automatic / .55s manual, cubic-bezier(.22, 1, .36, 1)",
+        "purpose": "Advance one garment after 4.2s, reversing at boundaries; manual arrows move a page. Pause on interaction, offscreen, hidden tabs and open overlays. Reduced motion leaves instant manual navigation."
+      },
+      {
+        "name": "home-announcement-marquee",
+        "value": "Motion: 32px/s, linear, seamless repeat",
+        "purpose": "Repeat factual payment and delivery messages in a 44px strip with a pause control. Decorative repetitions are aria-hidden. Reduced motion uses a static wrapping line."
       }
     ],
     "breakpoints": [

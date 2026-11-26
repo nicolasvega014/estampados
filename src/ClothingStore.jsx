@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { animate, useInView, useReducedMotion } from 'motion/react'
 import { collection, doc, onSnapshot } from 'firebase/firestore'
 import { db } from './firebase'
 import { productOptions, productImages } from './productOptions'
@@ -9,6 +10,8 @@ import './ClothingStore.css'
 import { productPricing } from './paymentSettings.js'
 import ProductPrice from './ProductPrice'
 import StoreHome, { HomeAnnouncement } from './StoreHome'
+import { PlaybackIcon } from './PlaybackIcon'
+import { usePageVisible } from './usePageVisible'
 
 const CART_KEY = 'tinta-club-cart'
 const normalize = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-AR').trim()
@@ -54,42 +57,115 @@ function ProductCard({ product, types, onChoose, paymentSettings, highlightDisco
   </article>
 }
 
-function ProductCarousel({ products, types, onChoose, paymentSettings, id = 'home-product-carousel', label = 'Prendas de la tienda' }) {
+function ProductCarousel({ products, types, onChoose, paymentSettings, suspended = false, id = 'home-product-carousel', label = 'Prendas de la tienda' }) {
+  const region = useRef(null)
   const track = useRef(null)
-  const [position, setPosition] = useState({ start: 1, end: 0, previous: false, next: false })
+  const scrollAnimation = useRef(null)
+  const automaticAnimation = useRef(false)
+  const autoDirection = useRef(1)
+  const reducedMotion = useReducedMotion()
+  const inView = useInView(region, { amount: 0.35 })
+  const pageVisible = usePageVisible()
+  const [paused, setPaused] = useState(false)
+  const [hovered, setHovered] = useState(false)
+  const [position, setPosition] = useState({ start: 1, end: 0, previous: false, next: false, width: 0 })
+  const hasOverflow = position.previous || position.next
+  const playing = hasOverflow && !reducedMotion && !paused && !hovered && !suspended && inView && pageVisible
+  const productIds = products.map((product) => product.id).join('|')
+
+  const stopAnimation = useCallback((restoreSnap = true) => {
+    scrollAnimation.current?.stop()
+    scrollAnimation.current = null
+    automaticAnimation.current = false
+    if (restoreSnap && track.current) track.current.style.scrollSnapType = ''
+  }, [])
+
+  const scrollTo = useCallback((left, automatic = false, onComplete) => {
+    const element = track.current
+    if (!element) return
+    stopAnimation(false)
+    const target = Math.max(0, Math.min(left, element.scrollWidth - element.clientWidth))
+    if (reducedMotion) { element.scrollLeft = target; onComplete?.(); return }
+    // Native touch scrolling remains available; snapping waits for Motion's arrival.
+    element.style.scrollSnapType = 'none'
+    automaticAnimation.current = automatic
+    scrollAnimation.current = animate(element.scrollLeft, target, {
+      duration: automatic ? 0.85 : 0.55,
+      ease: [0.22, 1, 0.36, 1],
+      onUpdate: (value) => { element.scrollLeft = value },
+      onComplete: () => {
+        scrollAnimation.current = null
+        automaticAnimation.current = false
+        element.style.scrollSnapType = ''
+        onComplete?.()
+      },
+    })
+  }, [reducedMotion, stopAnimation])
 
   useEffect(() => {
     const element = track.current
     if (!element) return
     let frame
     const measure = () => {
-      const bounds = element.getBoundingClientRect()
-      const visible = [...element.children].map((child, index) => ({ index, bounds: child.getBoundingClientRect() }))
-        .filter((child) => child.bounds.right > bounds.left + 2 && child.bounds.left < bounds.right - 2)
+      const gap = parseFloat(getComputedStyle(element).columnGap) || 0
+      const step = (element.firstElementChild?.getBoundingClientRect().width || element.clientWidth) + gap
       const next = {
-        start: (visible[0]?.index ?? 0) + 1,
-        end: (visible.at(-1)?.index ?? 0) + 1,
+        width: element.clientWidth,
+        start: Math.min(products.length, Math.floor((element.scrollLeft + gap + 2) / step) + 1),
+        end: Math.min(products.length, Math.ceil((element.scrollLeft + element.clientWidth - 2) / step)),
         previous: element.scrollLeft > 2,
         next: element.scrollLeft < element.scrollWidth - element.clientWidth - 2,
       }
       setPosition((current) => Object.keys(next).every((key) => current[key] === next[key]) ? current : next)
     }
     const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(measure) }
-    const observer = new ResizeObserver(schedule)
+    const observer = new ResizeObserver(() => { stopAnimation(); schedule() })
     observer.observe(element)
     element.addEventListener('scroll', schedule, { passive: true })
     schedule()
     return () => { observer.disconnect(); element.removeEventListener('scroll', schedule); cancelAnimationFrame(frame) }
-  }, [products])
+  }, [productIds, products.length, stopAnimation])
+
+  useEffect(() => {
+    if (!playing) return
+    let timer
+    const schedule = () => { timer = window.setTimeout(advance, 4200) }
+    const advance = () => {
+      const element = track.current
+      if (!element) return
+      const gap = parseFloat(getComputedStyle(element).columnGap) || 0
+      const step = (element.firstElementChild?.getBoundingClientRect().width || element.clientWidth) + gap
+      const maximum = element.scrollWidth - element.clientWidth
+      if (element.scrollLeft >= maximum - 2) autoDirection.current = -1
+      if (element.scrollLeft <= 2) autoDirection.current = 1
+      const next = (Math.round(element.scrollLeft / step) + autoDirection.current) * step
+      scrollTo(next, true, schedule)
+    }
+    schedule()
+    return () => {
+      window.clearTimeout(timer)
+      if (automaticAnimation.current) stopAnimation(false)
+    }
+  }, [playing, productIds, position.width, scrollTo, stopAnimation])
+
+  useEffect(() => () => stopAnimation(), [stopAnimation])
+  useEffect(() => { if (reducedMotion) stopAnimation() }, [reducedMotion, stopAnimation])
+
+  const pauseForInteraction = () => { setPaused(true); stopAnimation(false) }
+  const restoreSnapping = () => requestAnimationFrame(() => {
+    // Let the selected card receive its click before native snapping can move it.
+    if (!scrollAnimation.current && track.current) track.current.style.scrollSnapType = ''
+  })
 
   const move = (direction) => {
     const element = track.current
     if (!element) return
+    setPaused(true)
     const gap = parseFloat(getComputedStyle(element).columnGap) || 0
     const cardWidth = (element.firstElementChild?.getBoundingClientRect().width || element.clientWidth) + gap
     const pageWidth = cardWidth * Math.max(1, Math.floor((element.clientWidth + gap) / cardWidth))
     const left = direction === 'start' ? 0 : direction === 'end' ? element.scrollWidth : element.scrollLeft + direction * pageWidth
-    element.scrollTo({ left, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
+    scrollTo(left)
   }
   const onKeyDown = (event) => {
     if (event.target !== event.currentTarget) return
@@ -98,15 +174,18 @@ function ProductCarousel({ products, types, onChoose, paymentSettings, id = 'hom
   }
   const range = position.start === position.end ? position.start : `${position.start}–${position.end}`
 
-  return <div className="fashion-carousel" role="region" aria-roledescription="carrusel" aria-label={label}>
+  return <div className="fashion-carousel" ref={region} role="region" aria-roledescription="carrusel" aria-label={label}
+    onPointerEnter={(event) => { if (event.pointerType === 'mouse') setHovered(true) }} onPointerLeave={() => setHovered(false)}
+    onFocusCapture={(event) => { if (!event.target.closest('[data-autoplay-toggle]')) pauseForInteraction() }}>
     <div className="fashion-carousel-toolbar">
-      <p className="fashion-carousel-count" role="status" aria-live="polite">{position.end ? `${range} de ${products.length} ${products.length === 1 ? 'prenda' : 'prendas'}` : `${products.length} prendas`}</p>
+      <p className="fashion-carousel-count" role="status" aria-live={paused || reducedMotion ? 'polite' : 'off'}>{position.end ? `${range} de ${products.length} ${products.length === 1 ? 'prenda' : 'prendas'}` : `${products.length} prendas`}</p>
       <div className="fashion-carousel-controls">
+        {hasOverflow && !reducedMotion && <button type="button" data-autoplay-toggle onClick={() => setPaused(!paused)} aria-label={paused ? 'Reanudar carrusel' : 'Pausar carrusel'} title={paused ? 'Reanudar carrusel' : 'Pausar carrusel'} aria-controls={id}><PlaybackIcon paused={paused} /></button>}
         <button type="button" className="fashion-carousel-previous" onClick={() => move(-1)} disabled={!position.previous} aria-label="Ver prendas anteriores" aria-controls={id}><Icon name="arrow" /></button>
         <button type="button" onClick={() => move(1)} disabled={!position.next} aria-label="Ver más prendas" aria-controls={id}><Icon name="arrow" /></button>
       </div>
     </div>
-    <div className="fashion-carousel-track" id={id} ref={track} tabIndex={0} onKeyDown={onKeyDown} aria-label="Prendas. Deslizá o usá las flechas del teclado para recorrerlas.">
+    <div className="fashion-carousel-track" id={id} ref={track} tabIndex={0} onKeyDown={onKeyDown} onPointerDown={pauseForInteraction} onPointerUp={restoreSnapping} onPointerCancel={restoreSnapping} onWheel={pauseForInteraction} aria-label="Prendas. Deslizá o usá las flechas del teclado para recorrerlas.">
       {products.map((product) => <ProductCard key={product.id} product={product} types={types} onChoose={onChoose} paymentSettings={paymentSettings} highlightDiscount />)}
     </div>
   </div>
@@ -216,7 +295,7 @@ export default function ClothingStore() {
   return <div className={isCatalog ? 'fashion-shell' : 'fashion-shell fashion-home'}>
     <div className="fashion-store" inert={cartOpen || Boolean(chosen) ? true : undefined}>
       <a className="fashion-skip" href="#contenido">Ir al contenido</a>
-      {isCatalog ? <div className="fashion-announcement">Prendas para todos tus días. Encontrá las tuyas.</div> : <HomeAnnouncement paymentSettings={paymentSettings} />}
+      {isCatalog ? <div className="fashion-announcement">Prendas para todos tus días. Encontrá las tuyas.</div> : <HomeAnnouncement paymentSettings={paymentSettings} suspended={cartOpen || Boolean(chosen) || menuOpen} />}
       <header className="fashion-header">
         <a className="fashion-logo" href="/" aria-label="Fenixis Store, inicio"><span className="brand-wordmark" /></a>
         <nav className={menuOpen ? 'fashion-nav is-open' : 'fashion-nav'} id="store-navigation" aria-label="Navegación principal">
@@ -226,7 +305,7 @@ export default function ClothingStore() {
       </header>
       {notice && <div className="fashion-notice" role="status"><p>{notice}</p><button onClick={() => setNotice('')} aria-label="Cerrar aviso"><Icon name="close" /></button></div>}
       <main className="fashion-main" id="contenido">
-        {!isCatalog ? <StoreHome products={products} types={types} offers={offers} loaded={loaded} loadError={loadError} paymentSettings={paymentSettings} deliverySettings={deliverySettings} whatsappUrl={whatsappUrl} onChoose={setChosen} Icon={Icon} renderCarousel={(items, id, label) => <ProductCarousel products={items} types={types} onChoose={setChosen} paymentSettings={paymentSettings} id={id} label={label} />} /> : <>
+        {!isCatalog ? <StoreHome products={products} types={types} offers={offers} loaded={loaded} loadError={loadError} paymentSettings={paymentSettings} deliverySettings={deliverySettings} whatsappUrl={whatsappUrl} onChoose={setChosen} Icon={Icon} renderCarousel={(items, id, label) => <ProductCarousel products={items} types={types} onChoose={setChosen} paymentSettings={paymentSettings} suspended={cartOpen || Boolean(chosen) || menuOpen} id={id} label={label} />} /> : <>
           <section className="fashion-catalog-intro"><h1>Elegí tu<br /><em>próxima prenda.</em></h1><p>Buscá ese color, ese estilo, eso que va con vos.</p></section>
           <section className="fashion-catalog" aria-label="Catálogo de prendas"><div className="fashion-catalog-toolbar" id="buscar"><label className="fashion-search"><span>Buscar prendas</span><div><Icon name="search" /><input type="search" placeholder="Nombre, código o estilo…" value={query} onChange={(event) => setQuery(event.target.value)} /></div></label><label className="fashion-sort">Ordenar por<select value={sort} onChange={(event) => setSort(event.target.value)}><option value="featured">Selección de la tienda</option><option value="price-up">Menor precio</option><option value="price-down">Mayor precio</option><option value="name">Nombre: A a Z</option></select></label></div>
             <div className="fashion-catalog-layout"><aside className="fashion-filters" aria-label="Filtros de prendas"><details open={filtersOpen} onToggle={(event) => setFiltersOpen(event.currentTarget.open)}><summary>Filtrar prendas</summary><div className="fashion-filter-body"><h2>Tipo de prenda</h2><div className="fashion-type-filters">{[{ id: 'all', name: 'Todas las prendas' }, ...types].map((entry) => <button key={entry.id} aria-pressed={entry.id === activeType} onClick={() => setType(entry.id)}><span>{entry.name}</span><small>{entry.id === 'all' ? products.length : products.filter((product) => productTypeIdFor(product) === entry.id).length}</small></button>)}</div>{categories.length > 1 && <label>Colección<select value={category} onChange={(event) => setCategory(event.target.value)}><option value="all">Todas las colecciones</option>{categories.map((entry) => <option key={entry}>{entry}</option>)}</select></label>}{availableSizes.length > 0 && <label>Talle<select value={size} onChange={(event) => setSize(event.target.value)}><option value="all">Todos los talles</option>{availableSizes.map((entry) => <option key={entry}>{entry}</option>)}</select></label>}{availableColors.length > 0 && <label>Color<select value={color} onChange={(event) => setColor(event.target.value)}><option value="all">Todos los colores</option>{availableColors.map((entry) => <option key={entry}>{entry}</option>)}</select></label>}</div></details></aside>

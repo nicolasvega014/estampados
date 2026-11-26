@@ -1,18 +1,73 @@
+import { useEffect, useRef, useState } from 'react'
+import { animate, motion, useInView, useMotionValue, useReducedMotion } from 'motion/react'
 import { hasProductStock } from './productInventory'
 import { productTypeIdFor } from './productTypes'
 import { normalizePaymentSettings, productPricing, transferAvailable } from './paymentSettings'
 import { normalizeDeliverySettings } from './deliverySettings'
+import { PlaybackIcon } from './PlaybackIcon'
+import { usePageVisible } from './usePageVisible'
 import './StoreHome.css'
 
 const normalize = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 const timestamp = (value) => value?.toMillis?.() || (value?.seconds ? value.seconds * 1000 : 0)
 
-export function HomeAnnouncement({ paymentSettings }) {
+export function HomeAnnouncement({ paymentSettings, suspended = false }) {
   const payments = normalizePaymentSettings(paymentSettings)
   const transfer = transferAvailable(payments) && payments.transferDiscountPercent > 0
-  return <div className="fashion-announcement home-announcement">
-    <span>{transfer ? <><strong>{payments.transferDiscountPercent}% OFF</strong> con transferencia</> : 'Encontrá tu próxima prenda favorita'}</span>
-    <span>Envíos y retiro por el local</span>
+  const promotion = transfer ? `${payments.transferDiscountPercent}% OFF con transferencia` : 'Encontrá tu próxima prenda favorita'
+  const viewport = useRef(null)
+  const segment = useRef(null)
+  const animation = useRef(null)
+  const x = useMotionValue(0)
+  const reducedMotion = useReducedMotion()
+  const inView = useInView(viewport)
+  const pageVisible = usePageVisible()
+  const [paused, setPaused] = useState(false)
+  const [hovered, setHovered] = useState(false)
+  const [geometry, setGeometry] = useState({ copies: 2, distance: 0 })
+  const playing = !reducedMotion && !paused && !hovered && !suspended && inView && pageVisible
+
+  useEffect(() => {
+    const measure = () => {
+      const width = segment.current?.getBoundingClientRect().width || 0
+      if (!width) return
+      const copies = Math.max(2, Math.ceil(viewport.current.clientWidth / width) + 1)
+      const distance = copies * width
+      setGeometry((current) => current.copies === copies && current.distance === distance ? current : { copies, distance })
+    }
+    const observer = new ResizeObserver(measure)
+    observer.observe(viewport.current)
+    observer.observe(segment.current)
+    measure()
+    return () => observer.disconnect()
+  }, [promotion, reducedMotion])
+
+  useEffect(() => {
+    x.set(0)
+    if (reducedMotion || !geometry.distance) return
+    const controls = animate(x, [0, -geometry.distance], { duration: geometry.distance / 32, ease: 'linear', repeat: Infinity })
+    controls.pause()
+    animation.current = controls
+    return () => { controls.stop(); animation.current = null }
+  }, [geometry.distance, reducedMotion, x])
+
+  useEffect(() => {
+    if (playing) animation.current?.play()
+    else animation.current?.pause()
+  }, [playing, geometry.distance, reducedMotion])
+
+  return <div className={`fashion-announcement home-announcement${reducedMotion ? ' is-static' : ''}`} onPointerEnter={(event) => { if (event.pointerType === 'mouse') setHovered(true) }} onPointerLeave={() => setHovered(false)}>
+    <span className="store-motion-sr">{promotion}. Envíos y retiro por el local.</span>
+    <div className="home-announcement-viewport" ref={viewport}>
+      <motion.div className="home-announcement-track" style={{ x }} aria-hidden="true">
+        {Array.from({ length: reducedMotion ? 1 : 2 }, (_, group) => <div className="home-announcement-group" key={group}>
+          {Array.from({ length: reducedMotion ? 1 : geometry.copies }, (_, copy) => <div className="home-announcement-set" ref={group === 0 && copy === 0 ? segment : undefined} key={copy}>
+            <span>{transfer ? <><strong>{payments.transferDiscountPercent}% OFF</strong> con transferencia</> : promotion}</span><span>Envíos y retiro por el local</span>
+          </div>)}
+        </div>)}
+      </motion.div>
+    </div>
+    {!reducedMotion && <button type="button" className="home-announcement-toggle" onClick={() => setPaused(!paused)} aria-label={paused ? 'Reanudar avisos' : 'Pausar avisos'} title={paused ? 'Reanudar avisos' : 'Pausar avisos'}><PlaybackIcon paused={paused} /></button>}
   </div>
 }
 

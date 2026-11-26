@@ -12,7 +12,7 @@ STORY: Discover the collection, browse garment types, inspect prices and transfe
 
 FIRST VIEWPORT: A narrow factual payment announcement, centered wordmark, search and cart at opposite edges, centered navigation, then an expansive paired photographic campaign using the store's visible catalog. A concise headline and catalog action remain readable; on phones the copy moves below the two photographs.
 
-FORM: User-pinned competitor reference, LUTZA (reviewed live on 2026-11-25); no alternative concept selection is required. Existing brand tokens and supplied photographs bind execution. Manual product carousels, touch scrolling and keyboard arrows form the signature browsing interaction; honor reduced motion.
+FORM: User-pinned competitor reference, LUTZA (reviewed live on 2026-11-25); no alternative concept selection is required. Existing brand tokens and supplied photographs bind execution. Following the owner's 2026-11-26 request, the factual top strip scrolls continuously and product carousels advance gently one garment at a time using Motion. Pausing, manual arrows, touch scrolling and keyboard navigation preserve comfortable browsing; honor reduced motion.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance.
 

@@ -375,7 +375,7 @@ Homepage campaign and category photography comes from visible, in-stock catalog 
 
 ### Product carousel
 
-The homepage collection and conditional sale row use the same manual carousel. Visible-range status, disabled boundary arrows, horizontal touch scrolling and scroll snapping accompany keyboard Left/Right/Home/End controls on the track. Each arrow advances a visible page. It does not autoplay. Titles, variants, normal/sale prices, transfer savings and explicit add actions remain outside the photo.
+The homepage collection and conditional sale row use the same Motion-powered carousel. After a 4.2s reading pause, it advances one garment in .85s with a smooth deceleration; at either end it reverses direction without jumping back across the catalog. Visible-range status, disabled boundary arrows, horizontal touch scrolling and scroll snapping accompany keyboard Left/Right/Home/End controls. Each arrow advances a visible page in .55s. A matching pause/resume button sits before the arrows. Mouse hover pauses temporarily; manual navigation, focus on garments and touch/wheel interaction pause until explicitly resumed. Titles, variants, normal/sale prices, transfer savings and explicit add actions remain outside the photo. Automatic movement is not announced through a live region.
 
 ### Inputs and fields
 
@@ -389,7 +389,7 @@ The catalog retains its dark header and footer, the supplied wordmark, pale acti
 
 ### Motion and accessible states
 
-Button state transitions are short; photo zooms are slower and subtle. The homepage campaign image hover uses a .65s eased transition and a 1.025 scale; category images use .4s and the same scale. The former hero-reveal declaration remains in the base stylesheet but does not animate the new home campaign. Reduced-motion mode disables storefront animation, transitions and smooth scrolling. Sidecar snippets show implemented focus and hover behavior; they are visual samples, not a replacement for application interaction logic.
+Button state transitions are short; photo zooms are slower and subtle. The homepage campaign image hover uses a .65s eased transition and a 1.025 scale; category images use .4s and the same scale. The former hero-reveal declaration remains in the base stylesheet but does not animate the new home campaign. The 44px announcement strip repeats the store's actual transfer offer and delivery message in a seamless 32px/s Motion marquee, with a 44px pause/resume control. Repeated visual text is hidden from assistive technology; a single readable summary remains. Both automatic sequences stop offscreen, in hidden tabs and while the cart, product dialog or menu is open. Reduced-motion mode shows a static wrapping announcement and leaves carousel navigation immediate and manual. Sidecar snippets show implemented focus and hover behavior; they are visual samples, not a replacement for application interaction logic.
 
 ## Do's and Don'ts
 
