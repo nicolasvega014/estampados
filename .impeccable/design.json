@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-13T01:01:53.176Z",
+  "generatedAt": "2026-11-25T21:51:26.967Z",
   "title": "Design System: Fenixis Store",
   "extensions": {
     "colorMeta": {
@@ -258,20 +258,48 @@
           "oklch(83.57% 0.1015 236.78)",
           "oklch(95.00% 0.1015 236.78)"
         ]
+      },
+      "home-line": {
+        "role": "neutral",
+        "displayName": "Homepage divider"
+      },
+      "home-footer": {
+        "role": "neutral",
+        "displayName": "Homepage light footer"
+      },
+      "home-hover": {
+        "role": "neutral",
+        "displayName": "Homepage hover ground"
+      },
+      "home-announcement-ink": {
+        "role": "neutral",
+        "displayName": "Homepage announcement text"
+      },
+      "home-category-ink": {
+        "role": "neutral",
+        "displayName": "Homepage category text"
+      },
+      "home-footer-ink": {
+        "role": "neutral",
+        "displayName": "Homepage footer links"
+      },
+      "home-placeholder-ink": {
+        "role": "neutral",
+        "displayName": "Homepage empty campaign wordmark"
       }
     },
     "typographyMeta": {
       "display": {
-        "displayName": "Homepage display",
-        "purpose": "Large homepage heading."
+        "displayName": "Legacy display",
+        "purpose": "Preserved base stylesheet scale for the former hero; the current / homepage uses home-display."
       },
       "headline": {
         "displayName": "Section heading",
-        "purpose": "Storefront section titles."
+        "purpose": "Preserved base section-heading scale; the current / homepage uses home-headline."
       },
       "emphasis": {
         "displayName": "Italic serif emphasis",
-        "purpose": "Selected words in display copy and supporting phrases; inherits surrounding size."
+        "purpose": "Selected words in catalog display copy and incumbent supporting phrases; the current homepage uses DM Sans throughout."
       },
       "title": {
         "displayName": "Product title",
@@ -288,6 +316,78 @@
       "action": {
         "displayName": "Primary action",
         "purpose": "Storefront calls to action."
+      },
+      "home-display": {
+        "displayName": "Homepage campaign title",
+        "purpose": "Responsive DM Sans campaign heading on /."
+      },
+      "home-display-mobile": {
+        "displayName": "Homepage campaign title, mobile",
+        "purpose": "Campaign heading below the photos at 760px and below."
+      },
+      "home-headline": {
+        "displayName": "Homepage section title",
+        "purpose": "Centered collection, category and conditional sale section headings."
+      },
+      "home-headline-mobile": {
+        "displayName": "Homepage section title, mobile",
+        "purpose": "Centered section headings at 760px and below."
+      },
+      "home-title": {
+        "displayName": "Homepage garment title",
+        "purpose": "Garment names above variants and pricing; two-line minimum at desktop sizes."
+      },
+      "home-title-mobile": {
+        "displayName": "Homepage garment title, mobile",
+        "purpose": "Compact two-card carousel titles at 760px and below."
+      },
+      "home-navigation": {
+        "displayName": "Homepage navigation",
+        "purpose": "Main navigation and category links; also the size of previous-price and desktop transfer text."
+      },
+      "home-label": {
+        "displayName": "Homepage compact label",
+        "purpose": "Campaign labels, carousel count, cart label and desktop discount flags; mobile transfer text."
+      },
+      "home-small-label": {
+        "displayName": "Homepage small mobile label",
+        "purpose": "Mobile campaign labels and discount flags only."
+      },
+      "home-announcement-mobile": {
+        "displayName": "Homepage announcement, mobile",
+        "purpose": "Compact factual announcement at 760px and below."
+      },
+      "home-action": {
+        "displayName": "Homepage compact action",
+        "purpose": "All-products link and mobile campaign action."
+      },
+      "home-price": {
+        "displayName": "Homepage price",
+        "purpose": "Current garment price on /."
+      },
+      "home-price-mobile": {
+        "displayName": "Homepage price, mobile",
+        "purpose": "Current garment price at 760px and below."
+      },
+      "home-category-title": {
+        "displayName": "Homepage category title",
+        "purpose": "Text below real catalog photography in category tiles."
+      },
+      "home-category-title-mobile": {
+        "displayName": "Homepage category title, mobile",
+        "purpose": "Category tile text at 760px and below."
+      },
+      "home-info-title": {
+        "displayName": "Homepage shopping information title",
+        "purpose": "Payment, delivery and help headings."
+      },
+      "home-info-body": {
+        "displayName": "Homepage shopping information body",
+        "purpose": "Readable supporting payment, delivery and help copy."
+      },
+      "home-footer-body": {
+        "displayName": "Homepage footer introduction",
+        "purpose": "Normal DM Sans supporting copy in the light footer."
       }
     },
     "shadows": [
@@ -299,12 +399,22 @@
       {
         "name": "mobile-menu",
         "value": "0 14px 22px #29241f22",
-        "purpose": "Separate expanded mobile navigation from underlying content."
+        "purpose": "Separate expanded catalog navigation from underlying content; homepage uses home-mobile-menu."
       },
       {
         "name": "seller-order-drawer",
         "value": "-16px 0 40px rgba(0,0,0,.16)",
         "purpose": "Existing seller order-detail overlay."
+      },
+      {
+        "name": "home-mobile-menu",
+        "value": "0 12px 20px #29241f18",
+        "purpose": "Separate the expanded white homepage menu from the campaign."
+      },
+      {
+        "name": "home-floating-help",
+        "value": "0 5px 16px #29241f26",
+        "purpose": "Keep the circular homepage WhatsApp action distinct from page content."
       }
     ],
     "motion": [
@@ -316,12 +426,12 @@
       {
         "name": "photo-zoom",
         "value": "transform .4s",
-        "purpose": "Subtle product and hero photo enlargement."
+        "purpose": "Subtle product-image and homepage category-image enlargement; retained base hero rule uses the same duration."
       },
       {
         "name": "hero-reveal",
         "value": ".75s cubic-bezier(.16,1,.3,1)",
-        "purpose": "One hero reveal when reduced motion is not requested."
+        "purpose": "Retained base stylesheet declaration for the former hero; not used by the current / homepage campaign."
       },
       {
         "name": "cart-entry",
@@ -332,6 +442,21 @@
         "name": "seller-control-state",
         "value": "background-color .18s ease, border-color .18s ease",
         "purpose": "Seller controls without positional movement."
+      },
+      {
+        "name": "home-campaign-hover",
+        "value": "transform .65s cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "Homepage campaign photo hover scales to 1.025; disabled for reduced motion."
+      },
+      {
+        "name": "home-category-hover",
+        "value": "transform .4s",
+        "purpose": "Homepage category photo hover scales to 1.025; disabled for reduced motion."
+      },
+      {
+        "name": "home-carousel-scroll",
+        "value": "smooth",
+        "purpose": "Manual page-wise arrow and keyboard navigation only; instant when reduced motion is requested, with no autoplay."
       }
     ],
     "breakpoints": [
@@ -354,7 +479,7 @@
       "name": "Primary button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Main storefront call to action.",
+      "description": "Incumbent storefront primary action; the current homepage campaign uses home-button-primary.",
       "html": "<button class=\"ds-primary\">Explorar la tienda <svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12h15M13 5l7 7-7 7\"/></svg></button>",
       "css": ".ds-primary { display: inline-flex; justify-content: center; align-items: center; gap: 34px; min-height: 50px; padding: 14px 24px; border: 0; border-radius: 7px; background: #783d49; color: #fff; font: 600 14px 'DM Sans', sans-serif; cursor: pointer; transition: background .2s, transform .2s; } .ds-primary:hover { background: #60303b; transform: translateY(-2px); } .ds-primary:focus-visible { outline: 3px solid #a85f70; outline-offset: 4px; } @media (prefers-reduced-motion: reduce) { .ds-primary { transition: none; } }"
     },
@@ -362,7 +487,7 @@
       "name": "Outlined add button",
       "kind": "button",
       "refersTo": "button-outline",
-      "description": "Explicit product action, visible independently of the photo overlay.",
+      "description": "Incumbent catalog add action; homepage add controls use a full-width white home variant.",
       "html": "<button class=\"ds-add\">Agregar <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"/></svg></button>",
       "css": ".ds-add { display: inline-flex; gap: 9px; align-items: center; background: transparent; color: #783d49; border: 1px solid #b88791; border-radius: 6px; min-height: 40px; padding: 8px 12px; font: 600 12px 'DM Sans', sans-serif; cursor: pointer; } .ds-add:hover { background: #783d49; color: #fff; } .ds-add:focus-visible { outline: 3px solid #a85f70; outline-offset: 4px; }"
     },
@@ -383,10 +508,10 @@
       "css": ".ds-search { display: block; font: 500 12px 'DM Sans', sans-serif; color: #29241f; } .ds-search > div { margin-top: 9px; position: relative; } .ds-search svg { position: absolute; left: 14px; top: 14px; color: #70645b; } .ds-search input { width: 100%; height: 50px; padding: 12px 40px 12px 45px; border: 1px solid #c9bcb1; border-radius: 7px; background: #fffdfa; color: #29241f; font: 400 14px 'DM Sans', sans-serif; caret-color: #783d49; } .ds-search input::placeholder { color: #78675e; opacity: 1; } .ds-search input:focus-visible { outline: 3px solid #a85f70; outline-offset: 4px; }"
     },
     {
-      "name": "Store navigation",
+      "name": "Catalog navigation",
       "kind": "nav",
       "refersTo": "navigation",
-      "description": "Dark header navigation with a clear current-page underline.",
+      "description": "Preserved dark catalog header navigation with a pale current-page underline.",
       "html": "<nav class=\"ds-nav\" aria-label=\"Navegación de muestra\"><a href=\"#inicio\" aria-current=\"page\">Inicio</a><a href=\"#prendas\">Todas las prendas</a><a href=\"#contacto\">Contacto</a></nav>",
       "css": ".ds-nav { display: flex; flex-wrap: wrap; gap: 32px; align-items: center; padding: 20px; background: #29241f; } .ds-nav a { padding: 14px 0; color: #ede1d8; font: 400 14px 'DM Sans', sans-serif; text-decoration: none; transition: color .2s; } .ds-nav a[aria-current=page] { color: #fff; text-decoration: underline; text-underline-offset: 9px; text-decoration-color: #c897a0; } .ds-nav a:hover { color: #e4b0bd; } .ds-nav a:focus-visible { outline: 3px solid #a85f70; outline-offset: 4px; } @media (prefers-reduced-motion: reduce) { .ds-nav a { transition: none; } }"
     },
@@ -394,7 +519,7 @@
       "name": "Category pill",
       "kind": "chip",
       "refersTo": "category-chip",
-      "description": "Outlined category navigation derived from the garment-type links.",
+      "description": "Retained outlined category primitive; the current homepage uses plain text category links.",
       "html": "<a class=\"ds-category\" href=\"#prendas\">Todas las prendas <svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12h15M13 5l7 7-7 7\"/></svg></a>",
       "css": ".ds-category { display: inline-flex; align-items: center; justify-content: space-between; gap: 28px; border: 1px solid #ddd4ca; border-radius: 30px; padding: 13px 22px; background: #fffdfa; color: #29241f; font: 400 14px 'DM Sans', sans-serif; text-decoration: none; transition: background .2s, border-color .2s; } .ds-category svg { width: 18px; } .ds-category:hover { background: #eee0e0; border-color: #b88791; } .ds-category:focus-visible { outline: 3px solid #a85f70; outline-offset: 4px; } @media (prefers-reduced-motion: reduce) { .ds-category { transition: none; } }"
     },
@@ -402,7 +527,7 @@
       "name": "Product image fallback",
       "kind": "card",
       "refersTo": "product-photo",
-      "description": "The existing neutral branded state for a garment with no catalog photograph.",
+      "description": "Preserved rounded catalog placeholder; homepage product frames use the square home-product-photo variant.",
       "html": "<button class=\"ds-product-fallback\" aria-label=\"Ver prenda sin fotografía\"><span class=\"ds-no-photo\">FENIXIS<span>STORE</span></span><span class=\"ds-photo-action\">Ver prenda <svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12h15M13 5l7 7-7 7\"/></svg></span></button>",
       "css": ".ds-product-fallback { display: block; position: relative; width: 220px; aspect-ratio: 4/5; overflow: hidden; padding: 0; border: 0; border-radius: 12px; background: #eee8e1; color: #29241f; cursor: pointer; } .ds-no-photo { height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; color: #70645b; font: 400 26px 'DM Sans', sans-serif; letter-spacing: .03em; } .ds-no-photo > span { font-size: 12px; letter-spacing: .4em; } .ds-photo-action { position: absolute; bottom: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: center; padding: 11px 14px; border-radius: 6px; background: #fffdfa; color: #3e302a; font: 400 12px 'DM Sans', sans-serif; opacity: 0; transition: opacity .2s; } .ds-product-fallback:hover .ds-photo-action, .ds-product-fallback:focus-visible .ds-photo-action { opacity: 1; } .ds-product-fallback:focus-visible { outline: 3px solid #a85f70; outline-offset: 4px; } @media (prefers-reduced-motion: reduce) { .ds-photo-action { transition: none; } }"
     },
@@ -413,31 +538,56 @@
       "description": "Selected garment size control in product options.",
       "html": "<button class=\"ds-option\" aria-pressed=\"true\">M</button>",
       "css": ".ds-option { border: 1px solid #783d49; border-radius: 6px; font: 400 13px 'DM Sans', sans-serif; min-height: 44px; padding: 10px 14px; background: #783d49; color: #fff; cursor: pointer; } .ds-option:focus-visible { outline: 3px solid #a85f70; outline-offset: 4px; }"
+    },
+    {
+      "name": "Homepage campaign button",
+      "kind": "button",
+      "refersTo": "home-button-primary",
+      "description": "Compact wine campaign action on /, preserving the existing hover and focus behavior.",
+      "html": "<a class=\"ds-home-primary\" href=\"#coleccion\">Descubrir la colección <svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12h15M13 5l7 7-7 7\"/></svg></a>",
+      "css": ".ds-home-primary { display: inline-flex; justify-content: center; align-items: center; gap: 22px; min-height: 46px; padding: 12px 22px; border: 0; border-radius: 3px; background: #783d49; color: #fff; font: 600 14px 'DM Sans', sans-serif; text-decoration: none; cursor: pointer; transition: background .2s, transform .2s; } .ds-home-primary:hover { background: #60303b; transform: translateY(-2px); } .ds-home-primary:focus-visible { outline: 3px solid #a85f70; outline-offset: 4px; } @media (max-width: 760px) { .ds-home-primary { min-height: 45px; font-size: 13px; } } @media (prefers-reduced-motion: reduce) { .ds-home-primary { transition: none; } }"
+    },
+    {
+      "name": "Homepage navigation",
+      "kind": "nav",
+      "refersTo": "home-navigation",
+      "description": "White homepage navigation with ink labels and a wine active underline; the app controls mobile menu disclosure.",
+      "html": "<nav class=\"ds-home-nav\" aria-label=\"Navegación de muestra\"><a href=\"#inicio\" aria-current=\"page\">Inicio</a><a href=\"#prendas\">Todas las prendas</a><a href=\"#contacto\">Contacto</a></nav>",
+      "css": ".ds-home-nav { display: flex; justify-content: center; align-items: center; gap: 36px; background: #fff; border-bottom: 1px solid #e9e3dd; } .ds-home-nav a { padding: 14px 0; color: #29241f; font: 400 13px 'DM Sans', sans-serif; text-decoration: none; transition: color .2s; } .ds-home-nav a[aria-current=page] { color: #783d49; text-decoration: underline; text-decoration-color: #783d49; text-underline-offset: 6px; } .ds-home-nav a:hover { color: #783d49; } .ds-home-nav a:focus-visible { outline: 3px solid #a85f70; outline-offset: 4px; } @media (max-width: 760px) { .ds-home-nav { flex-direction: column; align-items: stretch; gap: 4px; padding: 16px 24px; box-shadow: 0 12px 20px #29241f18; } .ds-home-nav a { border-bottom: 1px solid #5b4b40; } } @media (prefers-reduced-motion: reduce) { .ds-home-nav a { transition: none; } }"
     }
   ],
   "narrative": {
     "northStar": "A warm clothing storefront",
-    "overview": "Fenixis Store uses a warm, photo-led clothing storefront: pale ivory surfaces, brown-black typography and a restrained wine accent. Large plain-language headings pair a clean sans serif with italic serif emphasis, while real garment photographs carry the visual character.\n\nThe seller area uses the same palette in a denser working layout. This document records the implemented interface, rather than introducing a new brand promise or merchandising policy.",
+    "overview": "Fenixis Store uses a warm, photo-led clothing storefront: white and pale ivory surfaces, brown-black typography and a restrained wine accent. The homepage at `/` uses the supplied centered wordmark, compact DM Sans text and rectangular catalog photography. The catalog retains its dark chrome, rounded frames and selective italic serif emphasis.\n\nThe seller area uses the same palette in a denser working layout. Homepage tokens prefixed `home-` apply only to `/`; unprefixed tokens preserve the incumbent catalog, checkout and seller system. This document records the implemented interface, rather than introducing a new brand promise or merchandising policy.",
     "keyCharacteristics": [
-      "Warm ivory canvas with dark header and footer.",
-      "DM Sans hierarchy with selective Playfair Display italic emphasis.",
+      "White homepage canvas and header with a light warm footer; dark catalog chrome remains.",
+      "Compact DM Sans homepage hierarchy; selective Playfair Display italic emphasis remains in the catalog.",
       "Real garment photography in portrait frames.",
-      "Flat surfaces, fine borders and gently rounded controls.",
+      "Flat surfaces and fine borders; rectangular homepage photos and minimally rounded controls.",
       "Responsive browsing and readable mobile forms."
     ],
-    "rules": [],
+    "rules": [
+      {
+        "name": "The Route Scope Rule",
+        "body": "Homepage white chrome, compact type and minimally rounded controls are a `/` variant; do not propagate them into catalog, administration or checkout styles.",
+        "section": "colors"
+      }
+    ],
     "dos": [
       "**Do** reuse the supplied Fenixis wordmark and actual catalog photographs.",
       "**Do** keep garment names, prices, sizes and colors readable outside the photograph.",
       "**Do** use the wine accent for store actions and selected options; reserve payment blue for checkout.",
       "**Do** keep keyboard focus visible and honor reduced-motion preferences.",
-      "**Do** use a neutral branded placeholder when a catalog photograph is missing."
+      "**Do** use a neutral branded placeholder when a catalog photograph is missing.",
+      "**Do** keep homepage tokens scoped to `/` and preserve the incumbent catalog, administration and checkout system.",
+      "**Do** use existing Fenixis catalog photography; the reference informs layout only."
     ],
     "donts": [
       "**Don't** fabricate photographs, stock claims, discounts, testimonials or delivery promises.",
       "**Don't** require hover to discover the product title, price or add action.",
       "**Don't** replace the supplied wordmark with a text approximation.",
-      "**Don't** introduce customization controls into new clothing orders."
+      "**Don't** introduce customization controls into new clothing orders.",
+      "**Don't** reuse the former offset hero, dark chrome or rounded-photo rules as the current homepage specification."
     ]
   }
 }

@@ -1,6 +1,6 @@
 ---
 name: "Fenixis Store"
-description: "Implemented visual system for the clothing storefront and seller area."
+description: "Implemented homepage variant and preserved catalog, checkout and seller visual system."
 colors:
   wine: "#783d49"
   wine-hover: "#60303b"
@@ -19,6 +19,13 @@ colors:
   white: "#fff"
   payment: "#007caf"
   payment-hover: "#00618b"
+  home-line: "#e9e3dd"
+  home-footer: "#f5f0eb"
+  home-hover: "#f5eeea"
+  home-announcement-ink: "#513b36"
+  home-category-ink: "#51463e"
+  home-footer-ink: "#5e5148"
+  home-placeholder-ink: "#a19184"
 typography:
   display:
     fontFamily: "'DM Sans', sans-serif"
@@ -53,7 +60,86 @@ typography:
     fontFamily: "'DM Sans', sans-serif"
     fontSize: "14px"
     fontWeight: 600
+  home-display:
+    fontFamily: "'DM Sans', sans-serif"
+    fontSize: "clamp(30px, 3.4vw, 48px)"
+    fontWeight: 500
+    lineHeight: 1.14
+    letterSpacing: "-.035em"
+  home-display-mobile:
+    fontFamily: "'DM Sans', sans-serif"
+    fontSize: "31px"
+    fontWeight: 500
+    lineHeight: 1.14
+    letterSpacing: "-.03em"
+  home-headline:
+    fontFamily: "'DM Sans', sans-serif"
+    fontSize: "clamp(26px, 2.2vw, 34px)"
+    fontWeight: 500
+    lineHeight: 1.2
+    letterSpacing: "-.025em"
+  home-headline-mobile:
+    fontFamily: "'DM Sans', sans-serif"
+    fontSize: "26px"
+    fontWeight: 500
+    lineHeight: 1.2
+    letterSpacing: "-.025em"
+  home-title:
+    fontFamily: "'DM Sans', sans-serif"
+    fontSize: "14px"
+    fontWeight: 500
+    lineHeight: 1.45
+    letterSpacing: "0"
+  home-title-mobile:
+    fontFamily: "'DM Sans', sans-serif"
+    fontSize: "13px"
+    fontWeight: 500
+    lineHeight: 1.45
+    letterSpacing: "0"
+  home-navigation:
+    fontFamily: "'DM Sans', sans-serif"
+    fontSize: "13px"
+  home-label:
+    fontFamily: "'DM Sans', sans-serif"
+    fontSize: "12px"
+  home-small-label:
+    fontFamily: "'DM Sans', sans-serif"
+    fontSize: "10px"
+  home-announcement-mobile:
+    fontFamily: "'DM Sans', sans-serif"
+    fontSize: "11px"
+  home-action:
+    fontFamily: "'DM Sans', sans-serif"
+    fontSize: "13px"
+    fontWeight: 600
+  home-price:
+    fontFamily: "'DM Sans', sans-serif"
+    fontSize: "16px"
+  home-price-mobile:
+    fontFamily: "'DM Sans', sans-serif"
+    fontSize: "15px"
+  home-category-title:
+    fontFamily: "'DM Sans', sans-serif"
+    fontSize: "18px"
+  home-category-title-mobile:
+    fontFamily: "'DM Sans', sans-serif"
+    fontSize: "15px"
+  home-info-title:
+    fontFamily: "'DM Sans', sans-serif"
+    fontSize: "17px"
+    fontWeight: 500
+    letterSpacing: "0"
+  home-info-body:
+    fontFamily: "'DM Sans', sans-serif"
+    fontSize: "13px"
+    lineHeight: 1.7
+  home-footer-body:
+    fontFamily: "'DM Sans', sans-serif"
+    fontSize: "15px"
+    lineHeight: 1.5
 rounded:
+  home-photo: "0"
+  home-control: "3px"
   compact: "6px"
   control: "7px"
   small-panel: "8px"
@@ -72,6 +158,13 @@ spacing:
   section-mobile: "48px"
   gutter-desktop: "50px"
   section: "80px"
+  home-gutter-desktop: "40px"
+  home-gutter-intermediate: "28px"
+  home-gutter-mobile: "18px"
+  home-card-gap: "20px"
+  home-card-gap-mobile: "14px"
+  home-section: "64px"
+  home-section-mobile: "38px"
 components:
   button-primary:
     backgroundColor: "{colors.wine}"
@@ -118,6 +211,50 @@ components:
     textColor: "{colors.white}"
     rounded: "{rounded.compact}"
     padding: "10px 14px"
+  home-button-primary:
+    backgroundColor: "{colors.wine}"
+    textColor: "{colors.white}"
+    typography: "{typography.action}"
+    rounded: "{rounded.home-control}"
+    padding: "12px 22px"
+  home-button-primary-mobile:
+    typography: "{typography.home-action}"
+  home-button-add:
+    backgroundColor: "{colors.white}"
+    textColor: "{colors.wine}"
+    rounded: "{rounded.home-control}"
+    padding: "8px 12px"
+    width: "100%"
+  home-button-all:
+    textColor: "{colors.wine}"
+    typography: "{typography.home-action}"
+    rounded: "{rounded.home-control}"
+    padding: "12px 26px"
+  home-carousel-control:
+    backgroundColor: "{colors.white}"
+    textColor: "{colors.wine}"
+    rounded: "{rounded.home-control}"
+    size: "40px"
+  home-carousel-control-mobile:
+    size: "44px"
+  home-navigation:
+    backgroundColor: "{colors.white}"
+    textColor: "{colors.ink}"
+    typography: "{typography.home-navigation}"
+  home-product-photo:
+    backgroundColor: "{colors.photo-ground}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.home-photo}"
+  home-campaign-copy:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    padding: "25px 36px"
+  home-campaign-copy-mobile:
+    backgroundColor: "{colors.paper}"
+    padding: "26px 18px 28px"
+  home-footer:
+    backgroundColor: "{colors.home-footer}"
+    textColor: "{colors.ink}"
 ---
 
 # Design System: Fenixis Store
@@ -126,16 +263,16 @@ components:
 
 **Creative North Star: "A warm clothing storefront"**
 
-Fenixis Store uses a warm, photo-led clothing storefront: pale ivory surfaces, brown-black typography and a restrained wine accent. Large plain-language headings pair a clean sans serif with italic serif emphasis, while real garment photographs carry the visual character.
+Fenixis Store uses a warm, photo-led clothing storefront: white and pale ivory surfaces, brown-black typography and a restrained wine accent. The homepage at `/` uses the supplied centered wordmark, compact DM Sans text and rectangular catalog photography. The catalog retains its dark chrome, rounded frames and selective italic serif emphasis.
 
-The seller area uses the same palette in a denser working layout. This document records the implemented interface, rather than introducing a new brand promise or merchandising policy.
+The seller area uses the same palette in a denser working layout. Homepage tokens prefixed `home-` apply only to `/`; unprefixed tokens preserve the incumbent catalog, checkout and seller system. This document records the implemented interface, rather than introducing a new brand promise or merchandising policy.
 
 **Key Characteristics:**
 
-- Warm ivory canvas with dark header and footer.
-- DM Sans hierarchy with selective Playfair Display italic emphasis.
+- White homepage canvas and header with a light warm footer; dark catalog chrome remains.
+- Compact DM Sans homepage hierarchy; selective Playfair Display italic emphasis remains in the catalog.
 - Real garment photography in portrait frames.
-- Flat surfaces, fine borders and gently rounded controls.
+- Flat surfaces and fine borders; rectangular homepage photos and minimally rounded controls.
 - Responsive browsing and readable mobile forms.
 
 ## Colors
@@ -154,24 +291,31 @@ Wine supplies the main action color; ivory, warm neutrals and brown-black make t
 
 ### Neutral
 
-- **Paper:** the storefront canvas and cart/dialog surfaces.
+- **Paper:** the catalog canvas, homepage supporting panels and incumbent cart/dialog surfaces; the home shell overrides its local paper property with white.
 - **Surface:** search/select controls, category pills and the cart footer.
 - **Warm panel:** help content, quiet notices and empty-state surfaces.
 - **Photo ground:** garment frames and their neutral fallback.
-- **Ink:** primary text, header and footer.
+- **Ink:** primary text and the homepage wordmark; dark header/footer backgrounds remain catalog-specific.
 - **Muted:** descriptions, product metadata and secondary instructions.
 - **Line and field line:** section dividers and control outlines.
 - **Selected surface and selected ink:** the active catalog type filter.
-- **White:** text on strong action fills.
+- **White:** text on strong action fills, plus the homepage canvas, header and outlined controls.
+- **Home line:** quiet homepage header, category and section dividers.
+- **Home footer and home hover:** the light homepage footer and cart-hover/scrollbar ground.
+- **Home announcement, category and footer ink:** compact homepage text on the corresponding light surfaces.
+- **Home placeholder ink:** the supplied wordmark mask in the empty campaign fallback.
+
+### Named Rules
+
+**The Route Scope Rule.** Homepage white chrome, compact type and minimally rounded controls are a `/` variant; do not propagate them into catalog, administration or checkout styles.
 
 ## Typography
 
 **Display and body:** DM Sans. **Emphasis:** Playfair Display with a Georgia/serif fallback.
 
-DM Sans carries navigation, garment details, forms and major headings. Playfair Display appears as italic emphasis inside display copy and selected supporting phrases, not as a replacement for functional UI labels. The legacy admin order metadata also retains small DM Mono text.
+DM Sans carries navigation, garment details, forms and major headings. The homepage uses DM Sans throughout its campaign, shopping information and footer. Playfair Display remains italic emphasis inside catalog display copy and selected incumbent supporting phrases, not as a replacement for functional UI labels. The legacy admin order metadata also retains small DM Mono text.
 
-- **Display:** responsive homepage headline; preserve its compact tracking and generous scale.
-- **Headline:** section titles and supporting storefront headings.
+- **Display/headline:** preserved base stylesheet scales. The former offset homepage hero is no longer rendered at `/`; current home headings use the explicit home display/headline roles.
 - **Emphasis:** inherits the surrounding size and uses italic styling.
 - **Title:** garment names, with a smaller mobile treatment.
 - **Body:** supporting text and product descriptions; larger introductory paragraphs use looser leading.
@@ -179,11 +323,17 @@ DM Sans carries navigation, garment details, forms and major headings. Playfair 
 
 The catalog title has its own observed scale, and small-screen typography is deliberately resized rather than scaled uniformly.
 
+Homepage roles are intentionally compact: the campaign and centered section titles use the responsive home display/headline scales; product titles use the home title roles. Product prices use the home price roles, previous prices and transfer text use the navigation size, and transfer text switches to the label size on mobile. Category tiles and shopping information have their own title roles. Campaign labels and discount flags use the label role on desktop and small-label role on mobile; only the announcement uses its 11px mobile role. The footer introduction is normal sans serif. These scoped sizes are deliberate; they do not replace the catalog type ramp.
+
 ## Layout
 
-The storefront main container is centered with a maximum width of 1440px and 50px desktop side padding. The homepage opens with two unequal columns: copy beside a pair of offset portrait photographs. Product photography uses a 4:5 frame with `object-fit: cover`.
+The homepage container is centered with a maximum width of 1680px and the home gutter roles. Its campaign cancels those side gutters: two equal photo columns, a 6px separation, a 400px minimum height and a height capped by `min(680px, 70vw)`. Photos use `object-fit: cover` and a 50%/42% crop. A centered, warm copy panel overlays the bottom of the photographs; the former unequal, offset hero is not the current homepage layout. Product photography retains a 4:5 frame.
 
-Featured products use four columns on desktop. The catalog places a 190px filter column beside a three-column product grid. The intermediate layout adapts at 1100px; the primary mobile breakpoint is 760px. Mobile uses 20px page gutters, a stacked hero, two product columns, full-width search, a menu toggle and collapsible filters.
+The homepage header has a 98px identity row and a 48px centered navigation row. Search sits left, the supplied wordmark is centered, and the cart sits right. A horizontally scrollable garment-type row follows the campaign. Product carousels show four cards on desktop, three at 1100px and two at 760px, using the home card-gap roles. Category tiles use up to four real catalog photographs in 4:4.3 frames; their grid becomes two columns at 1100px. Shopping information uses three columns.
+
+At 760px the homepage header becomes one 88px row with a menu toggle, search, centered logo and cart. The campaign keeps two photo columns with a 3px gap, uses `92vw` height capped at 470px, and moves the copy below the photographs onto paper. Photo crops shift to 50%/35%. The product carousels remain horizontally scrollable with two visible cards; shopping information stacks. Homepage content uses 18px gutters, distinct from the catalog's 20px gutters.
+
+The catalog retains its centered 1440px container and 50px desktop side padding, with a 190px filter column beside a three-column product grid. Its intermediate layout adapts at 1100px; at 760px it uses two product columns, full-width search, a menu toggle and collapsible filters.
 
 The seller workspace uses a 228px side navigation and a flexible content area. Its form grids simplify at 1050px and stack at 760px; navigation becomes horizontally scrollable on phones. Mobile form text is 16px.
 
@@ -191,13 +341,15 @@ Spacing ranges from compact metadata gaps to broad section separation. Preserve 
 
 ## Elevation & Depth
 
-Most store and seller surfaces are flat. Color changes, thin outlines and image crops define groups. Product cards have no enclosing shadow; photography and information remain separate. Shadows are structural exceptions for overlays and the expanded mobile menu.
+Most store and seller surfaces are flat. Color changes, thin outlines and image crops define groups. Product cards and homepage campaign panels have no enclosing shadow; photography and information remain separate. Shadows are structural exceptions for overlays, expanded mobile menus and the floating homepage help action.
 
-The existing cart drawer casts a leftward shadow (`-16px 0 45px rgba(0,0,0,.12)`). The expanded mobile navigation uses a small downward shadow (`0 14px 22px #29241f22`). The seller order drawer retains its own structural shadow. Full values and motion extensions are in the sidecar.
+The existing cart drawer casts a leftward shadow (`-16px 0 45px rgba(0,0,0,.12)`). The catalog's expanded mobile navigation keeps its small downward shadow (`0 14px 22px #29241f22`); the white home menu uses `0 12px 20px #29241f18`. The homepage help action uses `0 5px 16px #29241f26`. The seller order drawer retains its own structural shadow. Full values and motion extensions are in the sidecar.
 
 ## Shapes
 
-Controls use modest rounded corners; portrait photographs have softer corners, with larger rounding on panels and the product dialog. Category links and the cart trigger use pill outlines. Color swatches and several close controls are circular. Fine borders distinguish controls from the warm canvas.
+The homepage uses square photographic frames and copy panels, with the home control radius on its campaign action, add controls, carousel arrows, all-products link and promotion panels. Its garment-type navigation is plain text; its cart trigger has no visible border. These shapes are scoped to `/`.
+
+The incumbent catalog and seller controls keep modest rounded corners; catalog portrait photographs have softer corners, with larger rounding on panels and the product dialog. The retained category-pill primitive and catalog cart trigger use pill outlines. Color swatches, several close controls and the floating homepage help action are circular. Fine borders distinguish controls from the warm canvas.
 
 ## Components
 
@@ -205,17 +357,25 @@ Controls use modest rounded corners; portrait photographs have softer corners, w
 
 The primary storefront action is a wine fill with white text, moderate rounding and a 50px minimum height. Hover deepens the fill and moves it upward by 2px. Outlined add controls fill with wine on hover. Payment keeps its established blue identity. Seller actions use the same wine family without hover movement.
 
+The homepage campaign action overrides that base with the home radius/padding and a 46px minimum height (45px on mobile). Homepage add controls are full-width with a 44px minimum height. The all-products link has a 46px minimum height. Carousel arrows are 40px squares on desktop and at least 44px squares on mobile; disabled arrows retain the inherited reduced-opacity treatment.
+
 Disabled storefront buttons reduce opacity and show an unavailable cursor. Focus is visibly outlined; storefront controls use a 3px outline with 4px offset, while seller controls use a 2px wine outline with 3px offset.
 
 ### Chips and product options
 
-Category navigation uses outlined ivory pills with an arrow. Catalog filters use a pale selected background and darker wine text. Size/color selection controls use a solid wine selected state. Do not confuse garment color swatches with interface accent colors.
+The retained category primitive uses outlined ivory pills with an arrow; the current homepage instead uses horizontally scrollable text links with a wine all-products link and underlined hover state. Catalog filters use a pale selected background and darker wine text. Size/color selection controls use a solid wine selected state. Do not confuse garment color swatches with interface accent colors.
 
 ### Cards and photography
 
-Garment cards lead with actual catalog photography in portrait frames, followed by type/collection, title, available variants, price and an explicit add action. Hover gently enlarges the image; the supplementary photo action also appears on keyboard focus. Mobile hides this overlay while keeping the explicit add control.
+Garment cards lead with actual catalog photography in portrait frames, followed by title, available variants, price and an explicit add action. The catalog also shows type/collection; the home hides that metadata, stacks price above a full-width add action, and places genuine discount flags on the photograph. Hover gently enlarges the image; the supplementary photo action also appears on keyboard focus. Mobile hides this overlay while keeping the explicit add control.
 
 Missing photographs use the implemented neutral Fenixis placeholder. Seller cards use bordered white surfaces with rounded corners and compact actions.
+
+Homepage campaign and category photography comes from visible, in-stock catalog entries. A one-photo campaign expands to one column; no-photo state uses the supplied wordmark mask on a neutral ground. Category tiles appear only when more than one photographed type is available. The sale carousel is conditional on actual product discounts. Existing seller promotions and configured payment/delivery information determine the remaining home content; no invented commercial claims or reference-site assets belong in these components.
+
+### Product carousel
+
+The homepage collection and conditional sale row use the same manual carousel. Visible-range status, disabled boundary arrows, horizontal touch scrolling and scroll snapping accompany keyboard Left/Right/Home/End controls on the track. Each arrow advances a visible page. It does not autoplay. Titles, variants, normal/sale prices, transfer savings and explicit add actions remain outside the photo.
 
 ### Inputs and fields
 
@@ -223,11 +383,13 @@ Search and selects use light warm surfaces, fine warm-gray borders and dark text
 
 ### Navigation
 
-The dark header displays the supplied wordmark, plain-language navigation, search and a cart count. The active link uses a pale underline. On mobile, the menu expands beneath the header and the cart remains immediately accessible. The footer repeats the dark grounding surface with clear contact and store links.
+The homepage header is white with the supplied wordmark rendered in ink, plain-language centered navigation, search and a wine cart count. Its active link uses wine text and underline. On mobile, the white menu expands beneath the header and the cart remains accessible. The light warm footer uses dark headings, muted links and sans-serif supporting copy. A circular wine WhatsApp action floats above the bottom edge.
+
+The catalog retains its dark header and footer, the supplied wordmark, pale active-link underline, search and cart count. Its mobile menu expands beneath the header. Contact and store links remain shared content across both route variants.
 
 ### Motion and accessible states
 
-Button state transitions are short; photo zooms are slower and subtle. The hero photograph group has a single reveal when reduced motion is not requested. Reduced-motion mode disables storefront animation, transitions and smooth scrolling. Sidecar snippets show implemented focus and hover behavior; they are visual samples, not a replacement for application interaction logic.
+Button state transitions are short; photo zooms are slower and subtle. The homepage campaign image hover uses a .65s eased transition and a 1.025 scale; category images use .4s and the same scale. The former hero-reveal declaration remains in the base stylesheet but does not animate the new home campaign. Reduced-motion mode disables storefront animation, transitions and smooth scrolling. Sidecar snippets show implemented focus and hover behavior; they are visual samples, not a replacement for application interaction logic.
 
 ## Do's and Don'ts
 
@@ -238,6 +400,8 @@ Button state transitions are short; photo zooms are slower and subtle. The hero 
 - **Do** use the wine accent for store actions and selected options; reserve payment blue for checkout.
 - **Do** keep keyboard focus visible and honor reduced-motion preferences.
 - **Do** use a neutral branded placeholder when a catalog photograph is missing.
+- **Do** keep homepage tokens scoped to `/` and preserve the incumbent catalog, administration and checkout system.
+- **Do** use existing Fenixis catalog photography; the reference informs layout only.
 
 ### Don't:
 
@@ -245,3 +409,4 @@ Button state transitions are short; photo zooms are slower and subtle. The hero 
 - **Don't** require hover to discover the product title, price or add action.
 - **Don't** replace the supplied wordmark with a text approximation.
 - **Don't** introduce customization controls into new clothing orders.
+- **Don't** reuse the former offset hero, dark chrome or rounded-photo rules as the current homepage specification.

@@ -1,0 +1,142 @@
+.fashion-home { --paper: #fff; background: #fff; }
+.fashion-home .home-announcement { display: flex; justify-content: center; gap: 36px; padding: 9px 20px; background: #eee6df; color: #513b36; font-size: 12px; }
+.home-announcement strong { font-weight: 700; }
+.fashion-home .fashion-header { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-rows: 98px 48px; align-items: center; gap: 0; height: auto; padding: 0 40px; color: #29241f; background: #fff; border-bottom: 1px solid #e9e3dd; }
+.fashion-home .fashion-logo { grid-column: 2; grid-row: 1; justify-self: center; }
+.fashion-home .fashion-logo .brand-wordmark { width: 214px; height: 70px; background: #29241f; }
+.fashion-home .fashion-header-actions { grid-column: 3; grid-row: 1; justify-self: end; }
+.fashion-home .fashion-header-search { position: absolute; left: 32px; top: 27px; display: inline-flex; }
+.fashion-home .fashion-nav { grid-column: 1 / -1; grid-row: 2; justify-content: center; gap: 36px; }
+.fashion-home .fashion-nav a { color: #29241f; font-size: 13px; }
+.fashion-home .fashion-nav a[aria-current=page] { color: #783d49; text-decoration-color: #783d49; text-underline-offset: 6px; }
+.fashion-home .fashion-nav a:hover { color: #783d49; }
+.fashion-home .fashion-bag { color: #29241f; border: 0; padding: 8px; gap: 7px; }
+.fashion-home .fashion-bag:hover { background: #f5eeea; }
+.fashion-home .fashion-bag-count { color: #fff; background: #783d49; min-width: 20px; height: 20px; }
+.fashion-home .fashion-bag-label { font-size: 12px; }
+.fashion-home .fashion-main { max-width: 1680px; padding: 0 40px; }
+.home-campaign { position: relative; margin: 0 -40px; }
+.home-campaign-photos { display: grid; grid-template-columns: 1fr 1fr; min-height: 400px; height: min(680px, 70vw); gap: 6px; overflow: hidden; background: #eee8e1; }
+.home-campaign-photos.is-single { grid-template-columns: 1fr; }
+.home-campaign-photo { position: relative; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: #eee8e1; text-align: left; overflow: hidden; }
+.home-campaign-photo img { width: 100%; height: 100%; display: block; object-fit: cover; object-position: 50% 42%; transition: transform .65s cubic-bezier(.16, 1, .3, 1); }
+.home-campaign-photo:hover img { transform: scale(1.025); }
+.home-campaign-photo > span { position: absolute; top: 20px; left: 20px; display: flex; align-items: center; gap: 12px; padding: 10px 14px; color: #29241f; background: #fffdfa; font-size: 12px; }
+.home-campaign-photo > span svg { width: 17px; height: 17px; }
+.home-campaign-copy { position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 40px); padding: 25px 36px; background: #fffdfa; text-align: center; }
+.home-campaign-copy h1 { font-size: clamp(30px, 3.4vw, 48px); font-weight: 500; line-height: 1.14; letter-spacing: -.035em; margin: 0 0 20px; }
+.fashion-home .home-campaign-copy .fashion-button { border-radius: 3px; min-height: 46px; padding: 12px 22px; gap: 22px; }
+.home-campaign-placeholder { grid-column: 1 / -1; display: grid; place-content: center; padding-bottom: 130px; }
+.home-campaign-placeholder .brand-wordmark { background: #a19184; width: 240px; height: 90px; }
+.home-categories { display: flex; gap: 30px; align-items: center; justify-content: center; overflow-x: auto; padding: 24px 0; border-bottom: 1px solid #e9e3dd; scrollbar-width: thin; scrollbar-color: #c9bcb1 #fff; }
+.home-categories a { flex: 0 0 auto; color: #51463e; font-size: 13px; padding: 8px 0; white-space: nowrap; text-underline-offset: 5px; }
+.home-categories a:hover { text-decoration: underline; color: #783d49; }
+.home-categories a:first-child { color: #783d49; font-weight: 600; }
+.home-product-section { padding: 64px 0 50px; scroll-margin-top: 24px; }
+.home-section-title { text-align: center; margin-bottom: 25px; }
+.home-section-title h2 { font-size: clamp(26px, 2.2vw, 34px); line-height: 1.2; letter-spacing: -.025em; font-weight: 500; }
+.home-section-title p { font-size: 14px; color: #70645b; margin-top: 12px; line-height: 1.6; }
+.fashion-home .fashion-carousel-toolbar { margin-bottom: 16px; }
+.fashion-home .fashion-carousel-count { font-size: 12px; }
+.fashion-home .fashion-carousel-controls button { width: 40px; height: 40px; border-radius: 3px; background: #fff; border-color: #c9bcb1; }
+.fashion-home .fashion-carousel-controls button:hover:not(:disabled) { background: #783d49; }
+.fashion-home .fashion-carousel-track { gap: 20px; grid-auto-columns: calc((100% - 60px) / 4); padding-top: 0; padding-bottom: 18px; scrollbar-color: #c9bcb1 #f5eeea; }
+.fashion-home .fashion-product-photo { border-radius: 0; }
+.fashion-home .fashion-product-info { padding-top: 15px; }
+.fashion-home .fashion-product-info > p { display: none; }
+.fashion-home .fashion-product-info h3 { font-size: 14px; line-height: 1.45; min-height: 2.9em; letter-spacing: 0; }
+.fashion-home .fashion-product-bottom { flex-direction: column; align-items: stretch; padding-top: 12px; gap: 12px; }
+.fashion-home .fashion-product-bottom .product-pricing { flex: 0 0 auto; }
+.fashion-home .product-price-line strong { font-size: 16px; }
+.fashion-home .product-price-line del { font-size: 13px; }
+.fashion-home .product-price-line .product-discount-badge { display: none; }
+.fashion-home .product-pricing .product-transfer-price { font-size: 13px; margin-top: 6px; }
+.fashion-home .fashion-add { border-radius: 3px; width: 100%; min-height: 44px; justify-content: space-between; background: #fff; }
+.fashion-home .fashion-add:hover { background: #783d49; }
+.home-product-discount { position: absolute; left: 12px; bottom: 12px; z-index: 1; padding: 6px 9px; background: #783d49; color: #fff; font-size: 12px; font-weight: 600; }
+.home-all-link { width: fit-content; display: flex; justify-content: center; align-items: center; gap: 22px; min-height: 46px; padding: 12px 26px; margin: 30px auto 0; border: 1px solid #783d49; color: #783d49; border-radius: 3px; font-size: 13px; font-weight: 600; }
+.home-all-link:hover { background: #783d49; color: #fff; }
+.home-products-loading { padding: 80px 20px; background: #faf7f2; text-align: center; color: #70645b; }
+.home-category-section { padding: 30px 0 58px; }
+.home-category-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+.home-category-card { display: block; position: relative; min-width: 0; overflow: hidden; background: #eee8e1; }
+.home-category-card img { display: block; width: 100%; aspect-ratio: 4 / 4.3; object-fit: cover; transition: transform .4s; }
+.home-category-card:hover img { transform: scale(1.025); }
+.home-category-card > span { display: flex; justify-content: space-between; align-items: center; padding: 18px; font-size: 18px; background: #faf7f2; }
+.home-sale { border-top: 1px solid #e9e3dd; }
+.fashion-home .home-offers { margin: 0 0 48px; }
+.fashion-home .home-offers article { border-radius: 3px; }
+.home-shopping-info { display: grid; grid-template-columns: repeat(3, 1fr); padding: 48px 0 52px; gap: 46px; border-top: 1px solid #e9e3dd; }
+.home-shopping-info > div { text-align: center; max-width: 360px; margin: 0 auto; }
+.home-shopping-info > div > svg { width: 28px; height: 28px; margin-bottom: 17px; color: #783d49; }
+.home-shopping-info h2 { font-size: 17px; font-weight: 500; letter-spacing: 0; margin-bottom: 12px; }
+.home-shopping-info p { font-size: 13px; line-height: 1.7; color: #70645b; }
+.home-shopping-info a { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: #783d49; margin-top: 12px; text-decoration: underline; text-underline-offset: 4px; }
+.home-shopping-info a svg { width: 16px; height: 16px; }
+.fashion-home .fashion-footer { background: #f5f0eb; color: #29241f; padding-top: 48px; }
+.fashion-home .fashion-footer .brand-wordmark { background: #29241f; }
+.fashion-home .fashion-footer h2 { color: #29241f; }
+.fashion-home .fashion-footer p { color: #70645b; font-family: 'DM Sans', sans-serif; font-style: normal; font-size: 15px; }
+.fashion-home .fashion-footer a:not([aria-label]), .fashion-home .fashion-footer button, .fashion-home .fashion-footer-top > div > span { color: #5e5148; }
+.fashion-home .fashion-footer a:hover, .fashion-home .fashion-footer button:hover { color: #783d49; }
+.fashion-home .fashion-footer-bottom { color: #70645b; border-color: #ddd4ca; }
+.home-whatsapp { position: fixed; z-index: 12; bottom: 84px; right: 24px; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: #783d49; color: #fff; box-shadow: 0 5px 16px #29241f26; }
+.home-whatsapp:hover { background: #60303b; }
+.home-whatsapp svg { width: 26px; height: 26px; }
+@media (max-width: 1100px) {
+  .fashion-home .fashion-main { padding: 0 28px; }
+  .home-campaign { margin-inline: -28px; }
+  .home-categories { justify-content: flex-start; gap: 25px; }
+  .fashion-home .fashion-carousel-track { grid-auto-columns: calc((100% - 40px) / 3); }
+  .home-shopping-info { gap: 24px; }
+  .home-category-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 760px) {
+  .fashion-home .home-announcement { gap: 0; min-height: 32px; padding: 8px 12px; font-size: 11px; }
+  .home-announcement > span:last-child { display: none; }
+  .fashion-home .fashion-header { grid-template-rows: 88px; padding: 0 15px; }
+  .fashion-home .fashion-logo .brand-wordmark { width: 145px; height: 53px; }
+  .fashion-home .fashion-header-search { left: 48px; top: 23px; width: 32px; }
+  .fashion-home .fashion-menu { position: absolute; left: 8px; top: 23px; display: inline-flex; }
+  .fashion-home .fashion-bag { gap: 5px; padding: 7px 0 7px 7px; }
+  .fashion-home .fashion-bag-label { display: none; }
+  .fashion-home .fashion-nav { display: none; }
+  .fashion-home .fashion-nav.is-open { display: flex; position: absolute; top: 100%; left: 0; right: 0; padding: 16px 24px; background: #fff; border-top: 1px solid #e9e3dd; box-shadow: 0 12px 20px #29241f18; gap: 4px; }
+  .fashion-home .fashion-nav a { width: 100%; padding: 14px 0; }
+  .fashion-home .fashion-main { padding: 0 18px; }
+  .home-campaign { margin-inline: -18px; }
+  .home-campaign-photos { gap: 3px; min-height: 0; height: 92vw; max-height: 470px; }
+  .home-campaign-photo img { object-position: 50% 35%; }
+  .home-campaign-photo > span { top: auto; bottom: 10px; left: 8px; right: 8px; gap: 5px; padding: 8px; font-size: 10px; line-height: 1.4; }
+  .home-campaign-photo > span svg { flex-shrink: 0; width: 14px; height: 14px; }
+  .home-campaign-copy { position: static; transform: none; max-width: none; width: auto; padding: 26px 18px 28px; background: #faf7f2; }
+  .home-campaign-copy h1 { font-size: 31px; letter-spacing: -.03em; margin-bottom: 18px; }
+  .fashion-home .home-campaign-copy .fashion-button { min-height: 45px; font-size: 13px; }
+  .home-categories { padding: 12px 0; gap: 24px; }
+  .home-categories a { font-size: 12px; min-height: 44px; display: flex; align-items: center; }
+  .home-product-section { padding: 38px 0 30px; }
+  .home-section-title { margin-bottom: 20px; }
+  .home-section-title h2 { font-size: 26px; }
+  .home-section-title p { font-size: 13px; margin-top: 10px; }
+  .fashion-home .fashion-carousel-track { grid-auto-columns: calc((100% - 14px) / 2); gap: 14px; }
+  .fashion-home .fashion-carousel-toolbar { margin-bottom: 14px; gap: 12px; }
+  .fashion-home .fashion-carousel-controls button { min-width: 44px; height: 44px; }
+  .fashion-home .fashion-product-info h3 { font-size: 13px; }
+  .fashion-home .fashion-product-bottom { padding-top: 12px; }
+  .fashion-home .product-price-line { gap: 5px 8px; }
+  .fashion-home .product-price-line strong { font-size: 15px; }
+  .fashion-home .product-pricing .product-transfer-price { font-size: 12px; }
+  .home-product-discount { left: 8px; bottom: 8px; padding: 4px 6px; font-size: 10px; }
+  .home-category-section { padding: 18px 0 36px; }
+  .home-category-grid { gap: 16px 14px; }
+  .home-category-card > span { font-size: 15px; padding: 14px 10px; gap: 8px; }
+  .home-category-card > span svg { flex-shrink: 0; width: 18px; }
+  .home-shopping-info { grid-template-columns: 1fr; padding: 32px 0; gap: 28px; }
+  .home-shopping-info > div { max-width: 340px; }
+  .home-shopping-info > div > svg { margin-bottom: 12px; }
+  .home-whatsapp { bottom: 78px; right: 16px; width: 46px; height: 46px; }
+  .fashion-home .fashion-footer { padding-top: 36px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-campaign-photo img, .home-category-card img { transition: none; }
+}
