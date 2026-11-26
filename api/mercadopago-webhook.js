@@ -53,7 +53,14 @@ async function fetchOrder(accessToken, orderId) {
     headers: { Authorization: `Bearer ${accessToken}` },
   })
   const order = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(order?.message || 'No se pudo verificar la orden de Mercado Pago.')
+  if (!response.ok) {
+    // Keep the upstream status visible to operators without logging credentials,
+    // notification bodies, order details, or customer information.
+    console.error('[mercadopago-webhook] No se pudo consultar la orden.', {
+      providerStatus: response.status,
+    })
+    throw new Error('No se pudo verificar la orden de Mercado Pago.')
+  }
   return order
 }
 
