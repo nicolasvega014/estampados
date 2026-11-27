@@ -10,7 +10,6 @@ import './ClothingStore.css'
 import { productPricing } from './paymentSettings.js'
 import ProductPrice from './ProductPrice'
 import StoreHome, { HomeAnnouncement } from './StoreHome'
-import { PlaybackIcon } from './PlaybackIcon'
 import { usePageVisible } from './usePageVisible'
 import './StoreCatalog.css'
 
@@ -64,14 +63,16 @@ function ProductCarousel({ products, types, onChoose, paymentSettings, suspended
   const scrollAnimation = useRef(null)
   const automaticAnimation = useRef(false)
   const autoDirection = useRef(1)
+  const resumeTimer = useRef(null)
   const reducedMotion = useReducedMotion()
   const inView = useInView(region, { amount: 0.35 })
   const pageVisible = usePageVisible()
   const [paused, setPaused] = useState(false)
-  const [hovered, setHovered] = useState(false)
+  const [interacting, setInteracting] = useState(false)
+  const [keyboardFocused, setKeyboardFocused] = useState(false)
   const [position, setPosition] = useState({ start: 1, end: 0, previous: false, next: false, width: 0 })
   const hasOverflow = position.previous || position.next
-  const playing = hasOverflow && !reducedMotion && !paused && !hovered && !suspended && inView && pageVisible
+  const playing = hasOverflow && !reducedMotion && !paused && !interacting && !keyboardFocused && !suspended && inView && pageVisible
   const productIds = products.map((product) => product.id).join('|')
 
   const stopAnimation = useCallback((restoreSnap = true) => {
@@ -91,13 +92,13 @@ function ProductCarousel({ products, types, onChoose, paymentSettings, suspended
     element.style.scrollSnapType = 'none'
     automaticAnimation.current = automatic
     scrollAnimation.current = animate(element.scrollLeft, target, {
-      duration: automatic ? 0.85 : 0.55,
-      ease: [0.22, 1, 0.36, 1],
+      duration: automatic ? Math.abs(target - element.scrollLeft) / 60 : 0.55,
+      ease: automatic ? 'linear' : [0.22, 1, 0.36, 1],
       onUpdate: (value) => { element.scrollLeft = value },
       onComplete: () => {
         scrollAnimation.current = null
         automaticAnimation.current = false
-        element.style.scrollSnapType = ''
+        if (!automatic) element.style.scrollSnapType = ''
         onComplete?.()
       },
     })
@@ -120,7 +121,7 @@ function ProductCarousel({ products, types, onChoose, paymentSettings, suspended
       setPosition((current) => Object.keys(next).every((key) => current[key] === next[key]) ? current : next)
     }
     const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(measure) }
-    const observer = new ResizeObserver(() => { stopAnimation(); schedule() })
+    const observer = new ResizeObserver(schedule)
     observer.observe(element)
     element.addEventListener('scroll', schedule, { passive: true })
     schedule()
@@ -129,44 +130,61 @@ function ProductCarousel({ products, types, onChoose, paymentSettings, suspended
 
   useEffect(() => {
     if (!playing) return
-    let timer
-    const schedule = () => { timer = window.setTimeout(advance, 4200) }
+    let active = true
     const advance = () => {
       const element = track.current
-      if (!element) return
-      const gap = parseFloat(getComputedStyle(element).columnGap) || 0
-      const step = (element.firstElementChild?.getBoundingClientRect().width || element.clientWidth) + gap
+      if (!active || !element) return
       const maximum = element.scrollWidth - element.clientWidth
+      if (maximum <= 2) return
       if (element.scrollLeft >= maximum - 2) autoDirection.current = -1
       if (element.scrollLeft <= 2) autoDirection.current = 1
-      const next = (Math.round(element.scrollLeft / step) + autoDirection.current) * step
-      scrollTo(next, true, schedule)
+      scrollTo(autoDirection.current === 1 ? maximum : 0, true, advance)
     }
-    schedule()
+    advance()
     return () => {
-      window.clearTimeout(timer)
+      active = false
       if (automaticAnimation.current) stopAnimation(false)
     }
   }, [playing, productIds, position.width, scrollTo, stopAnimation])
 
-  useEffect(() => () => stopAnimation(), [stopAnimation])
+  useEffect(() => () => { window.clearTimeout(resumeTimer.current); stopAnimation() }, [stopAnimation])
   useEffect(() => { if (reducedMotion) stopAnimation() }, [reducedMotion, stopAnimation])
 
-  const pauseForInteraction = () => { setPaused(true); stopAnimation(false) }
-  const restoreSnapping = () => requestAnimationFrame(() => {
+  const pauseForInteraction = () => {
+    window.clearTimeout(resumeTimer.current)
+    setInteracting(true)
+    stopAnimation(false)
+  }
+  const resumeAfterInteraction = useCallback(() => {
+    window.clearTimeout(resumeTimer.current)
+    resumeTimer.current = window.setTimeout(() => setInteracting(false), 1200)
+  }, [])
+  const finishPointerInteraction = useCallback(() => {
     // Let the selected card receive its click before native snapping can move it.
-    if (!scrollAnimation.current && track.current) track.current.style.scrollSnapType = ''
-  })
+    requestAnimationFrame(() => {
+      if (!scrollAnimation.current && track.current) track.current.style.scrollSnapType = ''
+    })
+    resumeAfterInteraction()
+  }, [resumeAfterInteraction])
+  useEffect(() => {
+    if (!interacting) return
+    window.addEventListener('pointerup', finishPointerInteraction)
+    window.addEventListener('pointercancel', finishPointerInteraction)
+    return () => {
+      window.removeEventListener('pointerup', finishPointerInteraction)
+      window.removeEventListener('pointercancel', finishPointerInteraction)
+    }
+  }, [interacting, finishPointerInteraction])
 
   const move = (direction) => {
     const element = track.current
     if (!element) return
-    setPaused(true)
+    pauseForInteraction()
     const gap = parseFloat(getComputedStyle(element).columnGap) || 0
     const cardWidth = (element.firstElementChild?.getBoundingClientRect().width || element.clientWidth) + gap
     const pageWidth = cardWidth * Math.max(1, Math.floor((element.clientWidth + gap) / cardWidth))
     const left = direction === 'start' ? 0 : direction === 'end' ? element.scrollWidth : element.scrollLeft + direction * pageWidth
-    scrollTo(left)
+    scrollTo(left, false, resumeAfterInteraction)
   }
   const onKeyDown = (event) => {
     if (event.target !== event.currentTarget) return
@@ -176,17 +194,18 @@ function ProductCarousel({ products, types, onChoose, paymentSettings, suspended
   const range = position.start === position.end ? position.start : `${position.start}–${position.end}`
 
   return <div className="fashion-carousel" ref={region} role="region" aria-roledescription="carrusel" aria-label={label}
-    onPointerEnter={(event) => { if (event.pointerType === 'mouse') setHovered(true) }} onPointerLeave={() => setHovered(false)}
-    onFocusCapture={(event) => { if (!event.target.closest('[data-autoplay-toggle]')) pauseForInteraction() }}>
+    onPointerDownCapture={() => setKeyboardFocused(false)}
+    onFocusCapture={(event) => setKeyboardFocused(event.target.matches(':focus-visible'))}
+    onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setKeyboardFocused(false) }}>
+    {hasOverflow && !reducedMotion && <button type="button" className="store-motion-sr store-motion-toggle" onClick={() => setPaused(!paused)} aria-controls={id}>{paused ? 'Reanudar carrusel' : 'Pausar carrusel'}</button>}
     <div className="fashion-carousel-toolbar">
-      <p className="fashion-carousel-count" role="status" aria-live={paused || reducedMotion ? 'polite' : 'off'}>{position.end ? `${range} de ${products.length} ${products.length === 1 ? 'prenda' : 'prendas'}` : `${products.length} prendas`}</p>
+      <p className="fashion-carousel-count" role="status" aria-live={paused || interacting || keyboardFocused || reducedMotion ? 'polite' : 'off'}>{position.end ? `${range} de ${products.length} ${products.length === 1 ? 'prenda' : 'prendas'}` : `${products.length} prendas`}</p>
       <div className="fashion-carousel-controls">
-        {hasOverflow && !reducedMotion && <button type="button" data-autoplay-toggle onClick={() => setPaused(!paused)} aria-label={paused ? 'Reanudar carrusel' : 'Pausar carrusel'} title={paused ? 'Reanudar carrusel' : 'Pausar carrusel'} aria-controls={id}><PlaybackIcon paused={paused} /></button>}
         <button type="button" className="fashion-carousel-previous" onClick={() => move(-1)} disabled={!position.previous} aria-label="Ver prendas anteriores" aria-controls={id}><Icon name="arrow" /></button>
         <button type="button" onClick={() => move(1)} disabled={!position.next} aria-label="Ver más prendas" aria-controls={id}><Icon name="arrow" /></button>
       </div>
     </div>
-    <div className="fashion-carousel-track" id={id} ref={track} tabIndex={0} onKeyDown={onKeyDown} onPointerDown={pauseForInteraction} onPointerUp={restoreSnapping} onPointerCancel={restoreSnapping} onWheel={pauseForInteraction} aria-label="Prendas. Deslizá o usá las flechas del teclado para recorrerlas.">
+    <div className="fashion-carousel-track" id={id} ref={track} tabIndex={0} onKeyDown={onKeyDown} onPointerDown={pauseForInteraction} onPointerUp={finishPointerInteraction} onPointerCancel={finishPointerInteraction} onWheel={() => { pauseForInteraction(); resumeAfterInteraction() }} aria-label="Prendas. Deslizá o usá las flechas del teclado para recorrerlas.">
       {products.map((product) => <ProductCard key={product.id} product={product} types={types} onChoose={onChoose} paymentSettings={paymentSettings} highlightDiscount />)}
     </div>
   </div>

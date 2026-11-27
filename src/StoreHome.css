@@ -1,14 +1,13 @@
 .fashion-boutique { --paper: #fff; background: #fff; }
-.fashion-shell .home-announcement { display: flex; align-items: center; min-height: 44px; padding: 0; background: #eee6df; color: #513b36; font-size: 12px; overflow: hidden; }
+.fashion-shell .home-announcement { position: relative; display: flex; align-items: center; min-height: 44px; padding: 0; background: #eee6df; color: #513b36; font-size: 12px; overflow: hidden; }
 .home-announcement strong { font-weight: 700; }
 .store-motion-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.fashion-boutique .fashion-carousel { position: relative; }
+.store-motion-toggle:focus-visible { z-index: 3; top: 0; right: 8px; width: auto; height: auto; min-height: 44px; padding: 10px 14px; margin: 0; overflow: visible; clip-path: none; background: #fff; color: #783d49; border: 1px solid #783d49; outline-offset: -4px; }
 .home-announcement-viewport { flex: 1; min-width: 0; overflow: hidden; }
 .home-announcement-track, .home-announcement-group, .home-announcement-set { display: flex; width: max-content; align-items: center; flex-shrink: 0; }
 .home-announcement-set > span { display: inline-flex; align-items: center; gap: 4px; padding: 0 28px; min-height: 44px; white-space: nowrap; }
 .home-announcement-set > span::after { content: ''; width: 4px; height: 4px; margin-left: 52px; border-radius: 50%; background: #783d49; }
-.home-announcement-toggle { flex: 0 0 44px; align-self: stretch; display: grid; place-items: center; padding: 0; color: #513b36; background: #eee6df; border: 0; border-left: 1px solid #c9bcb1; }
-.home-announcement-toggle:hover { background: #ddd4ca; }
-.home-announcement-toggle:focus-visible { outline-offset: -4px; }
 .home-announcement.is-static .home-announcement-track { transform: none !important; width: 100%; }
 .home-announcement.is-static .home-announcement-group, .home-announcement.is-static .home-announcement-set { width: 100%; flex-wrap: wrap; justify-content: center; }
 .home-announcement.is-static .home-announcement-set > span { min-height: 32px; min-width: 0; max-width: 100%; box-sizing: border-box; white-space: normal; overflow-wrap: anywhere; text-align: center; }

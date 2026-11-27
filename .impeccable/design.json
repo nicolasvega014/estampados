@@ -455,13 +455,13 @@
       },
       {
         "name": "home-carousel-scroll",
-        "value": "Motion: .85s automatic / .55s manual, cubic-bezier(.22, 1, .36, 1)",
-        "purpose": "Advance one garment after 4.2s, reversing at boundaries; manual arrows move a page. Pause on interaction, offscreen, hidden tabs and open overlays. Reduced motion leaves instant manual navigation."
+        "value": "Motion: 60px/s linear automatic / .55s manual cubic-bezier(.22, 1, .36, 1)",
+        "purpose": "Continuous movement reversing at boundaries; manual arrows move a page. Resume 1.2s after touch, wheel or arrow interaction; suspend for keyboard focus, offscreen, hidden tabs and open overlays. Playback control appears only on keyboard focus. Reduced motion leaves instant manual navigation."
       },
       {
         "name": "home-announcement-marquee",
         "value": "Motion: 32px/s, linear, seamless repeat",
-        "purpose": "Repeat seller-edited messages, or automatic payment and delivery messages, in a 44px strip with a pause control. Admin Franja superior provides a static preview, numbered fields, character counts and a visibility toggle. Decorative repetitions are aria-hidden. Reduced motion uses a static wrapping line."
+        "purpose": "Repeat seller-edited messages, or automatic payment and delivery messages, across a 44px strip. Pause control is visually hidden except on keyboard focus. Admin Franja superior provides a static preview, numbered fields, character counts and a visibility toggle. Decorative repetitions are aria-hidden. Reduced motion uses a static wrapping line."
       }
     ],
     "breakpoints": [

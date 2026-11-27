@@ -4,7 +4,6 @@ import { hasProductStock } from './productInventory'
 import { productTypeIdFor } from './productTypes'
 import { normalizePaymentSettings, productPricing, transferAvailable } from './paymentSettings'
 import { normalizeDeliverySettings } from './deliverySettings'
-import { PlaybackIcon } from './PlaybackIcon'
 import { usePageVisible } from './usePageVisible'
 import { announcementMessages, normalizeAnnouncementSettings } from './announcementSettings.js'
 import './StoreHome.css'
@@ -28,9 +27,8 @@ function AnimatedAnnouncement({ messages, suspended }) {
   const inView = useInView(viewport)
   const pageVisible = usePageVisible()
   const [paused, setPaused] = useState(false)
-  const [hovered, setHovered] = useState(false)
   const [geometry, setGeometry] = useState({ copies: 2, distance: 0 })
-  const playing = !reducedMotion && !paused && !hovered && !suspended && inView && pageVisible
+  const playing = !reducedMotion && !paused && !suspended && inView && pageVisible
 
   useEffect(() => {
     const measure = () => {
@@ -61,7 +59,7 @@ function AnimatedAnnouncement({ messages, suspended }) {
     else animation.current?.pause()
   }, [playing, geometry.distance, reducedMotion])
 
-  return <div className={`fashion-announcement home-announcement${reducedMotion ? ' is-static' : ''}`} onPointerEnter={(event) => { if (event.pointerType === 'mouse') setHovered(true) }} onPointerLeave={() => setHovered(false)}>
+  return <div className={`fashion-announcement home-announcement${reducedMotion ? ' is-static' : ''}`}>
     <span className="store-motion-sr">{messages.join(' · ')}</span>
     <div className="home-announcement-viewport" ref={viewport}>
       <motion.div className="home-announcement-track" style={{ x }} aria-hidden="true">
@@ -72,7 +70,7 @@ function AnimatedAnnouncement({ messages, suspended }) {
         </div>)}
       </motion.div>
     </div>
-    {!reducedMotion && <button type="button" className="home-announcement-toggle" onClick={() => setPaused(!paused)} aria-label={paused ? 'Reanudar avisos' : 'Pausar avisos'} title={paused ? 'Reanudar avisos' : 'Pausar avisos'}><PlaybackIcon paused={paused} /></button>}
+    {!reducedMotion && <button type="button" className="store-motion-sr store-motion-toggle" onClick={() => setPaused(!paused)}>{paused ? 'Reanudar avisos' : 'Pausar avisos'}</button>}
   </div>
 }
 
