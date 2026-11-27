@@ -461,7 +461,7 @@
       {
         "name": "home-announcement-marquee",
         "value": "Motion: 32px/s, linear, seamless repeat",
-        "purpose": "Repeat factual payment and delivery messages in a 44px strip with a pause control. Decorative repetitions are aria-hidden. Reduced motion uses a static wrapping line."
+        "purpose": "Repeat seller-edited messages, or automatic payment and delivery messages, in a 44px strip with a pause control. Admin Franja superior provides a static preview, numbered fields, character counts and a visibility toggle. Decorative repetitions are aria-hidden. Reduced motion uses a static wrapping line."
       }
     ],
     "breakpoints": [
@@ -563,10 +563,10 @@
   ],
   "narrative": {
     "northStar": "A warm clothing storefront",
-    "overview": "Fenixis Store uses a warm, photo-led clothing storefront: white and pale ivory surfaces, brown-black typography and a restrained wine accent. The homepage at `/` uses the supplied centered wordmark, compact DM Sans text and rectangular catalog photography. The catalog retains its dark chrome, rounded frames and selective italic serif emphasis.\n\nThe seller area uses the same palette in a denser working layout. Homepage tokens prefixed `home-` apply only to `/`; unprefixed tokens preserve the incumbent catalog, checkout and seller system. This document records the implemented interface, rather than introducing a new brand promise or merchandising policy.",
+    "overview": "Fenixis Store uses a warm, photo-led clothing storefront: white and pale ivory surfaces, brown-black typography and a restrained wine accent. The homepage and catalog use the supplied centered wordmark, compact DM Sans text, white headers and rectangular garment photography.\n\nThe seller area uses the same palette in a denser working layout. The shared `fashion-boutique` theme applies to `/` and `/productos/`; campaign and carousel layout remain specific to the homepage. Checkout and seller styles retain their established scope. This document records the implemented interface, rather than introducing a new brand promise or merchandising policy.",
     "keyCharacteristics": [
-      "White homepage canvas and header with a light warm footer; dark catalog chrome remains.",
-      "Compact DM Sans homepage hierarchy; selective Playfair Display italic emphasis remains in the catalog.",
+      "White homepage and catalog canvas and headers with a light warm footer.",
+      "Compact DM Sans hierarchy in both storefront routes; legacy serif styling is retained only in other existing surfaces.",
       "Real garment photography in portrait frames.",
       "Flat surfaces and fine borders; rectangular homepage photos and minimally rounded controls.",
       "Responsive browsing and readable mobile forms."
@@ -574,7 +574,7 @@
     "rules": [
       {
         "name": "The Route Scope Rule",
-        "body": "Homepage white chrome, compact type and minimally rounded controls are a `/` variant; do not propagate them into catalog, administration or checkout styles.",
+        "body": "White headers, compact type and minimally rounded controls are shared by the homepage and catalog. Keep campaign layouts, administration and checkout styles separately scoped.",
         "section": "colors"
       }
     ],
@@ -584,7 +584,7 @@
       "**Do** use the wine accent for store actions and selected options; reserve payment blue for checkout.",
       "**Do** keep keyboard focus visible and honor reduced-motion preferences.",
       "**Do** use a neutral branded placeholder when a catalog photograph is missing.",
-      "**Do** keep homepage tokens scoped to `/` and preserve the incumbent catalog, administration and checkout system.",
+      "**Do** share the boutique style between the homepage and catalog while preserving administration and checkout styles.",
       "**Do** use existing Fenixis catalog photography; the reference informs layout only."
     ],
     "donts": [

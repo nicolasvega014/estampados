@@ -6,15 +6,20 @@ import { normalizePaymentSettings, productPricing, transferAvailable } from './p
 import { normalizeDeliverySettings } from './deliverySettings'
 import { PlaybackIcon } from './PlaybackIcon'
 import { usePageVisible } from './usePageVisible'
+import { announcementMessages, normalizeAnnouncementSettings } from './announcementSettings.js'
 import './StoreHome.css'
 
 const normalize = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 const timestamp = (value) => value?.toMillis?.() || (value?.seconds ? value.seconds * 1000 : 0)
 
-export function HomeAnnouncement({ paymentSettings, suspended = false }) {
-  const payments = normalizePaymentSettings(paymentSettings)
-  const transfer = transferAvailable(payments) && payments.transferDiscountPercent > 0
-  const promotion = transfer ? `${payments.transferDiscountPercent}% OFF con transferencia` : 'Encontrá tu próxima prenda favorita'
+export function HomeAnnouncement({ paymentSettings, announcementSettings, suspended = false }) {
+  const settings = normalizeAnnouncementSettings(announcementSettings)
+  if (!settings.enabled) return null
+  const messages = announcementMessages(settings, paymentSettings)
+  return <AnimatedAnnouncement key={JSON.stringify(messages)} messages={messages} suspended={suspended} />
+}
+
+function AnimatedAnnouncement({ messages, suspended }) {
   const viewport = useRef(null)
   const segment = useRef(null)
   const animation = useRef(null)
@@ -40,7 +45,7 @@ export function HomeAnnouncement({ paymentSettings, suspended = false }) {
     observer.observe(segment.current)
     measure()
     return () => observer.disconnect()
-  }, [promotion, reducedMotion])
+  }, [reducedMotion])
 
   useEffect(() => {
     x.set(0)
@@ -57,12 +62,12 @@ export function HomeAnnouncement({ paymentSettings, suspended = false }) {
   }, [playing, geometry.distance, reducedMotion])
 
   return <div className={`fashion-announcement home-announcement${reducedMotion ? ' is-static' : ''}`} onPointerEnter={(event) => { if (event.pointerType === 'mouse') setHovered(true) }} onPointerLeave={() => setHovered(false)}>
-    <span className="store-motion-sr">{promotion}. Envíos y retiro por el local.</span>
+    <span className="store-motion-sr">{messages.join(' · ')}</span>
     <div className="home-announcement-viewport" ref={viewport}>
       <motion.div className="home-announcement-track" style={{ x }} aria-hidden="true">
         {Array.from({ length: reducedMotion ? 1 : 2 }, (_, group) => <div className="home-announcement-group" key={group}>
           {Array.from({ length: reducedMotion ? 1 : geometry.copies }, (_, copy) => <div className="home-announcement-set" ref={group === 0 && copy === 0 ? segment : undefined} key={copy}>
-            <span>{transfer ? <><strong>{payments.transferDiscountPercent}% OFF</strong> con transferencia</> : promotion}</span><span>Envíos y retiro por el local</span>
+            {messages.map((message, index) => <span key={index}>{message}</span>)}
           </div>)}
         </div>)}
       </motion.div>

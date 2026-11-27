@@ -1,0 +1,46 @@
+/* The catalog shares the homepage's white header, product cards and warm footer. */
+.fashion-catalog-page .fashion-catalog-intro { display: block; padding: 44px 0 34px; text-align: center; }
+.fashion-catalog-page .fashion-catalog-intro h1 { font-size: clamp(30px, 3vw, 42px); line-height: 1.2; letter-spacing: -.03em; }
+.fashion-catalog-page .fashion-catalog-intro p { max-width: 65ch; margin: 12px auto 0; font-size: 14px; }
+.fashion-catalog-page .fashion-catalog-toolbar { gap: 24px; padding: 24px 0; border-color: #e9e3dd; }
+.fashion-catalog-page .fashion-search { width: min(600px, 60%); }
+.fashion-catalog-page .fashion-search input,
+.fashion-catalog-page .fashion-store select { min-height: 48px; border-radius: 3px; background: #fff; }
+.fashion-catalog-page .fashion-catalog-layout { grid-template-columns: 190px minmax(0, 1fr); gap: 34px; }
+.fashion-catalog-page .fashion-filters details > summary { min-height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 10px 0; list-style: none; }
+.fashion-catalog-page .fashion-filters summary::-webkit-details-marker { display: none; }
+.fashion-catalog-page .fashion-filters summary::after { content: ''; width: 7px; height: 7px; border: solid #783d49; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); margin: 0 6px 4px 14px; }
+.fashion-catalog-page .fashion-filters details[open] summary::after { transform: rotate(225deg); margin-top: 6px; }
+.fashion-catalog-page .fashion-filter-body { padding-top: 8px; }
+.fashion-catalog-page .fashion-type-filters { gap: 3px; }
+.fashion-catalog-page .fashion-type-filters button { min-height: 44px; border-radius: 3px; }
+.fashion-catalog-page .fashion-type-filters button[aria-pressed=true] { background: #f5eeea; color: #783d49; }
+.fashion-catalog-page .fashion-result-count { margin-bottom: 16px; }
+.fashion-catalog-page .fashion-results .fashion-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 34px 20px; }
+.fashion-catalog-page .fashion-grid > .fashion-product { display: flex; flex-direction: column; }
+.fashion-catalog-page .fashion-grid .fashion-product-info { flex: 1; display: flex; flex-direction: column; }
+.fashion-catalog-page .fashion-grid .fashion-product-bottom { margin-top: auto; }
+.fashion-catalog-page .fashion-empty, .fashion-catalog-page .fashion-loading { border-radius: 3px; background: #faf7f2; }
+@media(min-width:1400px) {
+  .fashion-catalog-page .fashion-results .fashion-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media(max-width:1100px) {
+  .fashion-catalog-page .fashion-catalog-layout { grid-template-columns: 164px minmax(0, 1fr); gap: 24px; }
+  .fashion-catalog-page .fashion-results .fashion-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px 18px; }
+}
+@media(max-width:760px) {
+  .fashion-catalog-page .fashion-catalog-intro { padding: 28px 0 24px; }
+  .fashion-catalog-page .fashion-catalog-intro h1 { max-width: 17ch; margin: 0 auto; font-size: 30px; }
+  .fashion-catalog-page .fashion-catalog-intro p { max-width: 32ch; font-size: 13px; line-height: 1.6; }
+  .fashion-catalog-page .fashion-catalog-toolbar { padding: 20px 0; gap: 16px; }
+  .fashion-catalog-page .fashion-search { width: 100%; }
+  .fashion-catalog-page .fashion-search input, .fashion-catalog-page .fashion-store select { font-size: 16px; }
+  .fashion-catalog-page .fashion-catalog-layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .fashion-catalog-page .fashion-filters { padding: 0; }
+  .fashion-catalog-page .fashion-filters details { border-radius: 3px; background: #faf7f2; }
+  .fashion-catalog-page .fashion-filters details > summary { padding: 14px 16px; }
+  .fashion-catalog-page .fashion-filter-body { padding: 0 16px 16px; }
+  .fashion-catalog-page .fashion-results .fashion-grid { gap: 26px 14px; }
+  .fashion-catalog-page .fashion-result-count { min-height: 32px; margin-bottom: 14px; }
+  .fashion-catalog-page .fashion-catalog { padding-bottom: 48px; }
+}

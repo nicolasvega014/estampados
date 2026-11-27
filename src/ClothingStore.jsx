@@ -12,6 +12,7 @@ import ProductPrice from './ProductPrice'
 import StoreHome, { HomeAnnouncement } from './StoreHome'
 import { PlaybackIcon } from './PlaybackIcon'
 import { usePageVisible } from './usePageVisible'
+import './StoreCatalog.css'
 
 const CART_KEY = 'tinta-club-cart'
 const normalize = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-AR').trim()
@@ -208,6 +209,7 @@ export default function ClothingStore() {
   const [whatsapp, setWhatsapp] = useState('5491165937433')
   const [deliverySettings, setDeliverySettings] = useState(null)
   const [paymentSettings, setPaymentSettings] = useState({ transferEnabled: false, installmentsConfirmed: false })
+  const [announcementSettings, setAnnouncementSettings] = useState(null)
   const [deliveryState, setDeliveryState] = useState('loading')
   const [query, setQuery] = useState(() => new URLSearchParams(location.search).get('q') || '')
   const [type, setType] = useState(() => new URLSearchParams(location.search).get('tipo') || 'all')
@@ -238,6 +240,7 @@ export default function ClothingStore() {
       if (number) setWhatsapp(number)
       setDeliverySettings(snapshot.data()?.delivery)
       setPaymentSettings(snapshot.data()?.payments)
+      setAnnouncementSettings(snapshot.data()?.announcement)
       setDeliveryState('ready')
     }, () => setDeliveryState('error'))
     return () => { alive = false; stop(); stopTypes(); stopStore() }
@@ -289,13 +292,13 @@ export default function ClothingStore() {
   }).sort((a, b) => sort === 'price-up' ? productPricing(a).price - productPricing(b).price : sort === 'price-down' ? productPricing(b).price - productPricing(a).price : sort === 'name' ? a.title.localeCompare(b.title, 'es-AR') : 0)
   const filtersActive = query || activeType !== 'all' || category !== 'all' || size !== 'all' || color !== 'all'
   const whatsappUrl = `https://wa.me/${whatsapp}`
-  const renderGrid = (items) => <div className="fashion-grid">{items.map((product) => <ProductCard key={product.id} product={product} types={types} onChoose={setChosen} paymentSettings={paymentSettings} />)}</div>
+  const renderGrid = (items) => <div className="fashion-grid">{items.map((product) => <ProductCard key={product.id} product={product} types={types} onChoose={setChosen} paymentSettings={paymentSettings} highlightDiscount />)}</div>
   const loading = <div className="fashion-loading" role="status">Cargando prendas…</div>
 
-  return <div className={isCatalog ? 'fashion-shell' : 'fashion-shell fashion-home'}>
+  return <div className={`fashion-shell fashion-boutique ${isCatalog ? 'fashion-catalog-page' : 'fashion-home'}`}>
     <div className="fashion-store" inert={cartOpen || Boolean(chosen) ? true : undefined}>
       <a className="fashion-skip" href="#contenido">Ir al contenido</a>
-      {isCatalog ? <div className="fashion-announcement">Prendas para todos tus días. Encontrá las tuyas.</div> : <HomeAnnouncement paymentSettings={paymentSettings} suspended={cartOpen || Boolean(chosen) || menuOpen} />}
+      <HomeAnnouncement paymentSettings={paymentSettings} announcementSettings={announcementSettings} suspended={cartOpen || Boolean(chosen) || menuOpen} />
       <header className="fashion-header">
         <a className="fashion-logo" href="/" aria-label="Fenixis Store, inicio"><span className="brand-wordmark" /></a>
         <nav className={menuOpen ? 'fashion-nav is-open' : 'fashion-nav'} id="store-navigation" aria-label="Navegación principal">
@@ -306,7 +309,7 @@ export default function ClothingStore() {
       {notice && <div className="fashion-notice" role="status"><p>{notice}</p><button onClick={() => setNotice('')} aria-label="Cerrar aviso"><Icon name="close" /></button></div>}
       <main className="fashion-main" id="contenido">
         {!isCatalog ? <StoreHome products={products} types={types} offers={offers} loaded={loaded} loadError={loadError} paymentSettings={paymentSettings} deliverySettings={deliverySettings} whatsappUrl={whatsappUrl} onChoose={setChosen} Icon={Icon} renderCarousel={(items, id, label) => <ProductCarousel products={items} types={types} onChoose={setChosen} paymentSettings={paymentSettings} suspended={cartOpen || Boolean(chosen) || menuOpen} id={id} label={label} />} /> : <>
-          <section className="fashion-catalog-intro"><h1>Elegí tu<br /><em>próxima prenda.</em></h1><p>Buscá ese color, ese estilo, eso que va con vos.</p></section>
+          <section className="fashion-catalog-intro"><h1>Elegí tu próxima prenda.</h1><p>Buscá ese color, ese estilo, eso que va con vos.</p></section>
           <section className="fashion-catalog" aria-label="Catálogo de prendas"><div className="fashion-catalog-toolbar" id="buscar"><label className="fashion-search"><span>Buscar prendas</span><div><Icon name="search" /><input type="search" placeholder="Nombre, código o estilo…" value={query} onChange={(event) => setQuery(event.target.value)} /></div></label><label className="fashion-sort">Ordenar por<select value={sort} onChange={(event) => setSort(event.target.value)}><option value="featured">Selección de la tienda</option><option value="price-up">Menor precio</option><option value="price-down">Mayor precio</option><option value="name">Nombre: A a Z</option></select></label></div>
             <div className="fashion-catalog-layout"><aside className="fashion-filters" aria-label="Filtros de prendas"><details open={filtersOpen} onToggle={(event) => setFiltersOpen(event.currentTarget.open)}><summary>Filtrar prendas</summary><div className="fashion-filter-body"><h2>Tipo de prenda</h2><div className="fashion-type-filters">{[{ id: 'all', name: 'Todas las prendas' }, ...types].map((entry) => <button key={entry.id} aria-pressed={entry.id === activeType} onClick={() => setType(entry.id)}><span>{entry.name}</span><small>{entry.id === 'all' ? products.length : products.filter((product) => productTypeIdFor(product) === entry.id).length}</small></button>)}</div>{categories.length > 1 && <label>Colección<select value={category} onChange={(event) => setCategory(event.target.value)}><option value="all">Todas las colecciones</option>{categories.map((entry) => <option key={entry}>{entry}</option>)}</select></label>}{availableSizes.length > 0 && <label>Talle<select value={size} onChange={(event) => setSize(event.target.value)}><option value="all">Todos los talles</option>{availableSizes.map((entry) => <option key={entry}>{entry}</option>)}</select></label>}{availableColors.length > 0 && <label>Color<select value={color} onChange={(event) => setColor(event.target.value)}><option value="all">Todos los colores</option>{availableColors.map((entry) => <option key={entry}>{entry}</option>)}</select></label>}</div></details></aside>
               <div className="fashion-results"><div className="fashion-result-count"><p role="status">{loaded ? `${filtered.length} ${filtered.length === 1 ? 'prenda' : 'prendas'}` : 'Cargando catálogo…'}</p>{filtersActive && <button onClick={clearFilters}>Limpiar filtros</button>}</div>{!loaded ? loading : filtered.length ? renderGrid(filtered) : <div className="fashion-empty"><h2>{loadError ? 'No pudimos cargar el catálogo.' : 'No encontramos prendas con esa búsqueda.'}</h2><p>{loadError ? 'Volvé a cargar la página para intentarlo de nuevo.' : 'Probá con otro nombre o explorá las otras categorías.'}</p><button className="fashion-button" onClick={loadError ? () => location.reload() : clearFilters}>{loadError ? 'Volver a cargar' : 'Ver todas las prendas'}</button></div>}</div></div>
